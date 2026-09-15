@@ -145,7 +145,7 @@ export default function DashboardPage() {
     return closedDbTrades.filter((t: any) => !t.is_transferred).slice(0, 10)
   }, [closedDbTrades])
   
-  // Dynamische KPIs über alle Trades
+// Dynamische KPIs über alle Trades (MUSS BLEIBEN)
   const netPnlDb = closedDbTrades.reduce((acc, t: any) => acc + Number(t.pnl), 0)
   const winningTrades = closedDbTrades.filter((t: any) => Number(t.pnl) > 0).length
   const winrate = closedDbTrades.length > 0 ? ((winningTrades / closedDbTrades.length) * 100).toFixed(1) : '0.0'
@@ -161,58 +161,58 @@ export default function DashboardPage() {
     ? netPnlDb / btcPrice 
     : netPnlDb
 
-  // Chart über alle Trades bis zum aktuellen Live-Stand
+  // Chart greift direkt auf echte Börsen-Snapshots zu – unabhängig von Trades
   const chartHistoryData = useMemo(() => {
-    if (!liveData && closedDbTrades.length === 0) return []
-    const now = Date.now()
     const currentLiveEquity = Number(liveData?.equity || 0)
+    const snapshots = liveData?.snapshots || []
 
-    const sortedTrades = [...closedDbTrades].sort((a: any, b: any) => {
-      const tA = new Date(a.timestamp || a.created_at).getTime()
-      const tB = new Date(b.timestamp || b.created_at).getTime()
-      return tA - tB
+    if (currentLiveEquity <= 0 && snapshots.length === 0) return []
+
+    const now = Date.now()
+    const isBtc = isBtcMode && btcPrice > 0
+
+    // 1. Echte Snapshots aus Supabase aufbereiten
+    const points: { timestamp: number; balance: number }[] = snapshots.map((s: any) => {
+      const rawEq = Number(s.equity || 0)
+      const balanceVal = isBtc 
+        ? Number((rawEq / btcPrice).toFixed(6)) 
+        : Number(rawEq.toFixed(2))
+
+      return {
+        timestamp: new Date(s.timestamp).getTime(),
+        balance: balanceVal,
+      }
     })
 
-    if (sortedTrades.length === 0) {
-      const val = isBtcMode && btcPrice > 0 ? Number((currentLiveEquity / btcPrice).toFixed(6)) : Number(currentLiveEquity.toFixed(2))
+    // Chronologisch sortieren
+    points.sort((a, b) => a.timestamp - b.timestamp)
+
+    // 2. Aktuellen Live-Stand als Endpunkt berechnen
+    const currentVal = isBtc 
+      ? Number((currentLiveEquity / btcPrice).toFixed(6)) 
+      : Number(currentLiveEquity.toFixed(2))
+
+    // Wenn noch keine Historie existiert: Flache Linie über die letzte Stunde
+    if (points.length === 0) {
       return [
-        { timestamp: now - (60 * 60 * 1000), balance: val },
-        { timestamp: now, balance: val }
+        { timestamp: now - (60 * 60 * 1000), balance: currentVal },
+        { timestamp: now, balance: currentVal }
       ]
     }
 
-    const totalTradesPnl = sortedTrades.reduce((acc, t) => acc + Number(t.pnl || 0), 0)
-    let runningEquity = currentLiveEquity - totalTradesPnl
+    // Wenn nur ein einzelner Snapshot vorliegt: Vorlauf-Punkt erzeugen
+    if (points.length === 1) {
+      points.unshift({
+        timestamp: points[0].timestamp - (15 * 60 * 1000),
+        balance: points[0].balance
+      })
+    }
 
-    const points: { timestamp: number; balance: number }[] = []
-
-    const firstTradeTime = new Date(sortedTrades[0].timestamp || sortedTrades[0].created_at).getTime()
-    const initialStart = firstTradeTime - (15 * 60 * 1000)
-
-    const startVal = isBtcMode && btcPrice > 0 
-      ? Number((runningEquity / btcPrice).toFixed(6)) 
-      : Number(runningEquity.toFixed(2))
-    
-    points.push({ timestamp: initialStart, balance: startVal })
-
-    sortedTrades.forEach((t: any) => {
-      runningEquity += Number(t.pnl || 0)
-      const tTime = new Date(t.timestamp || t.created_at).getTime()
-      const displayVal = isBtcMode && btcPrice > 0 
-        ? Number((runningEquity / btcPrice).toFixed(6)) 
-        : Number(runningEquity.toFixed(2))
-
-      points.push({ timestamp: tTime, balance: displayVal })
-    })
-
-    const finalVal = isBtcMode && btcPrice > 0 
-      ? Number((currentLiveEquity / btcPrice).toFixed(6)) 
-      : Number(currentLiveEquity.toFixed(2))
-    
-    points.push({ timestamp: now, balance: finalVal })
+    // Aktuellen Live-Punkt anfügen
+    points.push({ timestamp: now, balance: currentVal })
 
     return points
-  }, [liveData, closedDbTrades, isBtcMode, btcPrice])
+  }, [liveData, isBtcMode, btcPrice])
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6 text-slate-200 font-sans">

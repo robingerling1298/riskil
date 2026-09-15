@@ -83,10 +83,7 @@ export default function EquityChart({ currentEquity, currency = 'USD', unitMode 
           />
           
           <YAxis 
-  domain={[
-    (dataMin: number) => (dataMin > 0 ? Number((dataMin * 0.995).toFixed(6)) : dataMin),
-    (dataMax: number) => Number((dataMax * 1.005).toFixed(6))
-  ]}
+  domain={['auto', 'auto']}
   axisLine={false}
   tickLine={false}
   hide={true}
@@ -98,15 +95,15 @@ export default function EquityChart({ currentEquity, currency = 'USD', unitMode 
           />
           
           <Area 
-            type="monotone" 
+            type="linear" 
             dataKey="balance" 
             stroke="#089981" 
-            strokeWidth={2.2}
+            strokeWidth={2}
             fillOpacity={1} 
             fill="url(#colorBalance)" 
             dot={false} 
             activeDot={{ r: 4.5, fill: '#089981', stroke: '#0B0E14', strokeWidth: 2 }} 
-            isAnimationActive={true}
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>

@@ -14,15 +14,41 @@ export default function LoginPage() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setMessage('')
+    console.log(`1. Formular abgesendet. Modus: ${isSignUp ? 'signup' : 'login'}`)
+    console.log('2. Eingaben:', { email, passwordLength: password.length })
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setMessage(error.message)
-      else setMessage('Bestätigungs-E-Mail wurde gesendet!')
+      console.log('3. Sende signUp an Supabase...')
+      try {
+        const { data, error } = await supabase.auth.signUp({ email, password })
+        console.log('4. Supabase SignUp Antwort erhalten:', { data, error })
+        if (error) {
+          setMessage(error.message)
+        } else {
+          setMessage('Bestätigungs-E-Mail wurde gesendet!')
+        }
+      } catch (err) {
+        console.error('Unerwarteter SignUp-Fehler:', err)
+        setMessage('Ein unerwarteter Fehler ist aufgetreten.')
+      }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setMessage(error.message)
-      else router.push('/dashboard')
+      console.log('3. Sende signInWithPassword an Supabase...')
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        console.log('4. Supabase SignIn Antwort erhalten:', { data, error })
+
+        if (error) {
+          setMessage(error.message)
+        } else {
+          console.log('5. Login erfolgreich, leite weiter...')
+          setMessage('Erfolgreich eingeloggt! Weiterleitung...')
+          router.refresh()
+          window.location.href = 'https://go.riskil.app/dashboard'
+        }
+      } catch (err) {
+        console.error('Unerwarteter SignIn-Fehler:', err)
+        setMessage('Ein unerwarteter Fehler ist aufgetreten.')
+      }
     }
   }
 
