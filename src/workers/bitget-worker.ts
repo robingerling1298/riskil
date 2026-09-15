@@ -3,16 +3,23 @@ import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
 import WebSocket from 'ws';
 
-// 1. Clients initialisieren
+// 1. Clients initialisieren (Redis bleibt, Supabase wird lazy geladen, damit der Build nicht crasht)
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL || 'https://true-pegasus-173701.upstash.io',
   token: process.env.UPSTASH_REDIS_REST_TOKEN || 'gQAAAAAAAqaFAAIgcDEzYTljM2FjZTA1Y2Q0NDc1OWViNDM4ZTlhOTM3MTBkNg',
 });
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Helper, um den Supabase Service Client sicher zur Laufzeit zu holen
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase URL or Key is missing in environment variables.');
+  }
+
+  return createClient(supabaseUrl, supabaseKey);
+}
 
 // Einheitliches Fill-Schema
 export interface NormalizedFill {
@@ -41,6 +48,7 @@ export interface PositionState {
 // 2. Engine Logic: Fills verarbeiten & Trades mergen
 export async function processFill(fill: NormalizedFill) {
   const stateKey = `pos:${fill.userId}:${fill.exchange}:${fill.symbol}`;
+  const supabase = getSupabaseAdmin();
   
   // 1. Raw Fill in Supabase sichern (Audit-Trail)
   await supabase.from('raw_fills').upsert({
