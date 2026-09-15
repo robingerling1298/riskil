@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { ArrowUpRight, ArrowDownRight, ShieldAlert, Sparkles, Save, Check } from 'lucide-react'
 
+// Hier haben wir onLogTrade im Interface ergänzt:
 interface RiskCalculatorProps {
   isPro: boolean
   onLogTrade?: (data: any) => void
@@ -26,7 +27,6 @@ export default function RiskCalculator({ isPro, onLogTrade }: RiskCalculatorProp
   // Status
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
-
 
   // 1. Risikobetrag berechnen
   const calculatedRiskAmount = riskMode === 'PERCENT' 
@@ -51,7 +51,7 @@ export default function RiskCalculator({ isPro, onLogTrade }: RiskCalculatorProp
   const expectedProfit = isValidSetup && tpDistance > 0 ? positionSizeUnits * tpDistance : 0
   const rrr = calculatedRiskAmount > 0 ? expectedProfit / calculatedRiskAmount : 0
 
-  // 6. Empfohlener Mindesthebel (Damit die Position ohne Over-Leveraging eröffnet werden kann)
+  // 6. Empfohlener Mindesthebel
   const minLeverage = accountSize > 0 ? Math.ceil(positionSizeUsd / accountSize) : 1
 
   // Speichern ins Cloud-Journal
@@ -78,9 +78,18 @@ export default function RiskCalculator({ isPro, onLogTrade }: RiskCalculatorProp
 
     if (!error) {
       setSaveSuccess(true)
+      
+      // Hier rufen wir die übergebene onLogTrade Funktion auf, damit sich das Modal öffnet:
       if (onLogTrade) {
-        onLogTrade({ entryPrice, stopLoss, positionSize: positionSizeUnits })
+        onLogTrade({
+          pair: 'BTC/USDT',
+          direction: direction,
+          entryPrice: entryPrice,
+          leverage: minLeverage,
+          margin: calculatedRiskAmount,
+        })
       }
+
       setTimeout(() => setSaveSuccess(false), 3000)
     }
   }

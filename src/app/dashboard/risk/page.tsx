@@ -26,7 +26,7 @@ export default function RiskPage() {
         <p className="text-xs text-slate-400">Bestimme dein Kontorisiko und maximalen Verlust pro Trade.</p>
       </div>
 
-      <RiskCalculator onLogTrade={handleLogTrade} />
+      <RiskCalculator isPro={true} onLogTrade={handleLogTrade} />
 
       <LogTradeModal
         isOpen={isModalOpen}
