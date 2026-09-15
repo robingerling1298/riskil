@@ -1,26 +1,56 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Main Dark Terminal Colors */
+  --bg-main: #0B0E14;
+  --bg-card: #0F131C;
+  --bg-card-hover: #141924;
+  --border-color: #161A23;
+  --border-focus: #1A1F2C;
+
+  /* Accent Color (Pure Smaragd / TradingView Green) */
+  --accent: #089981;
+  --accent-hover: #067a67;
+  --accent-muted: rgba(8, 153, 129, 0.12);
+  --accent-border: rgba(8, 153, 129, 0.3);
+  
+  /* Text Defaults */
+  --foreground: #F1F5F9;
+  --foreground-muted: #94A3B8;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-background: var(--bg-main);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Semantic Utility Classes for Tailwind v4 */
+  --color-term-bg: var(--bg-main);
+  --color-term-card: var(--bg-card);
+  --color-term-hover: var(--bg-card-hover);
+  --color-term-border: var(--border-color);
+
+  --color-brand: var(--accent);
+  --color-brand-hover: var(--accent-hover);
+  --color-brand-muted: var(--accent-muted);
+  --color-brand-border: var(--accent-border);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--bg-main);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Number Input Styling Fixes for Dark Mode */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  filter: invert(0.8) !important;
+  cursor: pointer;
+}
+
+input[type='number'] {
+  color-scheme: dark;
 }

@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  devIndicators: false, // 💥 Hier ist der richtige Platz dafür
 };
 
 export default nextConfig;
