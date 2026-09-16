@@ -33,12 +33,19 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* MOBILE TOP BAR (mit validem CSS-calc für Safe-Area) */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-term-bg/95 backdrop-blur-md border-b border-term-border px-4 h-[calc(4rem_+_env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] flex items-center justify-between">
+      {/* MOBILE TOP BAR (Native Safe-Area-Styles, z-[60] garantiert über allem) */}
+      <div 
+        className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-[#0B0E14]/95 backdrop-blur-md border-b border-[#161A23] px-4 flex items-center justify-between"
+        style={{
+          height: 'calc(4rem + env(safe-area-inset-top, 0px))',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
+      >
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="p-2 text-slate-400 hover:text-white rounded-xl bg-term-card border border-term-border"
+            className="p-2 text-slate-400 hover:text-white rounded-xl bg-[#141824] border border-[#1E2536] transition-colors cursor-pointer"
             aria-label="Navigation öffnen"
           >
             {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -66,18 +73,22 @@ export default function Sidebar() {
       {isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
-          className="md:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          className="md:hidden fixed inset-0 z-[65] bg-black/70 backdrop-blur-sm"
         />
       )}
 
       {/* SIDEBAR (Desktop Hover + Mobile Drawer) */}
       <aside
-        className={`group fixed top-0 left-0 z-50 h-screen h-[100dvh] bg-term-bg/95 backdrop-blur-md border-r border-term-border p-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))] flex flex-col justify-between transition-all duration-300 ease-in-out shadow-2xl overflow-hidden
+        className={`group fixed top-0 left-0 z-[70] h-screen bg-[#0B0E14]/95 backdrop-blur-md border-r border-[#161A23] p-3 flex flex-col justify-between transition-all duration-300 ease-in-out shadow-2xl overflow-hidden
           ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full'}
           md:translate-x-0 md:w-16 md:hover:w-64
         `}
+        style={{
+          paddingTop: isMobileOpen ? 'calc(1rem + env(safe-area-inset-top, 0px))' : undefined,
+          paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
+        }}
       >
-        <div className="space-y-6 pt-[calc(3.5rem_+_env(safe-area-inset-top))] md:pt-0">
+        <div className="space-y-6 pt-12 md:pt-0">
           {/* LOGO / HEADER */}
           <div className="flex items-center gap-3 px-1.5 py-1 min-w-max">
             <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-lg shadow-brand-border">
@@ -125,9 +136,8 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        {/* FOOTER BEREICH (Einstellungen & Status) */}
-        <div className="space-y-3 pt-2 border-t border-term-border">
-          {/* PROFIL & EINSTELLUNGEN LINK */}
+        {/* FOOTER BEREICH */}
+        <div className="space-y-3 pt-2 border-t border-[#161A23]">
           <Link
             href="/dashboard/profile"
             onClick={() => setIsMobileOpen(false)}
@@ -143,7 +153,6 @@ export default function Sidebar() {
             </span>
           </Link>
 
-          {/* SYSTEM STATUS */}
           <div className="flex items-center gap-3 px-1.5 py-1 min-w-max text-[11px] text-slate-500">
             <div className="w-2.5 h-2.5 rounded-full bg-brand shrink-0 animate-pulse" />
             <span className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
