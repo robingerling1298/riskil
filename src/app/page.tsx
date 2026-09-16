@@ -106,11 +106,13 @@ export default function LandingPage() {
   const [isPlanCompliant, setIsPlanCompliant] = useState(true)
   const [rating, setRating] = useState(4)
 
-  // 4. Hebelrechner State (Modul 3)
+  // 4. Hebelrechner State (Modul 3 mit % und $ Umschalter)
   const [tranches, setTranches] = useState([
     { id: '1', price: 64500, margin: 150 }
   ])
+  const [riskMode, setRiskMode] = useState<'PERCENT' | 'USD'>('PERCENT')
   const [calcRiskPct, setCalcRiskPct] = useState(1.5)
+  const [calcRiskUsd, setCalcRiskUsd] = useState(3.75)
   const [calcSl, setCalcSl] = useState(63800)
 
   const activeMargin = tranches.reduce((sum, t) => sum + (Number(t.margin) || 0), 0)
@@ -118,11 +120,26 @@ export default function LandingPage() {
     ? tranches.reduce((sum, t) => sum + (Number(t.price) * Number(t.margin)), 0) / activeMargin
     : 0
 
+  const handlePercentChange = (val: number) => {
+    setCalcRiskPct(val)
+    if (activeMargin > 0) {
+      setCalcRiskUsd(Number(((activeMargin * val) / 100).toFixed(2)))
+    }
+  }
+
+  const handleUsdChange = (val: number) => {
+    setCalcRiskUsd(val)
+    if (activeMargin > 0) {
+      setCalcRiskPct(Number(((val / activeMargin) * 100).toFixed(2)))
+    }
+  }
+
   const slDistPct = avgEntryPrice > 0 ? Math.abs((avgEntryPrice - calcSl) / avgEntryPrice) * 100 : 0
   const roundtripFeePct = 0.08
   const totalRiskPct = slDistPct + roundtripFeePct
-  const optimalLeverage = totalRiskPct > 0 ? Math.min(50, Math.max(1, (calcRiskPct * 10) / totalRiskPct)) : 1
-  const maxLossUsd = (activeMargin * calcRiskPct) / 100
+  const effectiveLossPercent = riskMode === 'PERCENT' ? calcRiskPct : (activeMargin > 0 ? (calcRiskUsd / activeMargin) * 100 : 0)
+  const optimalLeverage = totalRiskPct > 0 ? Math.min(50, Math.max(1, (effectiveLossPercent * 10) / totalRiskPct)) : 1
+  const maxLossUsd = riskMode === 'PERCENT' ? (activeMargin * calcRiskPct) / 100 : calcRiskUsd
   const totalNotionalUsd = activeMargin * optimalLeverage
 
   const addTranche = () => {
@@ -257,7 +274,7 @@ export default function LandingPage() {
             Offene Positionen & der psychologische Ehrlichkeits-Filter.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Trades scheitern fast nie am Chart, sondern an der mentalen Verfassung beim Einstieg. Riskil zwingt dich dazu, deine Setup-Klasse und Emotion <strong className="text-slate-200">während des laufenden Trades</strong> festzuhalten und zu verriegeln. Wer hinterher Ausreden sucht, scheitert am System.
+            Trades scheitern fast nie am Chart, sondern an der mentalen Verfassung beim Einstieg[cite: 4]. Riskil zwingt dich dazu, deine Setup-Klasse und Emotion <strong className="text-slate-200">während des laufenden Trades</strong> festzuhalten und zu verriegeln[cite: 4]. Wer hinterher Ausreden sucht, scheitert am System[cite: 4].
           </p>
         </div>
 
@@ -498,7 +515,7 @@ export default function LandingPage() {
             Kein geschlossener Trade landet unanalysiert im Archiv.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Geschlossene Positionen fließen automatisch in deine <strong className="text-slate-200">Post-Trade Inbox</strong>. Sie werden erst für deine Gesamtstatistik freigeschaltet, wenn Austrittsgrund, Emotion und Disziplin ehrlich dokumentiert wurden.
+            Geschlossene Positionen fließen automatisch in deine <strong className="text-slate-200">Post-Trade Inbox</strong>[cite: 1]. Sie werden erst für deine Gesamtstatistik freigeschaltet, wenn Austrittsgrund, Emotion und Disziplin ehrlich dokumentiert wurden[cite: 1].
           </p>
         </div>
 
@@ -611,7 +628,7 @@ export default function LandingPage() {
             Stop-Loss Distanz & Gebühren bestimmen den Hebel – nicht deine Gier.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Standard-Hebelrechner ignorieren Börsengebühren. Riskil errechnet deinen exakten Hebel anhand deines maximalen Dollar-Verlusts und zieht Maker- und Taker-Roundtrips automatisch mit ein.
+            Standard-Hebelrechner ignorieren Börsengebühren[cite: 2]. Riskil errechnet deinen exakten Hebel anhand deines maximalen Dollar-Verlusts und zieht Maker- und Taker-Roundtrips automatisch mit ein[cite: 2].
           </p>
         </div>
 
@@ -709,17 +726,62 @@ export default function LandingPage() {
             </div>
 
             <div className="bg-[#07090E] border border-[#161A23] p-4 rounded-xl space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                <span>Max. Margen-Verlust in %</span>
-                <span className="text-[10px] font-mono text-slate-500">≈ ${maxLossUsd.toFixed(2)} Verlust</span>
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                value={calcRiskPct}
-                onChange={(e) => setCalcRiskPct(Number(e.target.value))}
-                className="w-full bg-[#0B0E14] border border-[#1E2536] rounded-xl py-2 px-3 text-sm font-mono text-white outline-none focus:border-[#089981]"
-              />
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Max. Margen-Verlust
+                </label>
+                {/* Switcher zwischen % und $ */}
+                <div className="flex bg-[#0B0E14] p-0.5 rounded-lg border border-[#1E2536] text-[10px] font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setRiskMode('PERCENT')}
+                    className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                      riskMode === 'PERCENT' ? 'bg-[#089981] text-white font-black' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    % von Marge
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRiskMode('USD')}
+                    className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                      riskMode === 'USD' ? 'bg-[#089981] text-white font-black' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    $ Betrag
+                  </button>
+                </div>
+              </div>
+
+              {riskMode === 'PERCENT' ? (
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={calcRiskPct}
+                    onChange={(e) => handlePercentChange(Number(e.target.value))}
+                    className="w-full bg-[#0B0E14] border border-[#1E2536] rounded-xl py-2 px-3 pr-8 text-sm font-mono text-white outline-none focus:border-[#089981]"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-500">%</span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="1"
+                    value={calcRiskUsd}
+                    onChange={(e) => handleUsdChange(Number(e.target.value))}
+                    className="w-full bg-[#0B0E14] border border-[#1E2536] rounded-xl py-2 px-3 pr-8 text-sm font-mono text-white outline-none focus:border-[#089981]"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-500">$</span>
+                </div>
+              )}
+
+              <span className="text-[10px] font-mono text-slate-500 block">
+                {riskMode === 'PERCENT'
+                  ? `≈ $${maxLossUsd.toFixed(2)} von $${activeMargin.toFixed(2)} Marge`
+                  : `≈ ${effectiveLossPercent.toFixed(1)}% der Marge`}
+              </span>
             </div>
           </div>
 
@@ -754,7 +816,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* HINDSIGHT BIAS MODAL (DEZENTER BACKDROP-BLUR & SAUBERER TEXT) */}
+      {/* HINDSIGHT BIAS MODAL */}
       {/* ========================================================================= */}
       {showWarningModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-150">
