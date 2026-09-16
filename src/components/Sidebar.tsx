@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, 
@@ -32,8 +33,8 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* MOBILE TOP BAR */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-term-bg/95 backdrop-blur-md border-b border-term-border px-4 py-3 flex items-center justify-between">
+      {/* MOBILE TOP BAR (mit nativer iOS Safe-Area-Höhe und Logo) */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-term-bg/95 backdrop-blur-md border-b border-term-border px-4 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -43,9 +44,16 @@ export default function Sidebar() {
             {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center font-black text-black text-xs shadow-md">
-              R
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-7 h-7 rounded-lg overflow-hidden shrink-0 shadow-md">
+              <Image 
+                src="/icon.svg" 
+                alt="Riskil Logo" 
+                width={28} 
+                height={28} 
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
             <span className="text-sm font-bold text-white tracking-wide">
               RISKIL
@@ -64,22 +72,29 @@ export default function Sidebar() {
 
       {/* SIDEBAR (Desktop Hover + Mobile Drawer) */}
       <aside
-        className={`group fixed top-0 left-0 z-50 h-screen bg-term-bg/95 backdrop-blur-md border-r border-term-border p-3 flex flex-col justify-between transition-all duration-300 ease-in-out shadow-2xl overflow-hidden
+        className={`group fixed top-0 left-0 z-50 h-screen h-[100dvh] bg-term-bg/95 backdrop-blur-md border-r border-term-border p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex flex-col justify-between transition-all duration-300 ease-in-out shadow-2xl overflow-hidden
           ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full'}
           md:translate-x-0 md:w-16 md:hover:w-64
         `}
       >
-        <div className="space-y-6 pt-14 md:pt-0">
+        <div className="space-y-6 pt-[calc(3.5rem+env(safe-area-inset-top))] md:pt-0">
           {/* LOGO / HEADER */}
           <div className="flex items-center gap-3 px-1.5 py-1 min-w-max">
-            <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center font-black text-black text-sm shrink-0 shadow-lg shadow-brand-border">
-              RSKL
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-lg shadow-brand-border">
+              <Image 
+                src="/icon.svg" 
+                alt="Riskil Logo" 
+                width={40} 
+                height={40} 
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
             <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
               <h2 className="text-sm font-bold text-white tracking-wide whitespace-nowrap">
                 RISKIL <span className="text-[10px] text-brand font-mono">v3.4</span>
               </h2>
-              <p className="text-[10px] text-slate-500 whitespace-nowrap">Engineering Dicipline.</p>
+              <p className="text-[10px] text-slate-500 whitespace-nowrap">Engineering Discipline.</p>
             </div>
           </div>
 
