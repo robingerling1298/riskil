@@ -149,7 +149,6 @@ export class BitgetSyncService {
 
     for (const pos of top10Positions) {
       const rawSymbol = String(pos.symbol || '').toUpperCase()
-      // Robuste Erkennung: holdSide, posSide, side oder direction
       const rawSide = String(pos.holdSide || pos.posSide || pos.side || pos.direction || '').toUpperCase()
       const posSide: 'LONG' | 'SHORT' = rawSide.includes('SHORT') || rawSide.includes('SELL') ? 'SHORT' : 'LONG'
       const marginCoin = String(pos.marginCoin || 'USDT').toUpperCase()
@@ -164,8 +163,15 @@ export class BitgetSyncService {
         .eq('external_id', externalId)
         .maybeSingle()
 
-      // Normalisierung zur sicheren Key-Erkennung
       const cleanRawSymbol = rawSymbol.replace(/_.*$/, '').replace(/[^A-Z0-9]/g, '')
+
+      // Prüfen, ob für dieses Symbol aktuell eine Position LIVE geöffnet ist
+      const isOpenNow = (activePositions || []).some((ap: any) => {
+        const apSymbol = String(ap.symbol || '').toUpperCase().replace(/_.*$/, '').replace(/[^A-Z0-9]/g, '')
+        const rawApSide = String(ap.holdSide || ap.posSide || ap.side || '').toUpperCase()
+        const apSide: 'LONG' | 'SHORT' = rawApSide.includes('SHORT') || rawApSide.includes('SELL') ? 'SHORT' : 'LONG'
+        return (apSymbol === cleanRawSymbol || apSymbol.includes(cleanRawSymbol) || cleanRawSymbol.includes(apSymbol)) && apSide === posSide
+      })
 
       const getDictKey = (dict: any) => {
         if (!dict || typeof dict !== 'object') return null
@@ -196,8 +202,9 @@ export class BitgetSyncService {
         return null
       }
 
-      const tagKey = getDictKey(activeTags)
-      const preTradeKey = getDictKey(activePreTrades)
+      // Schlüssel nur abgreifen, wenn die Position NICHT gerade noch aktiv offen ist
+      const tagKey = !isOpenNow ? getDictKey(activeTags) : null
+      const preTradeKey = !isOpenNow ? getDictKey(activePreTrades) : null
 
       const rawPnl = pos.netProfit ?? pos.netProfits ?? pos.pnl ?? pos.realizedPL ?? pos.achievedProfits ?? pos.closeProfit ?? 0
       const pnl = Number(rawPnl)
@@ -242,41 +249,26 @@ export class BitgetSyncService {
         }
 
         if (!insertErr) {
+          // NUR bereinigen, wenn Position nicht mehr offen ist und Daten tatsächlich übertragen wurden
           if (tagKey) { delete activeTags[tagKey]; settingsModified = true; }
           if (preTradeKey) { delete activePreTrades[preTradeKey]; settingsModified = true; }
         } else {
           console.error('[BITGET SYNC INSERT ERROR]:', insertErr.message)
         }
       } else {
-        // Trade existiert bereits: PnL aktualisieren und Tags/Lock nachtragen, falls noch offen
-        const updatePayload: any = {
-          pnl: pnl,
-          total_fees: totalFees,
-          exit_price: exitPrice,
-          entry_price: entryPrice,
+        // Trade existiert bereits: PnL und Gebühren aktualisieren, falls noch offen/0
+        if (existing.pnl === 0 && pnl !== 0) {
+          await supabaseClient
+            .from('trades')
+            .update({ 
+              pnl: pnl, 
+              total_fees: totalFees,
+              exit_price: exitPrice,
+              entry_price: entryPrice,
+            })
+            .eq('id', existing.id)
         }
-
-        if ((!existing.entry_tags || existing.entry_tags.length === 0) && preselectedTags.length > 0) {
-          updatePayload.entry_tags = preselectedTags
-        }
-        if (!existing.is_locked && wasLocked) {
-          updatePayload.is_locked = wasLocked
-        }
-        if (preTrade.preNotes) {
-          updatePayload.entry_notes = preTrade.preNotes
-        }
-        if (preTrade.conviction !== undefined) {
-          updatePayload.conviction = preTrade.conviction
-        }
-
-        await supabaseClient
-          .from('trades')
-          .update(updatePayload)
-          .eq('id', existing.id)
-
-        // Nach erfolgreicher Synchronisation aus den temporären Active-Listen entfernen
-        if (tagKey) { delete activeTags[tagKey]; settingsModified = true; }
-        if (preTradeKey) { delete activePreTrades[preTradeKey]; settingsModified = true; }
+        // Keine Deletes von activeTags oder activePreTrades im else-Zweig!
       }
     }
 
