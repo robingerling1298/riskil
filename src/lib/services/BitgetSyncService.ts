@@ -39,7 +39,7 @@ export class BitgetSyncService {
 
       if (data && data.code === '00000') {
         return (data.data || []).map((item: any) => {
-          const rawSide = String(item.holdSide || item.posSide || '').toUpperCase()
+          const rawSide = String(item.holdSide || item.posSide || item.side || '').toUpperCase()
           const side: 'LONG' | 'SHORT' = rawSide.includes('SHORT') ? 'SHORT' : 'LONG'
           const totalSize = Number(item.total || item.totalPos || item.contracts || item.size || 0)
 
@@ -148,33 +148,51 @@ export class BitgetSyncService {
     const top10Positions = allClosedPositions.slice(0, 10)
 
     for (const pos of top10Positions) {
-      const rawSymbol = pos.symbol
-      const rawSide = String(pos.holdSide || '').toUpperCase()
-      const posSide: 'LONG' | 'SHORT' = rawSide.includes('SHORT') ? 'SHORT' : 'LONG'
-      const marginCoin = pos.marginCoin || 'USDT'
+      const rawSymbol = String(pos.symbol || '').toUpperCase()
+      // Robuste Erkennung: holdSide, posSide, side oder direction
+      const rawSide = String(pos.holdSide || pos.posSide || pos.side || pos.direction || '').toUpperCase()
+      const posSide: 'LONG' | 'SHORT' = rawSide.includes('SHORT') || rawSide.includes('SELL') ? 'SHORT' : 'LONG'
+      const marginCoin = String(pos.marginCoin || 'USDT').toUpperCase()
       
       const closeTime = Number(pos.uTime || pos.cTime || Date.now())
-      const tradeCTime = pos.cTime ? String(pos.cTime) : ''
       const externalId = `bitget-${marginCoin.toLowerCase()}-${pos.positionId || `${rawSymbol}-${posSide}-${closeTime}`}`
 
       const { data: existing } = await supabaseClient
         .from('trades')
-        .select('id, pnl')
+        .select('id, pnl, entry_tags, is_locked')
         .eq('user_id', userId)
         .eq('external_id', externalId)
         .maybeSingle()
 
-      // 💥 Intelligente Zuordnung: Erst mit exaktem Eröffnungs-Timestamp suchen, sonst Fallback
+      // Normalisierung zur sicheren Key-Erkennung
+      const cleanRawSymbol = rawSymbol.replace(/_.*$/, '').replace(/[^A-Z0-9]/g, '')
+
       const getDictKey = (dict: any) => {
-        if (tradeCTime) {
-          for (const k of Object.keys(dict)) {
-            if (k.includes(rawSymbol) && k.includes(posSide) && k.includes(marginCoin) && k.includes(tradeCTime)) return k
+        if (!dict || typeof dict !== 'object') return null
+
+        // 1. Exakter Match: z. B. "BTCUSDT-LONG-USDT"
+        const exactKey = `${rawSymbol}-${posSide}-${marginCoin}`
+        if (dict[exactKey]) return exactKey
+
+        // 2. Normalisierter Match über alle Keys
+        for (const k of Object.keys(dict)) {
+          const upperKey = k.toUpperCase()
+          const cleanK = upperKey.replace(/_.*$/, '').replace(/[^A-Z0-9]/g, '')
+
+          if (cleanK.includes(cleanRawSymbol) && upperKey.includes(posSide)) {
+            return k
           }
         }
+
+        // 3. Fallback: Reines Basis-Asset (z. B. BTC) + Seite
+        const baseAsset = cleanRawSymbol.replace(/USDT|USDC|USD/g, '')
         for (const k of Object.keys(dict)) {
-          if (k.includes(rawSymbol) && k.includes(posSide) && k.includes(marginCoin)) return k
-          if (k.startsWith(rawSymbol.replace(/\/.*$/, '')) && k.includes(posSide)) return k
+          const upperKey = k.toUpperCase()
+          if (upperKey.includes(baseAsset) && upperKey.includes(posSide)) {
+            return k
+          }
         }
+
         return null
       }
 
@@ -188,12 +206,12 @@ export class BitgetSyncService {
       const exitPrice = Number(pos.closeAvgPrice || 0)
       const entryPrice = Number(pos.openAvgPrice || 0)
 
-      if (!existing) {
-        const preselectedTags = tagKey ? activeTags[tagKey] : []
-        const preTrade = preTradeKey ? activePreTrades[preTradeKey] : {}
-        const displayPair = tagKey ? tagKey.replace(`-${posSide}`, '').replace(/-[0-9]+$/, '') : rawSymbol
-        const wasLocked = Boolean(preTrade.locked)
+      const preselectedTags = tagKey && Array.isArray(activeTags[tagKey]) ? activeTags[tagKey] : []
+      const preTrade = preTradeKey && activePreTrades[preTradeKey] ? activePreTrades[preTradeKey] : {}
+      const wasLocked = Boolean(preTrade.locked)
+      const displayPair = rawSymbol.includes('/') ? rawSymbol : `${cleanRawSymbol.replace(/USDT$/, '')}/USDT`
 
+      if (!existing) {
         const tradePayload: any = {
           user_id: userId,
           external_id: externalId,
@@ -216,7 +234,7 @@ export class BitgetSyncService {
 
         let { error: insertErr } = await supabaseClient.from('trades').insert(tradePayload)
 
-        // Fallback falls Spalte is_locked noch fehlen sollte
+        // Fallback falls Spalte is_locked in trades noch nicht existiert
         if (insertErr && insertErr.message?.includes('is_locked')) {
           delete tradePayload.is_locked
           const retry = await supabaseClient.from('trades').insert(tradePayload)
@@ -224,24 +242,39 @@ export class BitgetSyncService {
         }
 
         if (!insertErr) {
-          // 💥 Altes Tag & Pre-Trade SOFORT restlos aus der DB löschen
           if (tagKey) { delete activeTags[tagKey]; settingsModified = true; }
           if (preTradeKey) { delete activePreTrades[preTradeKey]; settingsModified = true; }
+        } else {
+          console.error('[BITGET SYNC INSERT ERROR]:', insertErr.message)
         }
       } else {
-        if (existing.pnl === 0 && pnl !== 0) {
-          await supabaseClient
-            .from('trades')
-            .update({ 
-              pnl: pnl, 
-              total_fees: totalFees,
-              exit_price: exitPrice,
-              entry_price: entryPrice
-            })
-            .eq('id', existing.id)
+        // Trade existiert bereits: PnL aktualisieren und Tags/Lock nachtragen, falls noch offen
+        const updatePayload: any = {
+          pnl: pnl,
+          total_fees: totalFees,
+          exit_price: exitPrice,
+          entry_price: entryPrice,
         }
 
-        // 💥 Sobald der Trade in der Historie existiert, wird die alte Analyse bedingungslos gelöscht
+        if ((!existing.entry_tags || existing.entry_tags.length === 0) && preselectedTags.length > 0) {
+          updatePayload.entry_tags = preselectedTags
+        }
+        if (!existing.is_locked && wasLocked) {
+          updatePayload.is_locked = wasLocked
+        }
+        if (preTrade.preNotes) {
+          updatePayload.entry_notes = preTrade.preNotes
+        }
+        if (preTrade.conviction !== undefined) {
+          updatePayload.conviction = preTrade.conviction
+        }
+
+        await supabaseClient
+          .from('trades')
+          .update(updatePayload)
+          .eq('id', existing.id)
+
+        // Nach erfolgreicher Synchronisation aus den temporären Active-Listen entfernen
         if (tagKey) { delete activeTags[tagKey]; settingsModified = true; }
         if (preTradeKey) { delete activePreTrades[preTradeKey]; settingsModified = true; }
       }

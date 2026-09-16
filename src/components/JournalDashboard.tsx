@@ -182,13 +182,15 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
     const hasRating = !!targetTrade.trade_rating
     const hasMood = !!targetTrade.mood
 
-    const isEntryComplete = targetTrade.is_locked || (
-      entryTags.some((t: string) => SETUP_CLASSES.includes(t)) && 
-      entryTags.some((t: string) => MENTAL_STATES.includes(t))
+    // In der Inbox (Dashboard) ist die Einstiegsanalyse bereits vorab abgeschlossen
+    const isEntryComplete = Boolean(
+      targetTrade.is_locked || 
+      (entryTags && entryTags.length > 0) || 
+      viewMode === 'dashboard'
     )
 
     if (!hasExitReason || !hasRating || !hasMood || !isEntryComplete) {
-      alert("Bitte fülle alle Pflichtfelder (Setup-Klasse, mentale Verfassung, Austrittsgrund, Emotion nach Exit und Bewertung) aus.")
+      alert("Bitte fülle alle Pflichtfelder (Austrittsgrund, Emotion nach Exit und Management-Bewertung) aus.")
       return
     }
 
@@ -344,8 +346,8 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
           const hasRating = !!trade.trade_rating
           const hasMood = !!trade.mood
           
-          const wasLocked = !!trade.is_locked
-          const isEntryComplete = wasLocked || (
+          const wasLocked = Boolean(trade.is_locked || (entryTags && entryTags.length > 0))
+          const isEntryComplete = wasLocked || viewMode === 'dashboard' || (
             entryTags.some(t => SETUP_CLASSES.includes(t)) && 
             entryTags.some(t => MENTAL_STATES.includes(t))
           )
@@ -427,7 +429,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                     ))}
                     {!isReadyToTransfer && viewMode === 'dashboard' && (
                       <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md font-semibold font-mono">
-                        {!isEntryComplete ? 'Einstiegs- & Post-Analyse offen' : 'Post-Analyse offen'}
+                        Post-Analyse offen
                       </span>
                     )}
                   </div>
@@ -515,18 +517,14 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                     </div>
                   </div>
 
-                  {/* ERÖFFNUNGSANALYSE */}
-                  {(viewMode === 'journal' || (viewMode === 'dashboard' && !wasLocked)) && (
+                  {/* ERÖFFNUNGSANALYSE - NUR IM HANDELSJOURNAL SICHTBAR */}
+                  {viewMode === 'journal' && (
                     <div className="space-y-3">
-                      <span className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${viewMode === 'dashboard' ? 'text-amber-400' : 'text-[#089981]'}`}>
-                        {viewMode === 'dashboard' ? (
-                          <><AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> Einstiegsanalyse nachholen (Vorab nicht gelockt)</>
-                        ) : (
-                          <><Lock className="w-3 h-3" /> Eröffnungsanalyse {!isUnlockedInJournal ? '(Verriegelt)' : ''}</>
-                        )}
+                      <span className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 text-[#089981]">
+                        <Lock className="w-3 h-3" /> Eröffnungsanalyse {!isUnlockedInJournal ? '(Verriegelt)' : ''}
                       </span>
 
-                      {viewMode === 'journal' && !isUnlockedInJournal ? (
+                      {!isUnlockedInJournal ? (
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                           <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
                             <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
@@ -935,9 +933,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                             </button>
                             {!isReadyToTransfer && (
                               <p className="text-[11px] text-amber-400/80 text-center mt-2 font-medium">
-                                {!isEntryComplete 
-                                  ? 'Bitte Einstiegsanalyse (Setup & Mental State) sowie Exit-Grund, Emotion und Bewertung ausfüllen.' 
-                                  : 'Bitte Austrittsgrund, Emotion nach Exit und Management-Bewertung ausfüllen.'}
+                                Bitte Austrittsgrund, Emotion nach Exit und Management-Bewertung ausfüllen.
                               </p>
                             )}
                           </div>

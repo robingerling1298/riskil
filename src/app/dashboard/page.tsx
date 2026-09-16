@@ -82,13 +82,15 @@ export default function DashboardPage() {
     openPositions: any[]; 
     snapshots?: { timestamp: string, equity: number }[];
     activeTags?: Record<string, string[]>;
-    activePreTrades?: Record<string, { energy: number; conviction: number; locked: boolean }>;
+    active_tags?: Record<string, string[]>;
+    activePreTrades?: Record<string, { energy: number; conviction: number; locked: boolean; initialSize?: number; preNotes?: string }>;
+    active_pre_trades?: Record<string, { energy: number; conviction: number; locked: boolean; initialSize?: number; preNotes?: string }>;
   } | null>(null)
 
   const [dbTrades, setDbTrades] = useState<any[]>([])
   const failCountRef = useRef(0)
 
-  // Schneller Startabruf (Trades, Verbindung und letzter Snapshot aus Supabase)
+  // Schneller Startabruf (Trades, Verbindung, gelockte Pre-Trades und Snapshot aus Supabase)
   const fetchSupabaseInitialData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -108,7 +110,7 @@ export default function DashboardPage() {
           .order('timestamp', { ascending: false }),
         supabase
           .from('user_settings')
-          .select('selected_exchange, api_key')
+          .select('selected_exchange, api_key, active_tags, active_pre_trades')
           .eq('user_id', user.id)
           .maybeSingle(),
         supabase
@@ -124,20 +126,26 @@ export default function DashboardPage() {
         setDbTrades(tradesRes.data)
       }
 
-      if (settingsRes.data?.api_key) {
-        const ex = settingsRes.data.selected_exchange || 'bitget'
+      const settingsData = settingsRes.data
+      if (settingsData?.api_key) {
+        const ex = settingsData.selected_exchange || 'bitget'
         setConnectedExchange(ex.charAt(0).toUpperCase() + ex.slice(1))
       }
 
       const latestSnapshot = snapshotRes.data
-      if (latestSnapshot) {
-        setLiveData((prev) => prev || {
-          equity: Number(latestSnapshot.equity),
-          currency: latestSnapshot.currency || 'USD',
-          openPositions: [],
-          snapshots: [],
-        })
-      }
+      const initialActiveTags = settingsData?.active_tags || {}
+      const initialPreTrades = settingsData?.active_pre_trades || {}
+
+      setLiveData((prev) => ({
+        equity: prev?.equity ?? Number(latestSnapshot?.equity || 0),
+        currency: prev?.currency ?? latestSnapshot?.currency ?? 'USD',
+        openPositions: prev?.openPositions ?? [],
+        snapshots: prev?.snapshots ?? [],
+        activeTags: initialActiveTags,
+        active_tags: initialActiveTags,
+        activePreTrades: initialPreTrades,
+        active_pre_trades: initialPreTrades,
+      }))
     } catch (err) {
       console.error('Fehler beim initialen Laden der Supabase-Daten:', err)
       router.replace('/auth')
@@ -153,7 +161,13 @@ export default function DashboardPage() {
         const data = await res.json()
         if (data.success) {
            failCountRef.current = 0
-           setLiveData(data)
+           setLiveData(prev => ({
+             ...data,
+             activeTags: data.activeTags || data.active_tags || prev?.activeTags || prev?.active_tags || {},
+             active_tags: data.active_tags || data.activeTags || prev?.active_tags || prev?.activeTags || {},
+             activePreTrades: data.activePreTrades || data.active_pre_trades || prev?.activePreTrades || prev?.active_pre_trades || {},
+             active_pre_trades: data.active_pre_trades || data.activePreTrades || prev?.active_pre_trades || prev?.activePreTrades || {}
+           }))
            setConnectedExchange('Bitget')
 
            if (data.dbTrades) {
@@ -369,7 +383,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Exakt erhaltene KPI-Kacheln direkt unter dem Performance-Chart */}
+      {/* KPI-Kacheln direkt unter dem Performance-Chart */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="bg-[#0B0E14] border border-[#161A23] rounded-xl p-4">
           <div className="flex justify-between items-center text-slate-500 mb-1.5">
@@ -421,8 +435,8 @@ export default function DashboardPage() {
       {/* Active Positions & Journal Inbox */}
       <ActivePositions 
         positions={liveData?.openPositions || []} 
-        initialActiveTags={liveData?.activeTags || {}}
-        initialPreTrades={liveData?.activePreTrades || {}}
+        initialActiveTags={liveData?.activeTags || liveData?.active_tags || {}}
+        initialPreTrades={liveData?.activePreTrades || liveData?.active_pre_trades || {}}
         historicalTrades={closedDbTrades}
         userTier="FREE" 
       />
