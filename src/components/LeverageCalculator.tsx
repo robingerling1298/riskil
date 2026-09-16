@@ -53,16 +53,13 @@ export default function LeverageCalculator({
   onOpenPaywall,
   onLogTrade
 }: LeverageCalculatorProps) {
-  // Global Contexts
   const { isPro } = useAuth()
   const { defaultExchange } = useUserPreferences()
 
-  // Exchange State
   const [selectedExchange, setSelectedExchange] = useState<ExchangeId | 'custom'>(
     defaultExchange || 'bitget'
   )
 
-  // Direct Supabase Fetch for selected_exchange
   useEffect(() => {
     async function loadUserExchange() {
       try {
@@ -92,25 +89,20 @@ export default function LeverageCalculator({
     }
   }, [defaultExchange])
 
-  // Asset & Live Prices
   const [selectedAsset, setSelectedAsset] = useState<AssetOption>(POPULAR_ASSETS[0])
   const [currentPrice, setCurrentPrice] = useState<number | null>(null)
   const [priceChange24h, setPriceChange24h] = useState<number | null>(null)
 
-  // Dropdown UI State
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Direction
   const [direction, setDirection] = useState<'LONG' | 'SHORT'>('SHORT')
 
-  // Tranchen State
   const [tranches, setTranches] = useState<EntryTranche[]>([
     { id: '1', price: '', margin: '', orderType: 'LIMIT' },
   ])
 
-  // Stop Loss & Risk Mode
   const [stopLoss, setStopLoss] = useState<string>('')
   const [riskMode, setRiskMode] = useState<'PERCENT' | 'USD'>('PERCENT')
   const [allowedMarginLossPercent, setAllowedMarginLossPercent] = useState<string>('')
@@ -233,17 +225,14 @@ export default function LeverageCalculator({
     }
   }
 
-  // Fee Logic
   const currentExchangeConfig = selectedExchange !== 'custom' ? EXCHANGES[selectedExchange] : null
   const makerRate = currentExchangeConfig?.makerFee ?? 0.02
   const takerRate = currentExchangeConfig?.takerFee ?? 0.06
 
-  // Blended Entry Fee basierend auf den Margin-Anteilen der Tranchen
   const blendedEntryFeeRatePct = activeMargin > 0
     ? validTranches.reduce((sum, t) => sum + (parseFloat(t.margin) * (t.orderType === 'LIMIT' ? makerRate : takerRate)), 0) / activeMargin
     : makerRate
 
-  // SL ist standardmäßig eine Market-Order
   const slFeeRatePct = takerRate 
   const totalFeeRateRoundtripPct = blendedEntryFeeRatePct + slFeeRatePct
   const totalFeeRateDecimal = totalFeeRateRoundtripPct / 100
@@ -275,16 +264,16 @@ export default function LeverageCalculator({
   )
 
   return (
-    <div className="bg-term-bg border border-term-border rounded-3xl p-5 md:p-7 shadow-2xl space-y-6 text-slate-100 font-sans">
+    <div className="bg-term-bg border border-term-border rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 md:p-7 shadow-2xl space-y-4 sm:space-y-6 text-slate-100 font-sans">
       
       {/* HEADER */}
-      <div className="bg-term-card border border-term-border p-4 rounded-2xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 sm:gap-4">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <div className="relative inline-block" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsDropdownOpen(prev => !prev)}
-              className="flex items-center gap-2.5 bg-term-bg hover:bg-term-hover border border-term-border text-white px-4 py-2.5 rounded-xl transition shadow-md cursor-pointer"
+              className="flex items-center gap-2 bg-term-bg hover:bg-term-hover border border-term-border text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl transition shadow-md cursor-pointer"
             >
               <div className={`w-2.5 h-2.5 rounded-full ${selectedAsset.iconColor}`} />
               <span className="font-bold text-xs tracking-wide">{selectedAsset.symbol}</span>
@@ -358,7 +347,7 @@ export default function LeverageCalculator({
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 bg-term-bg border border-term-border px-3.5 py-2.5 rounded-xl font-mono text-xs shadow-inner">
+          <div className="flex items-center gap-2 bg-term-bg border border-term-border px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl font-mono text-xs shadow-inner">
             <div className="relative flex h-2 w-2 items-center justify-center">
               {!isCustom && (
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -376,7 +365,7 @@ export default function LeverageCalculator({
             )}
           </div>
 
-          <div className="flex items-center gap-2 bg-term-bg border border-term-border text-slate-300 px-3 py-2.5 rounded-xl text-xs font-mono">
+          <div className="flex items-center gap-1.5 bg-term-bg border border-term-border text-slate-300 px-3 py-2 sm:px-3 sm:py-2.5 rounded-xl text-xs font-mono">
             <Settings className="w-3.5 h-3.5 text-brand" />
             <span className="font-bold text-white">
               {selectedExchange === 'custom' ? 'Custom' : currentExchangeConfig?.name}
@@ -384,11 +373,11 @@ export default function LeverageCalculator({
           </div>
         </div>
 
-        <div className="flex p-1 bg-term-bg border border-term-border rounded-xl self-start md:self-auto">
+        <div className="grid grid-cols-2 gap-1 p-1 bg-term-bg border border-term-border rounded-xl">
           <button
             type="button"
             onClick={() => setDirection('LONG')}
-            className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`min-h-[38px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
               isLong ? 'bg-[#089981] text-white shadow-[0_0_12px_rgba(8,153,129,0.4)]' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -397,7 +386,7 @@ export default function LeverageCalculator({
           <button
             type="button"
             onClick={() => setDirection('SHORT')}
-            className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`min-h-[38px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
               !isLong ? 'bg-[#F23645] text-white shadow-[0_0_12px_rgba(242,54,69,0.4)]' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -407,8 +396,8 @@ export default function LeverageCalculator({
       </div>
 
       {/* EINSTIEGS-TRANCHEN */}
-      <div className="bg-term-card border border-term-border p-5 rounded-2xl space-y-4">
-        <div className="flex justify-between items-center text-xs font-semibold text-slate-400">
+      <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold text-slate-400">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-brand" />
             <span>EINSTIEGS-TRANCHEN ({tranches.length}{!isPro ? '/2' : ''})</span>
@@ -417,48 +406,62 @@ export default function LeverageCalculator({
             <button
               type="button"
               onClick={handleUseCurrentPrice}
-              className="text-[11px] font-mono text-brand hover:underline transition cursor-pointer"
+              className="text-[11px] font-mono text-brand hover:underline transition cursor-pointer text-left sm:text-right"
             >
               Live-Kurs (${currentPrice.toFixed(2)}) als Entry 1 übernehmen
             </button>
           )}
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {tranches.map((tranche, idx) => (
-            <div key={tranche.id} className="grid grid-cols-12 gap-3 bg-term-bg border border-term-border p-3.5 rounded-xl items-center hover:border-slate-700 transition">
-              <div className="col-span-12 sm:col-span-2 text-xs font-mono font-bold text-slate-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-brand" />
-                Entry #{idx + 1}
+            <div key={tranche.id} className="bg-term-bg border border-term-border p-3.5 rounded-xl space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 items-center hover:border-slate-700 transition">
+              
+              <div className="flex items-center justify-between sm:col-span-2 text-xs font-mono font-bold text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-brand" />
+                  Entry #{idx + 1}
+                </div>
+                {tranches.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTranche(tranche.id)}
+                    className="sm:hidden p-1.5 text-slate-500 hover:text-[#F23645] hover:bg-[#F23645]/10 rounded-lg transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
-              <div className="col-span-6 sm:col-span-3 relative">
-                <input
-                  type="number"
-                  placeholder={`${idx + 1}. Einstieg`}
-                  value={tranche.price}
-                  onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
-                  className="w-full bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-8 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+              <div className="grid grid-cols-2 gap-2.5 sm:contents">
+                <div className="sm:col-span-3 relative">
+                  <input
+                    type="number"
+                    placeholder={`${idx + 1}. Einstieg`}
+                    value={tranche.price}
+                    onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
+                    className="w-full min-h-[42px] bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+                </div>
+
+                <div className="sm:col-span-3 relative">
+                  <input
+                    type="number"
+                    placeholder="Marge"
+                    value={tranche.margin}
+                    onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
+                    className="w-full min-h-[42px] bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+                </div>
               </div>
 
-              <div className="col-span-6 sm:col-span-3 relative">
-                <input
-                  type="number"
-                  placeholder="Marge"
-                  value={tranche.margin}
-                  onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
-                  className="w-full bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-8 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
-              </div>
-
-              <div className="col-span-10 sm:col-span-3 flex p-1 bg-term-card border border-term-border rounded-xl">
+              <div className="sm:col-span-3 flex p-1 bg-term-card border border-term-border rounded-xl">
                 <button
                   type="button"
                   onClick={() => handleTrancheChange(tranche.id, 'orderType', 'LIMIT')}
-                  className={`flex-1 text-[10px] font-bold py-1.5 rounded-lg transition cursor-pointer ${
+                  className={`flex-1 min-h-[34px] text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center ${
                     tranche.orderType === 'LIMIT' ? 'bg-brand text-black' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -467,7 +470,7 @@ export default function LeverageCalculator({
                 <button
                   type="button"
                   onClick={() => handleTrancheChange(tranche.id, 'orderType', 'MARKET')}
-                  className={`flex-1 text-[10px] font-bold py-1.5 rounded-lg transition cursor-pointer ${
+                  className={`flex-1 min-h-[34px] text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center ${
                     tranche.orderType === 'MARKET' ? 'bg-brand text-black' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -475,7 +478,7 @@ export default function LeverageCalculator({
                 </button>
               </div>
 
-              <div className="col-span-2 sm:col-span-1 flex justify-end">
+              <div className="hidden sm:flex sm:col-span-1 justify-end">
                 {tranches.length > 1 && (
                   <button
                     type="button"
@@ -494,13 +497,13 @@ export default function LeverageCalculator({
           <button
             type="button"
             onClick={handleAddTranche}
-            className="w-full py-3.5 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer"
+            className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer"
           >
             <Plus className="w-4 h-4 text-brand" />
             <span>Weiteren Entry hinzufügen</span>
           </button>
         ) : (
-          <div className="p-4 bg-term-bg border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="p-4 bg-term-bg border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 shrink-0">
                 <Crown className="w-5 h-5" />
@@ -518,7 +521,7 @@ export default function LeverageCalculator({
             <button 
               type="button" 
               onClick={onOpenPaywall}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-md shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Crown className="w-3.5 h-3.5 fill-slate-950" />
               PRO Freischalten
@@ -528,7 +531,7 @@ export default function LeverageCalculator({
       </div>
 
       {/* STOP LOSS & RISIKO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-term-card border border-term-border p-5 rounded-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl">
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <label className="text-xs font-semibold text-[#F23645] flex items-center gap-1.5">
@@ -555,7 +558,7 @@ export default function LeverageCalculator({
               placeholder="Stop Loss Preis"
               value={stopLoss}
               onChange={(e) => setStopLoss(e.target.value)}
-              className="w-full bg-term-bg border border-[#F23645]/40 focus:border-[#F23645] rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
+              className="w-full min-h-[44px] bg-term-bg border border-[#F23645]/40 focus:border-[#F23645] rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
           </div>
@@ -572,14 +575,14 @@ export default function LeverageCalculator({
               <button
                 type="button"
                 onClick={() => setRiskMode('PERCENT')}
-                className={`px-2 py-1 rounded-md transition cursor-pointer ${riskMode === 'PERCENT' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
+                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${riskMode === 'PERCENT' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
               >
                 % von Marge
               </button>
               <button
                 type="button"
                 onClick={() => setRiskMode('USD')}
-                className={`px-2 py-1 rounded-md transition cursor-pointer ${riskMode === 'USD' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
+                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${riskMode === 'USD' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
               >
                 $ Betrag
               </button>
@@ -593,7 +596,7 @@ export default function LeverageCalculator({
                 placeholder="Max. Loss in %"
                 value={allowedMarginLossPercent}
                 onChange={(e) => handlePercentChange(e.target.value)}
-                className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
+                className="w-full min-h-[44px] bg-term-bg border border-term-border focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
             </div>
@@ -604,7 +607,7 @@ export default function LeverageCalculator({
                 placeholder="Max. Loss in $"
                 value={allowedMarginLossUsd}
                 onChange={(e) => handleUsdChange(e.target.value)}
-                className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
+                className="w-full min-h-[44px] bg-term-bg border border-term-border focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
             </div>
@@ -619,14 +622,14 @@ export default function LeverageCalculator({
       </div>
 
       {numStopLoss > 0 && avgEntryPrice > 0 && !isValidSetup && (
-        <div className="flex items-center gap-2.5 text-xs text-[#F23645] bg-[#F23645]/10 border border-[#F23645]/30 p-4 rounded-2xl shadow-lg">
+        <div className="flex items-center gap-2.5 text-xs text-[#F23645] bg-[#F23645]/10 border border-[#F23645]/30 p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <ShieldAlert className="w-5 h-5 shrink-0" />
           <span>Ungültiges Setup: Stop Loss muss bei {isLong ? 'Long UNTER' : 'Short ÜBER'} dem Mischkurs (${avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}) liegen.</span>
         </div>
       )}
 
       {/* RESULTS CONTAINER */}
-      <div className="bg-term-card border border-brand-border rounded-2xl p-6 space-y-4 shadow-xl relative overflow-hidden">
+      <div className="bg-term-card border border-brand-border rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl relative overflow-hidden">
         <div className="flex justify-between items-center border-b border-term-border pb-3">
           <div className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-brand" />
@@ -635,54 +638,54 @@ export default function LeverageCalculator({
           
           {isPro && (
             <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 flex items-center gap-1 font-bold">
-              <Crown className="w-3 h-3 fill-amber-400" /> PRO UNLOCKED
+              <Crown className="w-3 h-3 fill-amber-400" /> PRO
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1 transition-all duration-300">
-          <div className="bg-term-bg border border-term-border p-4 rounded-xl space-y-1">
-            <span className="text-[11px] text-slate-400 font-medium">Mischkurs (Avg Entry)</span>
-            <p className="text-xl font-mono font-bold text-white">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 pt-1 transition-all duration-300">
+          <div className="bg-term-bg border border-term-border p-3 sm:p-4 rounded-xl space-y-1">
+            <span className="text-[11px] text-slate-400 font-medium">Mischkurs (Avg)</span>
+            <p className="text-lg sm:text-xl font-mono font-bold text-white truncate">
               {avgEntryPrice > 0 ? `$${avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
             </p>
             <p className="text-[10px] font-mono text-slate-500">Exakter Durchschnitt</p>
           </div>
 
-          <div className="bg-term-bg border border-brand-border p-4 rounded-xl space-y-1 relative overflow-hidden">
+          <div className="bg-term-bg border border-brand-border p-3 sm:p-4 rounded-xl space-y-1 relative overflow-hidden">
             <span className="text-[11px] text-brand font-medium">Optimaler Hebel</span>
-            <p className="text-2xl font-mono font-extrabold text-brand">
+            <p className="text-xl sm:text-2xl font-mono font-extrabold text-brand truncate">
               {isValidSetup && calculatedLeverage > 0 ? `${calculatedLeverage.toFixed(2)}x` : '-'}
             </p>
             <p className="text-[10px] font-mono text-slate-500">Inkl. Börsengebühren</p>
           </div>
 
-          <div className="bg-term-bg border border-term-border p-4 rounded-xl space-y-1">
+          <div className="bg-term-bg border border-term-border p-3 sm:p-4 rounded-xl space-y-1">
             <span className="text-[11px] text-slate-400 font-medium">Gesamt-Marge</span>
-            <p className="text-xl font-mono font-bold text-brand">
+            <p className="text-lg sm:text-xl font-mono font-bold text-brand truncate">
               {totalMargin > 0 ? `$${totalMargin.toFixed(2)}` : '-'}
             </p>
-            <p className="text-[10px] font-mono text-slate-500">
-              Max. Loss: <span className="text-[#F23645] font-bold">{maxLossUsd > 0 ? `-$${maxLossUsd.toFixed(2)}` : '-'}</span>
+            <p className="text-[10px] font-mono text-slate-500 truncate">
+              Loss: <span className="text-[#F23645] font-bold">{maxLossUsd > 0 ? `-$${maxLossUsd.toFixed(2)}` : '-'}</span>
             </p>
           </div>
 
-          <div className="bg-term-bg border border-term-border p-4 rounded-xl space-y-1">
-            <span className="text-[11px] text-slate-400 font-medium">Positionswert (Notional)</span>
-            <p className="text-xl font-mono font-bold text-slate-200">
+          <div className="bg-term-bg border border-term-border p-3 sm:p-4 rounded-xl space-y-1">
+            <span className="text-[11px] text-slate-400 font-medium">Positionswert</span>
+            <p className="text-lg sm:text-xl font-mono font-bold text-slate-200 truncate">
               {isValidSetup && totalPositionSizeUsd > 0 ? `$${totalPositionSizeUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
             </p>
-            <p className="text-[10px] font-mono text-slate-500">
+            <p className="text-[10px] font-mono text-slate-500 truncate">
               {!isCustom && isValidSetup && totalPositionUnits > 0 ? `≈ ${totalPositionUnits.toFixed(4)} ${assetBaseSymbol}` : '-'}
             </p>
           </div>
         </div>
 
         {isValidSetup && totalPositionSizeUsd > 0 && (
-          <div className="bg-term-bg/60 border border-term-border p-3 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs font-mono gap-2">
+          <div className="bg-term-bg/60 border border-term-border p-3 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs font-mono gap-1.5">
             <span className="text-slate-400">Geschätzte Börsengebühren (Entry + SL):</span>
             <span className="text-amber-400 font-semibold">
-              -${estimatedFeesUsd.toFixed(2)} ({totalFeeRateRoundtripPct.toFixed(3)}% vom Positionswert)
+              -${estimatedFeesUsd.toFixed(2)} ({totalFeeRateRoundtripPct.toFixed(3)}% vom Notional)
             </span>
           </div>
         )}
@@ -700,9 +703,9 @@ export default function LeverageCalculator({
                 stopLoss: numStopLoss > 0 ? numStopLoss : undefined,
               })
             }
-            className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-black font-extrabold py-3.5 px-4 rounded-xl text-xs transition-all shadow-lg shadow-brand/20 mt-4 cursor-pointer"
+            className="w-full min-h-[46px] flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-black font-extrabold py-3.5 px-4 rounded-xl text-xs sm:text-sm transition-all shadow-lg shadow-brand/20 mt-4 cursor-pointer active:scale-[0.99]"
           >
-            <PlusCircle size={16} strokeWidth={2.5} />
+            <PlusCircle size={17} strokeWidth={2.5} />
             <span>Trade zum Journal hinzufügen</span>
           </button>
         )}

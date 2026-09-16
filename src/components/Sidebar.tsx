@@ -45,10 +45,10 @@ export default function Sidebar() {
 
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center font-black text-black text-xs shadow-md">
-              RM
+              R
             </div>
             <span className="text-sm font-bold text-white tracking-wide">
-              RiskManager
+              RISKIL
             </span>
           </div>
         </div>
@@ -79,7 +79,7 @@ export default function Sidebar() {
               <h2 className="text-sm font-bold text-white tracking-wide whitespace-nowrap">
                 RISKIL <span className="text-[10px] text-brand font-mono">v3.4</span>
               </h2>
-              <p className="text-[10px] text-slate-500 whitespace-nowrap">Live Trading Journal</p>
+              <p className="text-[10px] text-slate-500 whitespace-nowrap">Engineering Dicipline.</p>
             </div>
           </div>
 

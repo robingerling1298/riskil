@@ -37,11 +37,26 @@
   --color-brand-border: var(--accent-border);
 }
 
+html, body {
+  overflow-x: hidden;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background-color: var(--bg-main);
   color: var(--foreground);
   font-family: var(--font-sans);
   min-height: 100vh;
+}
+
+/* iOS Home-Indicator & Safe-Areas */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Number Input Styling Fixes for Dark Mode */

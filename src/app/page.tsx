@@ -2,13 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
-  ShieldCheck,
   Lock,
   Zap,
-  Check,
   AlertTriangle,
   Layers,
   Target,
@@ -21,10 +18,8 @@ import {
   Plus,
   Trash2,
   SlidersHorizontal,
-  FileSpreadsheet,
   KeyRound,
-  CheckCircle2,
-  X
+  CheckCircle2
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -345,6 +340,7 @@ export default function LandingPage() {
               {isLocked ? (
                 <div className="flex flex-col items-center justify-center py-8 space-y-3 text-center relative animate-in fade-in zoom-in-95 duration-200 w-full h-full">
                   <button 
+                    type="button"
                     onClick={() => setShowWarningModal(true)}
                     className="absolute top-0 right-0 px-2.5 py-1.5 bg-[#161A23] hover:bg-[#222938] border border-[#222938] hover:border-slate-600 rounded-xl text-[10px] font-semibold text-slate-300 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                   >
@@ -381,6 +377,7 @@ export default function LandingPage() {
                       {['Setup A: Perfekt', 'Setup B: Suboptimal', 'Setup C: Impulsiv / FOMO'].map((s) => (
                         <button
                           key={s}
+                          type="button"
                           onClick={() => setSelectedSetup(s)}
                           className={`px-2.5 py-2 rounded-xl text-[10px] font-bold border transition text-left cursor-pointer ${
                             selectedSetup === s
@@ -404,6 +401,7 @@ export default function LandingPage() {
                       {['Fokus', 'FOMO', 'Müde', 'Frustriert (Revenge)', 'Überzeugt'].map((m) => (
                         <button
                           key={m}
+                          type="button"
                           onClick={() => setSelectedMental(m)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition cursor-pointer ${
                             selectedMental === m
@@ -429,6 +427,7 @@ export default function LandingPage() {
                         return (
                           <button
                             key={c}
+                            type="button"
                             onClick={() => toggleConfluence(c)}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-mono border transition cursor-pointer ${
                               active
@@ -459,6 +458,7 @@ export default function LandingPage() {
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => setIsLocked(true)}
                       className="px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer bg-[#089981] hover:bg-[#067a67] text-white shadow-lg shadow-[#089981]/25"
                     >
@@ -539,6 +539,7 @@ export default function LandingPage() {
                   {['Take Profit (geplant)', 'Stop Loss (geplant)', 'Manueller Exit (Angst)'].map((ex) => (
                     <button
                       key={ex}
+                      type="button"
                       onClick={() => setExitReason(ex)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border text-left transition cursor-pointer ${
                         exitReason === ex ? 'bg-blue-500/20 text-blue-400 border-blue-500/50 font-bold' : 'bg-[#121622] border-[#1E2536] text-slate-400'
@@ -562,6 +563,7 @@ export default function LandingPage() {
                   ].map((m) => (
                     <button
                       key={m.label}
+                      type="button"
                       onClick={() => setExitMood(m.label)}
                       className={`px-2.5 py-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition cursor-pointer ${
                         exitMood === m.label ? 'bg-purple-500/20 text-purple-400 border-purple-500/50 font-bold' : 'bg-[#121622] border-[#1E2536] text-slate-400'
@@ -580,7 +582,7 @@ export default function LandingPage() {
                   <span className="text-[10px] font-bold uppercase text-slate-500 block mb-1.5">3. Management Rating</span>
                   <div className="flex items-center gap-1.5">
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <button key={s} onClick={() => setRating(s)} className="cursor-pointer">
+                      <button key={s} type="button" onClick={() => setRating(s)} className="cursor-pointer">
                         <Star size={16} className={s <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'} />
                       </button>
                     ))}
@@ -690,6 +692,7 @@ export default function LandingPage() {
                 <div className="sm:col-span-1 flex justify-end">
                   {tranches.length > 1 && (
                     <button
+                      type="button"
                       onClick={() => removeTranche(tranche.id)}
                       className="p-2 text-slate-500 hover:text-[#F23645] transition cursor-pointer"
                     >
@@ -702,6 +705,7 @@ export default function LandingPage() {
 
             {tranches.length < 2 && (
               <button
+                type="button"
                 onClick={addTranche}
                 className="w-full py-2.5 border border-dashed border-[#1E2536] hover:border-[#089981]/50 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
