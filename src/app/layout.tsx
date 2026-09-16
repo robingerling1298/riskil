@@ -8,8 +8,30 @@ import { ThemeProvider } from 'next-themes'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'RiskManager',
-  description: 'Trading Risk & Portfolio Management Tool',
+  title: {
+    default: 'Riskil • Engineering Discipline',
+    template: '%s | Riskil',
+  },
+  description: 'Execution-Intelligence & Psychologisches Trading-Journal für Krypto-Derivate.',
+  applicationName: 'Riskil',
+  appleWebApp: {
+    capable: true,
+    title: 'Riskil',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 }
 
 export const viewport: Viewport = {
@@ -18,6 +40,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  themeColor: '#07090E',
 }
 
 export default function RootLayout({
