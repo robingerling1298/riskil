@@ -126,8 +126,8 @@ export default function AuthPage() {
           setSuccessMsg('Account erstellt! Bitte überprüfe dein E-Mail-Postfach zur Bestätigung.')
         } else if (data?.user || data?.session) {
           setSuccessMsg('Account erfolgreich erstellt! Weiterleitung...')
+          router.push('/dashboard')
           router.refresh()
-          window.location.href = 'https://go.riskil.app/dashboard'
         }
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -137,10 +137,9 @@ export default function AuthPage() {
 
         if (signInError) throw signInError
 
-        // Direkt prüfen, ob User da ist, und harten Redirect auf die Subdomain erzwingen
         setSuccessMsg('Erfolgreich eingeloggt! Weiterleitung...')
+        router.push('/dashboard')
         router.refresh()
-        window.location.href = 'https://go.riskil.app/dashboard'
       }
     } catch (err: any) {
       console.error('Auth Error Log:', err)

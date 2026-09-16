@@ -1,7 +1,28 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowUpRight, ArrowDownRight, Clock, Target, ChevronDown, ChevronUp, Filter, CheckCircle2, BookOpen, Check, Send, Lock, Star, SlidersHorizontal, AlertTriangle, ShieldCheck, CheckSquare, Square, BrainCircuit, Layers } from 'lucide-react'
+import { 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Clock, 
+  Target, 
+  ChevronDown, 
+  ChevronUp, 
+  Filter, 
+  CheckCircle2, 
+  BookOpen, 
+  Check, 
+  Send, 
+  Lock, 
+  Star, 
+  SlidersHorizontal, 
+  AlertTriangle, 
+  ShieldCheck, 
+  CheckSquare, 
+  Square, 
+  BrainCircuit, 
+  Layers
+} from 'lucide-react'
 import { JournalAnalytics } from './JournalAnalytics'
 
 const SETUP_CLASSES = ['Setup A: Perfekt', 'Setup B: Suboptimal', 'Setup C: Impulsiv / FOMO']
@@ -162,7 +183,6 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
     const hasRating = !!targetTrade.trade_rating
     const hasMood = !!targetTrade.mood
 
-    // Wenn vorab nicht gelockt: Setup-Klasse und Mental State ebenfalls erforderlich
     const isEntryComplete = targetTrade.is_locked || (
       entryTags.some((t: string) => SETUP_CLASSES.includes(t)) && 
       entryTags.some((t: string) => MENTAL_STATES.includes(t))
@@ -325,7 +345,6 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
           const hasRating = !!trade.trade_rating
           const hasMood = !!trade.mood
           
-          // War der Trade vorab gelockt?
           const wasLocked = !!trade.is_locked
           const isEntryComplete = wasLocked || (
             entryTags.some(t => SETUP_CLASSES.includes(t)) && 
@@ -487,7 +506,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                     </div>
                   </div>
 
-                  {/* 💥 ERÖFFNUNGSANALYSE: Erscheint im Journal ODER in der Inbox, wenn vorab nicht gelockt */}
+                  {/* ERÖFFNUNGSANALYSE */}
                   {(viewMode === 'journal' || (viewMode === 'dashboard' && !wasLocked)) && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">

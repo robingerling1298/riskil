@@ -54,27 +54,13 @@ export async function GET(req: Request) {
       options: { defaultType: 'swap' },
     })
 
-    // 1. Master-Balance über Bitget V2 abfragen (ohne führendes /api/)
-    const masterBalancePromise = (async () => {
-      if (exchangeId === 'bitget') {
-        try {
-          const res = await exchangeSwap.request('v2/account/all-account-balance', 'private', 'GET', {})
-          return res?.data || []
-        } catch (err: any) {
-          console.warn('[MASTER BALANCE WARN]:', err?.message)
-          return null
-        }
-      }
-      return null
-    })()
-
-    // 2. Fallback-Swap-Balance
+    // 1. Swap/Futures-Balance abfragen (schnell, benötigt nur Standard-Futures-Rechte)
     const swapBalancePromise = exchangeSwap.fetchBalance().catch((err: any) => {
-      console.error('[USDT-M ERROR]:', err?.message)
+      console.error('[SWAP BALANCE ERROR]:', err?.message)
       return { total: {}, info: {} }
     })
 
-    // 3. Positionen ermitteln
+    // 2. Offene Positionen ermitteln
     const positionsPromise = (async () => {
       if (exchangeId === 'bitget' && decryptedPassphrase) {
         try {
@@ -91,45 +77,31 @@ export async function GET(req: Request) {
       return []
     })()
 
-    // 4. Supabase Snapshots laden
+    // 3. Supabase Snapshots laden
     const snapshotsPromise = supabase
       .from('portfolio_snapshots')
       .select('timestamp, equity')
       .eq('user_id', user.id)
       .order('timestamp', { ascending: true })
 
-    const [masterRes, swapRes, positionsResult, snapshotsResult] = await Promise.allSettled([
-      masterBalancePromise,
+    const [swapRes, positionsResult, snapshotsResult] = await Promise.allSettled([
       swapBalancePromise,
       positionsPromise,
       snapshotsPromise,
     ])
 
-    const masterAccounts = masterRes.status === 'fulfilled' ? masterRes.value : null
     const swapBalance = swapRes.status === 'fulfilled' ? swapRes.value : { total: {}, info: {} }
     const activePositions = positionsResult.status === 'fulfilled' ? positionsResult.value : []
     const existingSnapshots = snapshotsResult.status === 'fulfilled' ? snapshotsResult.value.data || [] : []
 
+    // Ermittlung der Futures Equity
     let totalPortfolioEquity = 0
-    let masterDetected = false
-
-    // Primär: Aggregierte Master-Balance von Bitget V2 auswerten
-    if (Array.isArray(masterAccounts) && masterAccounts.length > 0) {
-      totalPortfolioEquity = masterAccounts.reduce((sum: number, acc: any) => {
-        const val = Number(acc.usdtEquity || acc.equity || acc.usdtValue || acc.balance || 0)
-        return sum + (isNaN(val) ? 0 : val)
-      }, 0)
-
-      if (totalPortfolioEquity > 0) {
-        masterDetected = true
-      }
-    }
-
-    // Sekundär: Fallback auf USDT-Futures Equity, falls Master-Endpoint 0 oder unberechtigt war
-    if (!masterDetected) {
-      if (swapBalance.info?.totalEq) totalPortfolioEquity = Number(swapBalance.info.totalEq)
-      else if (swapBalance.info?.usdtEquity) totalPortfolioEquity = Number(swapBalance.info.usdtEquity)
-      else totalPortfolioEquity = Number(swapBalance.total?.USDT || 0)
+    if (swapBalance.info?.totalEq) {
+      totalPortfolioEquity = Number(swapBalance.info.totalEq)
+    } else if (swapBalance.info?.usdtEquity) {
+      totalPortfolioEquity = Number(swapBalance.info.usdtEquity)
+    } else {
+      totalPortfolioEquity = Number(swapBalance.total?.USDT || 0)
     }
 
     totalPortfolioEquity = Number(totalPortfolioEquity.toFixed(2))
@@ -183,8 +155,8 @@ export async function GET(req: Request) {
       currency: accountCurrency,
       debug: {
         totalPortfolioEquity,
-        masterDetected,
-        masterRaw: masterAccounts,
+        masterDetected: false,
+        masterRaw: null,
       },
       openPositions: activePositions,
       balance: swapBalance.total,
@@ -200,6 +172,7 @@ export async function GET(req: Request) {
   }
 }
 
+// POST und DELETE bleiben unverändert
 export async function POST(req: Request) {
   try {
     const supabase = await createClient()
