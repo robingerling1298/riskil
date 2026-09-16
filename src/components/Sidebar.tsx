@@ -33,8 +33,8 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* MOBILE TOP BAR (mit nativer iOS Safe-Area-Höhe und Logo) */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-term-bg/95 backdrop-blur-md border-b border-term-border px-4 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] flex items-center justify-between">
+      {/* MOBILE TOP BAR (mit validem CSS-calc für Safe-Area) */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-term-bg/95 backdrop-blur-md border-b border-term-border px-4 h-[calc(4rem_+_env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -72,12 +72,12 @@ export default function Sidebar() {
 
       {/* SIDEBAR (Desktop Hover + Mobile Drawer) */}
       <aside
-        className={`group fixed top-0 left-0 z-50 h-screen h-[100dvh] bg-term-bg/95 backdrop-blur-md border-r border-term-border p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex flex-col justify-between transition-all duration-300 ease-in-out shadow-2xl overflow-hidden
+        className={`group fixed top-0 left-0 z-50 h-screen h-[100dvh] bg-term-bg/95 backdrop-blur-md border-r border-term-border p-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))] flex flex-col justify-between transition-all duration-300 ease-in-out shadow-2xl overflow-hidden
           ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full'}
           md:translate-x-0 md:w-16 md:hover:w-64
         `}
       >
-        <div className="space-y-6 pt-[calc(3.5rem+env(safe-area-inset-top))] md:pt-0">
+        <div className="space-y-6 pt-[calc(3.5rem_+_env(safe-area-inset-top))] md:pt-0">
           {/* LOGO / HEADER */}
           <div className="flex items-center gap-3 px-1.5 py-1 min-w-max">
             <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-lg shadow-brand-border">
