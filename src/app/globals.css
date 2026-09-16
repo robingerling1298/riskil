@@ -69,3 +69,16 @@ input[type='number']::-webkit-outer-spin-button {
 input[type='number'] {
   color-scheme: dark;
 }
+
+/* WebKit GPU-Beschleunigung & flüssiges Scrollen */
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reduziert Rendering-Last von Blurs auf mobilen Geräten */
+@media (max-width: 768px) {
+  .backdrop-blur-2xl {
+    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+}

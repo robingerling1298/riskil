@@ -152,8 +152,12 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#07090E] text-slate-200 font-sans selection:bg-[#089981]/30 relative overflow-x-hidden">
       
       {/* BACKGROUND AMBIENT GLOWS */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[#089981]/10 rounded-full blur-[180px] pointer-events-none -z-10" />
-      <div className="absolute top-[1600px] -left-40 w-[600px] h-[600px] bg-[#089981]/5 rounded-full blur-[160px] pointer-events-none -z-10" />
+      {/* BACKGROUND AMBIENT GLOWS - Desktop mit Blur, Mobil performant */}
+      <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[#089981]/10 rounded-full blur-[180px] pointer-events-none -z-10" />
+      <div className="hidden sm:block absolute top-[1600px] -left-40 w-[600px] h-[600px] bg-[#089981]/5 rounded-full blur-[160px] pointer-events-none -z-10" />
+
+      {/* Leichtgewichtiger mobiler Verlauf ohne GPU-Blur */}
+      <div className="sm:hidden absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-[#089981]/10 to-transparent pointer-events-none -z-10" />
 
       {/* NAVIGATION */}
       <nav className="border-b border-[#161A23] bg-[#07090E]/90 backdrop-blur-2xl sticky top-0 z-40">

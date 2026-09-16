@@ -5,7 +5,11 @@ import { AuthProvider } from '@/context/AuthContext'
 import { UserPreferencesProvider } from '@/context/UserPreferencesContext'
 import { ThemeProvider } from 'next-themes'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+})
 
 export const metadata: Metadata = {
   title: {
