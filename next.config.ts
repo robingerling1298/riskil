@@ -1,7 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  devIndicators: false, // 💥 Hier ist der richtige Platz dafür
+  devIndicators: false,
+  // Verhindert das Ausliefern von Source Maps im Production-Build
+  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;
