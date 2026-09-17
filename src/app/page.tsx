@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
   Lock,
@@ -19,7 +20,13 @@ import {
   Trash2,
   SlidersHorizontal,
   KeyRound,
-  CheckCircle2
+  CheckCircle2,
+  Share2,
+  PlusSquare,
+  MoreVertical,
+  Download,
+  Apple,
+  Smartphone
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -62,6 +69,60 @@ const MENTAL_WARNINGS: Record<string, { type: 'danger' | 'warning' | 'positive';
     text: 'Hohe Konfluenzbasis. Behalte deine feste Stop-Loss-Marke trotzdem kompromisslos bei.'
   }
 }
+
+// ---------------------------------------------------------------------------
+// Installations-Schritte für PWA Guide
+// ---------------------------------------------------------------------------
+type Platform = 'ios' | 'android'
+
+interface GuideStep {
+  title: string
+  desc: string
+  icon: any
+  badge: string
+}
+
+const iosSteps: GuideStep[] = [
+  {
+    title: 'Teilen-Button antippen',
+    desc: 'Tippe in Safari unten in der Navigationsleiste auf das Teilen-Symbol (Viereck mit Pfeil nach oben).',
+    icon: Share2,
+    badge: 'Schritt 1',
+  },
+  {
+    title: '„Zum Home-Bildschirm“ wählen',
+    desc: 'Scrolle im Menü leicht nach unten und wähle den Eintrag „Zum Home-Bildschirm“ mit dem Plus-Icon.',
+    icon: PlusSquare,
+    badge: 'Schritt 2',
+  },
+  {
+    title: 'Hinzufügen bestätigen',
+    desc: 'Tippe oben rechts auf „Hinzufügen“. RISKIL startet ab jetzt direkt im Vollbild ohne Safari-Leiste.',
+    icon: CheckCircle2,
+    badge: 'Schritt 3',
+  },
+]
+
+const androidSteps: GuideStep[] = [
+  {
+    title: 'Menü aufrufen',
+    desc: 'Öffne Chrome und tippe oben rechts auf die drei Punkte (⋮) neben der Adressleiste.',
+    icon: MoreVertical,
+    badge: 'Schritt 1',
+  },
+  {
+    title: '„Installieren und Verknüpfen“',
+    desc: 'Tippe auf „Installieren und Verknüpfen...“ mit dem Download-/Monitor-Symbol.',
+    icon: Download,
+    badge: 'Schritt 2',
+  },
+  {
+    title: 'Bestätigen & Durchstarten',
+    desc: 'Bestätige den Android-Dialog mit „Installieren“. Die WebAPK landet eigenständig im App-Drawer.',
+    icon: CheckCircle2,
+    badge: 'Schritt 3',
+  },
+]
 
 export default function LandingPage() {
   // 1. Live Ticker & Fluktuation
@@ -110,6 +171,17 @@ export default function LandingPage() {
   const [calcRiskUsd, setCalcRiskUsd] = useState(3.75)
   const [calcSl, setCalcSl] = useState(63800)
 
+  // 5. PWA Guide State
+  const [platform, setPlatform] = useState<Platform>('ios')
+  const [activeStep, setActiveStep] = useState(0)
+
+  const activeSteps = platform === 'ios' ? iosSteps : androidSteps
+
+  const switchPlatform = (next: Platform) => {
+    setPlatform(next)
+    setActiveStep(0)
+  }
+
   const activeMargin = tranches.reduce((sum, t) => sum + (Number(t.margin) || 0), 0)
   const avgEntryPrice = activeMargin > 0
     ? tranches.reduce((sum, t) => sum + (Number(t.price) * Number(t.margin)), 0) / activeMargin
@@ -151,13 +223,19 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-200 font-sans selection:bg-[#089981]/30 relative overflow-x-hidden">
       
-      {/* BACKGROUND AMBIENT GLOWS */}
-      {/* BACKGROUND AMBIENT GLOWS - Desktop mit Blur, Mobil performant */}
-      <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[#089981]/10 rounded-full blur-[180px] pointer-events-none -z-10" />
-      <div className="hidden sm:block absolute top-[1600px] -left-40 w-[600px] h-[600px] bg-[#089981]/5 rounded-full blur-[160px] pointer-events-none -z-10" />
-
-      {/* Leichtgewichtiger mobiler Verlauf ohne GPU-Blur */}
-      <div className="sm:hidden absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-[#089981]/10 to-transparent pointer-events-none -z-10" />
+      {/* ZERO-COST AMBIENT GLOWS (Mathematisch berechnete Verläufe ohne GPU-Rasterblur) */}
+      <div 
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[550px] pointer-events-none -z-10"
+        style={{
+          background: 'radial-gradient(circle 450px at 50% 10%, rgba(8, 153, 129, 0.12), transparent 70%)'
+        }}
+      />
+      <div 
+        className="hidden lg:block absolute top-[1500px] left-0 w-[500px] h-[500px] pointer-events-none -z-10"
+        style={{
+          background: 'radial-gradient(circle 300px at 20% 50%, rgba(8, 153, 129, 0.06), transparent 70%)'
+        }}
+      />
 
       {/* NAVIGATION */}
       <nav className="border-b border-[#161A23] bg-[#07090E]/90 backdrop-blur-2xl sticky top-0 z-40">
@@ -273,7 +351,7 @@ export default function LandingPage() {
             Offene Positionen & der psychologische Ehrlichkeits-Filter.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Trades scheitern fast nie am Chart, sondern an der mentalen Verfassung beim Einstieg[cite: 4]. Riskil zwingt dich dazu, deine Setup-Klasse und Emotion <strong className="text-slate-200">während des laufenden Trades</strong> festzuhalten und zu verriegeln[cite: 4]. Wer hinterher Ausreden sucht, scheitert am System[cite: 4].
+            Trades scheitern fast nie am Chart, sondern an der mentalen Verfassung beim Einstieg. Riskil zwingt dich dazu, deine Setup-Klasse und Emotion <strong className="text-slate-200">während des laufenden Trades</strong> festzuhalten und zu verriegeln. Wer hinterher Ausreden sucht, scheitert am System.
           </p>
         </div>
 
@@ -291,7 +369,6 @@ export default function LandingPage() {
             </span>
           </div>
 
-          {/* Trade Card Split */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 bg-[#07090E] border border-[#161B26] rounded-2xl p-4 sm:p-6">
             
             {/* Linke Seite: Live Metrics */}
@@ -519,7 +596,7 @@ export default function LandingPage() {
             Kein geschlossener Trade landet unanalysiert im Archiv.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Geschlossene Positionen fließen automatisch in deine <strong className="text-slate-200">Post-Trade Inbox</strong>[cite: 1]. Sie werden erst für deine Gesamtstatistik freigeschaltet, wenn Austrittsgrund, Emotion und Disziplin ehrlich dokumentiert wurden[cite: 1].
+            Geschlossene Positionen fließen automatisch in deine <strong className="text-slate-200">Post-Trade Inbox</strong>[cite: 3]. Sie werden erst für deine Gesamtstatistik freigeschaltet, wenn Austrittsgrund, Emotion und Disziplin ehrlich dokumentiert wurden[cite: 3].
           </p>
         </div>
 
@@ -634,7 +711,7 @@ export default function LandingPage() {
             Stop-Loss Distanz & Gebühren bestimmen den Hebel – nicht deine Gier.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Standard-Hebelrechner ignorieren Börsengebühren[cite: 2]. Riskil errechnet deinen exakten Hebel anhand deines maximalen Dollar-Verlusts und zieht Maker- und Taker-Roundtrips automatisch mit ein[cite: 2].
+            Standard-Hebelrechner ignorieren Börsengebühren[cite: 3]. Riskil errechnet deinen exakten Hebel anhand deines maximalen Dollar-Verlusts und zieht Maker- und Taker-Roundtrips automatisch mit ein[cite: 3].
           </p>
         </div>
 
@@ -738,7 +815,6 @@ export default function LandingPage() {
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Max. Margen-Verlust
                 </label>
-                {/* Switcher zwischen % und $ */}
                 <div className="flex bg-[#0B0E14] p-0.5 rounded-lg border border-[#1E2536] text-[10px] font-mono">
                   <button
                     type="button"
@@ -820,6 +896,199 @@ export default function LandingPage() {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* PWA INSTALLATION GUIDE (iOS & Android) */}
+      {/* ========================================================================= */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-[#161A23]">
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+          <span className="text-[11px] font-mono tracking-widest text-[#089981] uppercase bg-[#089981]/10 px-3.5 py-1 rounded-full border border-[#089981]/25 font-bold">
+            Mobile App Experience
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+            In 10 Sekunden auf deinem Homescreen.
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400">
+            Kein App-Store-Download nötig. Progressive Web App im Vollbildmodus ohne störende Browser-Leiste.
+          </p>
+
+          {/* OS SELECTOR SWITCH */}
+          <div className="flex justify-center pt-2">
+            <div className="bg-[#0B0E14] p-1.5 rounded-2xl border border-[#161A23] flex gap-1.5 shadow-inner">
+              <button
+                type="button"
+                onClick={() => switchPlatform('ios')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  platform === 'ios'
+                    ? 'bg-[#141824] text-white border border-[#1E2536] shadow-lg shadow-black/50'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Apple size={16} /> Apple iOS
+              </button>
+
+              <button
+                type="button"
+                onClick={() => switchPlatform('android')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  platform === 'android'
+                    ? 'bg-[#141824] text-white border border-[#1E2536] shadow-lg shadow-black/50'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Smartphone size={16} /> Android (Chrome)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* INTERACTIVE GUIDE CONTAINER */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-[#0B0E14] border border-[#161A23] rounded-3xl p-6 md:p-10 shadow-2xl">
+          {/* STEP CARDS (LINKS) */}
+          <div className="md:col-span-6 space-y-3.5">
+            {activeSteps.map((step, idx) => {
+              const Icon = step.icon
+              const isCurrent = activeStep === idx
+
+              return (
+                <div
+                  key={step.title}
+                  onClick={() => setActiveStep(idx)}
+                  className={`cursor-pointer p-4 rounded-2xl border transition-all duration-200 flex items-start gap-4 ${
+                    isCurrent
+                      ? 'bg-[#121622] border-[#089981]/50 shadow-lg shadow-[#089981]/5'
+                      : 'bg-[#07090E] border-[#161A23] hover:border-slate-700 opacity-60 hover:opacity-90'
+                  }`}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold transition-colors ${
+                      isCurrent
+                        ? 'bg-[#089981] text-white shadow-md shadow-[#089981]/30'
+                        : 'bg-[#161A23] text-slate-400'
+                    }`}
+                  >
+                    <Icon size={19} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-[#089981] uppercase font-bold">
+                      {step.badge}
+                    </span>
+                    <h3 className="text-sm font-bold text-white mt-0.5">{step.title}</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* PHONE VISUALIZER (RECHTS) */}
+          <div className="md:col-span-6 flex justify-center py-4">
+            <div className="relative w-[280px] h-[480px] bg-[#07090E] border-[6px] border-[#1A1F2C] rounded-[40px] shadow-2xl overflow-hidden flex flex-col justify-between">
+              {/* NOTCH / DYNAMIC ISLAND */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#161A23] rounded-full z-20" />
+
+              {/* SIMULATED APP HEADER */}
+              <div className="pt-8 px-4 flex items-center justify-between border-b border-[#161A23]/60 pb-3 bg-[#0B0E14]/60">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-md bg-[#089981] flex items-center justify-center text-[10px] font-black text-white">
+                    R
+                  </div>
+                  <span className="text-[11px] font-bold text-white tracking-wide">RISKIL</span>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-[#089981] animate-pulse" />
+              </div>
+
+              {/* SIMULATED APP CONTENT */}
+              <div className="p-4 space-y-3 flex-1 flex flex-col justify-center">
+                <div className="bg-[#121622] p-3 rounded-xl border border-[#161A23] space-y-1">
+                  <div className="h-2 w-12 bg-slate-700 rounded" />
+                  <div className="h-4 w-24 bg-[#089981]/80 rounded" />
+                </div>
+
+                <div className="bg-[#121622] p-3 rounded-xl border border-[#161A23] space-y-2">
+                  <div className="h-2 w-20 bg-slate-700 rounded" />
+                  <div className="h-16 w-full bg-[#0B0E14] rounded-lg border border-[#161A23] flex items-center justify-center text-[10px] text-slate-500 font-mono">
+                    Performance Chart
+                  </div>
+                </div>
+              </div>
+
+              {/* ANIMATED ACTION OVERLAY */}
+              <AnimatePresence mode="wait">
+                {platform === 'ios' ? (
+                  <motion.div
+                    key={`ios-${activeStep}`}
+                    initial={{ opacity: 0, y: 25 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 25 }}
+                    transition={{ duration: 0.18 }}
+                    className="bg-[#121622]/95 backdrop-blur-md border-t border-[#1E2536] p-4 text-center rounded-b-[34px]"
+                  >
+                    {activeStep === 0 && (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-[#089981]/20 text-[#089981] flex items-center justify-center animate-bounce">
+                          <Share2 size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-white">1. Unten auf Teilen tippen</span>
+                      </div>
+                    )}
+                    {activeStep === 1 && (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
+                          <PlusSquare size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-white">2. „Zum Home-Bildschirm“</span>
+                      </div>
+                    )}
+                    {activeStep === 2 && (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
+                          <CheckCircle2 size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-white">3. Oben „Hinzufügen“</span>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={`android-${activeStep}`}
+                    initial={{ opacity: 0, y: 25 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 25 }}
+                    transition={{ duration: 0.18 }}
+                    className="bg-[#121622]/95 backdrop-blur-md border-t border-[#1E2536] p-4 text-center rounded-b-[34px]"
+                  >
+                    {activeStep === 0 && (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-[#089981]/20 text-[#089981] flex items-center justify-center animate-pulse">
+                          <MoreVertical size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-white">1. Oben auf Menü (⋮) tippen</span>
+                      </div>
+                    )}
+                    {activeStep === 1 && (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
+                          <Download size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-white">2. „Installieren & Verknüpfen“</span>
+                      </div>
+                    )}
+                    {activeStep === 2 && (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
+                          <CheckCircle2 size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-white">3. Bestätigen & Fertig</span>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -57,7 +57,20 @@ export default function AuthPage() {
       setStep('OTP')
     } catch (err: any) {
       console.error('OTP Send Error:', err)
-      setError(err.message || 'Fehler beim Senden des Bestätigungscodes.')
+      const rawMsg = err.message || ''
+
+      // Supabase maskiert den Trigger-Abbruch als "Database error saving new user"
+      if (
+        rawMsg.includes('Database error saving new user') ||
+        rawMsg.includes('Beta-Zugang') ||
+        rawMsg.includes('beta_access_restricted')
+      ) {
+        setError('Beta-Zugang beschränkt: Diese E-Mail ist noch nicht für die geschlossene Testphase freigeschaltet.')
+      } else if (rawMsg.includes('rate limit')) {
+        setError('Zu viele Versuche. Bitte warte einen kurzen Moment vor dem nächsten Versuch.')
+      } else {
+        setError(rawMsg || 'Fehler beim Senden des Bestätigungscodes.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -92,7 +105,17 @@ export default function AuthPage() {
       }
     } catch (err: any) {
       console.error('OTP Verify Error:', err)
-      setError(err.message || 'Der eingegebene Code ist ungültig oder abgelaufen.')
+      const rawMsg = err.message || ''
+
+      if (
+        rawMsg.includes('Database error') ||
+        rawMsg.includes('Beta-Zugang') ||
+        rawMsg.includes('beta_access_restricted')
+      ) {
+        setError('Beta-Zugang beschränkt: Diese E-Mail ist noch nicht freigeschaltet.')
+      } else {
+        setError(rawMsg || 'Der eingegebene Code ist ungültig oder abgelaufen.')
+      }
     } finally {
       setIsLoading(false)
     }
