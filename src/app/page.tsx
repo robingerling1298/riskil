@@ -249,16 +249,6 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 rounded-full border border-[#1E2536] bg-[#0B0E14] px-4 py-1 text-xs font-mono">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#089981] opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#089981]" />
-            </span>
-            <span className="text-slate-400">Execution-Terminal</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-[#089981] font-bold">Bitget Direct Sync</span>
-          </div>
-
           <div className="flex items-center gap-3">
             <Link
               href="/auth"
@@ -294,6 +284,20 @@ export default function LandingPage() {
         <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed">
           Verbinde deine Börse per Read-Only API. Dokumentiere deine Gedanken <strong className="text-slate-200">beim Entry</strong>, verriegele sie gegen Hindsight Bias und berechne deinen Hebel exakt nach Gebühren.
         </p>
+
+        {/* MULTI-EXCHANGE SUPPORT BADGES */}
+        <div className="pt-1 flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
+          <span className="text-slate-500 uppercase tracking-wider font-semibold text-[10px] mr-1">Unterstützt:</span>
+          {['Bitget', 'OKX', 'Bybit', 'Binance'].map((exchange) => (
+            <span 
+              key={exchange} 
+              className="bg-[#0D111A] border border-[#1E2536] px-2.5 py-1 rounded-lg text-slate-300 flex items-center gap-1.5 shadow-sm"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#089981]" />
+              {exchange}
+            </span>
+          ))}
+        </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
           <Link
@@ -362,7 +366,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-2.5 font-mono text-xs">
               <span className="w-2.5 h-2.5 rounded-full bg-[#089981] animate-pulse" />
               <span className="font-bold text-white">Live-Orderbook Sync: Aktiv</span>
-              <span className="text-slate-500 hidden sm:inline">| Bitget API</span>
+              <span className="text-slate-500 hidden sm:inline">| Bitget, OKX, Bybit, Binance</span>
             </div>
             <span className="text-[11px] font-mono text-[#089981] bg-[#089981]/10 px-3 py-0.5 rounded-md border border-[#089981]/20">
               Interaktive Simulation: Klicke die Buttons
@@ -596,7 +600,7 @@ export default function LandingPage() {
             Kein geschlossener Trade landet unanalysiert im Archiv.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Geschlossene Positionen fließen automatisch in deine <strong className="text-slate-200">Post-Trade Inbox</strong>[cite: 3]. Sie werden erst für deine Gesamtstatistik freigeschaltet, wenn Austrittsgrund, Emotion und Disziplin ehrlich dokumentiert wurden[cite: 3].
+            Geschlossene Positionen fließen automatisch in deine <strong className="text-slate-200">Post-Trade Inbox</strong>. Sie werden erst für deine Gesamtstatistik freigeschaltet, wenn Austrittsgrund, Emotion und Disziplin ehrlich dokumentiert wurden.
           </p>
         </div>
 
@@ -711,7 +715,7 @@ export default function LandingPage() {
             Stop-Loss Distanz & Gebühren bestimmen den Hebel – nicht deine Gier.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Standard-Hebelrechner ignorieren Börsengebühren[cite: 3]. Riskil errechnet deinen exakten Hebel anhand deines maximalen Dollar-Verlusts und zieht Maker- und Taker-Roundtrips automatisch mit ein[cite: 3].
+            Standard-Hebelrechner ignorieren Börsengebühren. Riskil errechnet deinen exakten Hebel anhand deines maximalen Dollar-Verlusts und zieht Maker- und Taker-Roundtrips automatisch mit ein.
           </p>
         </div>
 
@@ -721,7 +725,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#161A23] gap-2">
             <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#089981]" />
-              Multi-Tranchen DCA-Berechnung (Bitget Taker/Maker integriert)
+              Multi-Tranchen DCA-Berechnung (Bitget, OKX, Bybit, Binance Taker/Maker integriert)
             </div>
             <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
               Demo: 2 Tranchen • Vollversion: Unbegrenzte Einstiege
