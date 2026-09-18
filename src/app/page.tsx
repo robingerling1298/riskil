@@ -26,47 +26,52 @@ import {
   MoreVertical,
   Download,
   Apple,
-  Smartphone
+  Smartphone,
+  Send,
+  X,
+  Sparkles,
+  Mail,
+  Loader2
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
-// Reality Check Datensätze für reaktive Warnungen
+// Reality Check Datensätze für reaktive Warnungen (Trading Desk Terminology)
 // ---------------------------------------------------------------------------
 const MENTAL_WARNINGS: Record<string, { type: 'danger' | 'warning' | 'positive'; count: number; winrate: number; pnl: string; text: string }> = {
   'FOMO': {
     type: 'danger',
     count: 14,
     winrate: 28,
-    pnl: '-$1.420,00',
-    text: 'Du jagst Kerzen hinterher. Historisch führt das bei dir zu massivem Slippage und Panik-Exits.'
+    pnl: '-$1,420.00',
+    text: 'You are chasing green candles. Historically, this triggers severe slippage and emotional panic exits.'
   },
-  'Frustriert (Revenge)': {
+  'Frustrated (Revenge)': {
     type: 'danger',
     count: 9,
     winrate: 11,
-    pnl: '-$2.180,50',
-    text: 'Revenge-Trade detektiert. Wenn du frustriert bist, hebelst du statistisch 2.4x höher als dein Plan erlaubt.'
+    pnl: '-$2,180.50',
+    text: 'Revenge trade detected. When trading tilted, you statistically exceed your max allowable leverage by 2.4x.'
   },
-  'Müde': {
+  'Fatigued': {
     type: 'warning',
     count: 6,
     winrate: 33,
-    pnl: '-$490,00',
-    text: 'Konzentrationsmangel. Deine Invalidation-Reaktionszeit verdoppelt sich nachweislich.'
+    pnl: '-$490.00',
+    text: 'Lack of cognitive focus. Your reaction time to trade invalidations historically doubles.'
   },
-  'Fokus': {
+  'Focused': {
     type: 'positive',
     count: 38,
     winrate: 68,
-    pnl: '+$3.840,20',
-    text: 'Systematischer Flow-State. Deine statistische Edge greift nachweislich.'
+    pnl: '+$3,840.20',
+    text: 'Systematic execution state. Your statistical edge is actively playing out.'
   },
-  'Überzeugt': {
+  'High Conviction': {
     type: 'positive',
     count: 22,
     winrate: 63,
-    pnl: '+$1.910,00',
-    text: 'Hohe Konfluenzbasis. Behalte deine feste Stop-Loss-Marke trotzdem kompromisslos bei.'
+    pnl: '+$1,910.00',
+    text: 'High confluence baseline. Do not loosen your pre-determined stop-loss level under any circumstances.'
   }
 }
 
@@ -84,47 +89,54 @@ interface GuideStep {
 
 const iosSteps: GuideStep[] = [
   {
-    title: 'Teilen-Button antippen',
-    desc: 'Tippe in Safari unten in der Navigationsleiste auf das Teilen-Symbol (Viereck mit Pfeil nach oben).',
+    title: 'Tap the Share button',
+    desc: 'In Safari, tap the Share icon located at the bottom navigation bar (square with upward arrow).',
     icon: Share2,
-    badge: 'Schritt 1',
+    badge: 'Step 1',
   },
   {
-    title: '„Zum Home-Bildschirm“ wählen',
-    desc: 'Scrolle im Menü leicht nach unten und wähle den Eintrag „Zum Home-Bildschirm“ mit dem Plus-Icon.',
+    title: 'Select “Add to Home Screen”',
+    desc: 'Scroll down in the action sheet and tap “Add to Home Screen” next to the plus icon.',
     icon: PlusSquare,
-    badge: 'Schritt 2',
+    badge: 'Step 2',
   },
   {
-    title: 'Hinzufügen bestätigen',
-    desc: 'Tippe oben rechts auf „Hinzufügen“. RISKIL startet ab jetzt direkt im Vollbild ohne Safari-Leiste.',
+    title: 'Confirm Installation',
+    desc: 'Tap “Add” in the top-right corner. RISKIL will now launch in standalone fullscreen mode without browser chrome.',
     icon: CheckCircle2,
-    badge: 'Schritt 3',
+    badge: 'Step 3',
   },
 ]
 
 const androidSteps: GuideStep[] = [
   {
-    title: 'Menü aufrufen',
-    desc: 'Öffne Chrome und tippe oben rechts auf die drei Punkte (⋮) neben der Adressleiste.',
+    title: 'Open Chrome Menu',
+    desc: 'In Chrome, tap the three vertical dots (⋮) in the top-right corner next to the address bar.',
     icon: MoreVertical,
-    badge: 'Schritt 1',
+    badge: 'Step 1',
   },
   {
-    title: '„Installieren und Verknüpfen“',
-    desc: 'Tippe auf „Installieren und Verknüpfen...“ mit dem Download-/Monitor-Symbol.',
+    title: 'Tap “Install app”',
+    desc: 'Select “Install app” or “Add to Home screen” with the download monitor icon.',
     icon: Download,
-    badge: 'Schritt 2',
+    badge: 'Step 2',
   },
   {
-    title: 'Bestätigen & Durchstarten',
-    desc: 'Bestätige den Android-Dialog mit „Installieren“. Die WebAPK landet eigenständig im App-Drawer.',
+    title: 'Confirm & Launch',
+    desc: 'Confirm the system prompt by tapping “Install”. The WebAPK is automatically placed in your app drawer.',
     icon: CheckCircle2,
-    badge: 'Schritt 3',
+    badge: 'Step 3',
   },
 ]
 
 export default function LandingPage() {
+  // Modal State für Closed Beta Bewerbung
+  const [showBetaModal, setShowBetaModal] = useState(false)
+  const [betaEmail, setBetaEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [betaSubmitted, setBetaSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   // 1. Live Ticker & Fluktuation
   const [liveMarkPrice, setLiveMarkPrice] = useState(65340.50)
   const [livePnl, setLivePnl] = useState(342.80)
@@ -142,9 +154,9 @@ export default function LandingPage() {
   }, [])
 
   // 2. Eröffnungsanalyse State & Locking Logik
-  const [selectedSetup, setSelectedSetup] = useState('Setup A: Perfekt')
+  const [selectedSetup, setSelectedSetup] = useState('Setup A: A+ Model')
   const [selectedMental, setSelectedMental] = useState('FOMO')
-  const [selectedConfluences, setSelectedConfluences] = useState<string[]>(['Orderblock', 'CVD-Divergenz'])
+  const [selectedConfluences, setSelectedConfluences] = useState<string[]>(['Orderblock', 'CVD Divergence'])
   const [conviction, setConviction] = useState(8)
   const [isLocked, setIsLocked] = useState(false)
   const [showWarningModal, setShowWarningModal] = useState(false)
@@ -157,8 +169,8 @@ export default function LandingPage() {
   }
 
   // 3. Post-Trade Inbox State (Modul 2)
-  const [exitReason, setExitReason] = useState('Take Profit (geplant)')
-  const [exitMood, setExitMood] = useState('Erleichtert')
+  const [exitReason, setExitReason] = useState('Take Profit (Planned)')
+  const [exitMood, setExitMood] = useState('Relieved')
   const [isPlanCompliant, setIsPlanCompliant] = useState(true)
   const [rating, setRating] = useState(4)
 
@@ -220,10 +232,59 @@ export default function LandingPage() {
 
   const activeWarning = MENTAL_WARNINGS[selectedMental] || MENTAL_WARNINGS['FOMO']
 
+  // Whitelist Handler via Resend & Supabase Backend-Route
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!betaEmail || isSubmitting) return
+
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email: betaEmail.trim().toLowerCase() }),
+      })
+
+      let data: any = {}
+      try {
+        data = await res.json()
+      } catch (jsonErr) {
+        // Falls der Server kein JSON zurückgibt
+      }
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          setSubmitError('You are already registered on the whitelist!')
+        } else {
+          setSubmitError(data?.error || `Submission failed (${res.status})`)
+        }
+        setIsSubmitting(false)
+        return
+      }
+
+      setBetaSubmitted(true)
+      setTimeout(() => {
+        setBetaSubmitted(false)
+        setShowBetaModal(false)
+        setBetaEmail('')
+        setIsSubmitting(false)
+      }, 2200)
+    } catch (err: any) {
+      console.error('Waitlist submission error:', err)
+      setSubmitError(err?.message || 'Network error. Please try again.')
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-200 font-sans selection:bg-[#089981]/30 relative overflow-x-hidden">
       
-      {/* ZERO-COST AMBIENT GLOWS (Mathematisch berechnete Verläufe ohne GPU-Rasterblur) */}
+      {/* ZERO-COST AMBIENT GLOWS */}
       <div 
         className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[550px] pointer-events-none -z-10"
         style={{
@@ -250,19 +311,19 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/auth"
-              className="text-xs font-bold text-slate-400 hover:text-white transition px-3 py-1.5"
+            <button
+              onClick={() => setShowBetaModal(true)}
+              className="text-xs font-bold text-slate-400 hover:text-white transition px-3 py-1.5 cursor-pointer"
             >
-              Anmelden
-            </Link>
-            <Link
-              href="/auth"
+              Sign In
+            </button>
+            <button
+              onClick={() => setShowBetaModal(true)}
               className="group inline-flex items-center gap-1.5 rounded-xl bg-[#089981] px-4 py-2 text-xs font-black text-white hover:bg-[#0AAE93] transition shadow-[0_0_15px_rgba(8,153,129,0.25)] cursor-pointer"
             >
-              <span>Demo testen</span>
+              <span>Request Beta Access</span>
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+            </button>
           </div>
         </div>
       </nav>
@@ -271,23 +332,23 @@ export default function LandingPage() {
       <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#121622] border border-[#1E2536] text-[11px] font-mono text-[#089981]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#089981] animate-pulse" />
-          <span>Kein Excel. Kein Selbstbetrug. Reines Risikomanagement.</span>
+          <span>Zero Spreadsheets. Zero Excuses. Pure Risk Architecture.</span>
         </div>
 
         <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
-          Hör auf, deine Trades nach Gefühl zu schließen.{' '}
+          Stop closing trades based on emotion.{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#089981] via-emerald-400 to-[#0AAE93]">
-            Sichere dein System.
+            Systematize your edge.
           </span>
         </h1>
 
         <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed">
-          Verbinde deine Börse per Read-Only API. Dokumentiere deine Gedanken <strong className="text-slate-200">beim Entry</strong>, verriegele sie gegen Hindsight Bias und berechne deinen Hebel exakt nach Gebühren.
+          Sync your exchange via 100% read-only API. Lock your trade setup and thesis <strong className="text-slate-200">at entry</strong> to eliminate hindsight bias, and calculate exact leverage factoring in real roundtrip fees.
         </p>
 
         {/* MULTI-EXCHANGE SUPPORT BADGES */}
         <div className="pt-1 flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
-          <span className="text-slate-500 uppercase tracking-wider font-semibold text-[10px] mr-1">Unterstützt:</span>
+          <span className="text-slate-500 uppercase tracking-wider font-semibold text-[10px] mr-1">Supported:</span>
           {['Bitget', 'OKX', 'Bybit', 'Binance'].map((exchange) => (
             <span 
               key={exchange} 
@@ -300,18 +361,18 @@ export default function LandingPage() {
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-          <Link
-            href="/auth"
+          <button
+            onClick={() => setShowBetaModal(true)}
             className="w-full sm:w-auto px-8 py-4 bg-[#089981] hover:bg-[#067a67] text-white text-xs font-black rounded-xl transition shadow-[0_0_28px_rgba(8,153,129,0.35)] flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>Demo starten (Kein Passwort nötig)</span>
+            <span>Apply for Closed Beta</span>
             <ArrowRight size={14} />
-          </Link>
+          </button>
           <a
             href="#live-station-1"
             className="w-full sm:w-auto px-6 py-4 bg-[#0D111A] hover:bg-[#141824] border border-[#1A202C] hover:border-[#222938] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center justify-center"
           >
-            Tool-Features ausprobieren ↓
+            Explore Terminal Modules ↓
           </a>
         </div>
 
@@ -321,41 +382,41 @@ export default function LandingPage() {
             <KeyRound size={18} className="text-[#089981] shrink-0" />
             <div className="text-xs">
               <div className="font-bold text-white">100% Read-Only</div>
-              <div className="text-[10px] text-slate-500">Null Zugriff auf dein Geld</div>
+              <div className="text-[10px] text-slate-500">Zero trade routing or withdrawal access</div>
             </div>
           </div>
           <div className="bg-[#0B0E14] border border-[#161A23] p-3.5 rounded-xl flex items-center gap-3">
             <Lock size={18} className="text-[#089981] shrink-0" />
             <div className="text-xs">
               <div className="font-bold text-white">AES-256-GCM</div>
-              <div className="text-[10px] text-slate-500">Hardware-grade Verschlüsselung</div>
+              <div className="text-[10px] text-slate-500">Hardware-grade credential encryption</div>
             </div>
           </div>
           <div className="bg-[#0B0E14] border border-[#161A23] p-3.5 rounded-xl flex items-center gap-3">
             <Activity size={18} className="text-[#089981] shrink-0" />
             <div className="text-xs">
-              <div className="font-bold text-white">Sekunden-Sync</div>
-              <div className="text-[10px] text-slate-500">Keine manuellen CSV-Dateien</div>
+              <div className="font-bold text-white">Real-Time Sync</div>
+              <div className="text-[10px] text-slate-500">No manual CSV uploads or logs</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* STATION 1: LIVE POSITIONS & ERÖFFNUNGSANALYSE */}
+      {/* STATION 1: LIVE POSITIONS & PRE-TRADE LOCK */}
       {/* ========================================================================= */}
       <section id="live-station-1" className="max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-[#161A23] space-y-8">
         
         <div className="max-w-3xl space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-[#089981] font-bold uppercase tracking-wider">
             <Activity size={14} />
-            <span>Station 01 • Offene Positionen & Vorab-Lock</span>
+            <span>Module 01 • Open Positions & Pre-Trade Lock</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Offene Positionen & der psychologische Ehrlichkeits-Filter.
+            Live positions meet psychological integrity filters.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Trades scheitern fast nie am Chart, sondern an der mentalen Verfassung beim Einstieg. Riskil zwingt dich dazu, deine Setup-Klasse und Emotion <strong className="text-slate-200">während des laufenden Trades</strong> festzuhalten und zu verriegeln. Wer hinterher Ausreden sucht, scheitert am System.
+            Trades rarely fail because of chart mechanics — they fail due to the trader&apos;s mental state at entry. RISKIL forces you to record setup quality and emotional state <strong className="text-slate-200">while the trade is live</strong> and freezes it. Zero rationalizing after the fact.
           </p>
         </div>
 
@@ -365,11 +426,11 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-[#161A23] gap-2">
             <div className="flex items-center gap-2.5 font-mono text-xs">
               <span className="w-2.5 h-2.5 rounded-full bg-[#089981] animate-pulse" />
-              <span className="font-bold text-white">Live-Orderbook Sync: Aktiv</span>
+              <span className="font-bold text-white">Live Orderbook Sync: Connected</span>
               <span className="text-slate-500 hidden sm:inline">| Bitget, OKX, Bybit, Binance</span>
             </div>
             <span className="text-[11px] font-mono text-[#089981] bg-[#089981]/10 px-3 py-0.5 rounded-md border border-[#089981]/20">
-              Interaktive Simulation: Klicke die Buttons
+              Interactive Simulation: Test the triggers
             </span>
           </div>
 
@@ -386,7 +447,7 @@ export default function LandingPage() {
                 </div>
 
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Live PnL (Netto)</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Live PnL (Net)</span>
                   <div className="flex items-baseline gap-2 mt-1">
                     <span className={`text-3xl font-mono font-black transition-colors duration-300 ${pnlPulse ? 'text-emerald-300' : 'text-[#089981]'}`}>
                       +{livePnl.toFixed(2)} USDT
@@ -400,21 +461,21 @@ export default function LandingPage() {
 
               <div className="pt-4 border-t border-[#161A23] grid grid-cols-2 gap-3 text-xs font-mono">
                 <div>
-                  <span className="text-slate-500 text-[10px] uppercase block">Entry Kurs</span>
-                  <span className="text-slate-200 font-bold">$64.230,50</span>
+                  <span className="text-slate-500 text-[10px] uppercase block">Entry Price</span>
+                  <span className="text-slate-200 font-bold">$64,230.50</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-[10px] uppercase block">Live Marktkurs</span>
-                  <span className="text-white font-bold transition-all duration-200">${liveMarkPrice.toLocaleString('de-DE')}</span>
+                  <span className="text-slate-500 text-[10px] uppercase block">Live Mark Price</span>
+                  <span className="text-white font-bold transition-all duration-200">${liveMarkPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-[10px] uppercase block">Größe</span>
+                  <span className="text-slate-500 text-[10px] uppercase block">Size</span>
                   <span className="text-slate-200 font-bold">0.052 BTC</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-[10px] uppercase block">Status</span>
+                  <span className="text-slate-500 text-[10px] uppercase block">Integrity State</span>
                   <span className={isLocked ? "text-[#089981] font-bold flex items-center gap-1" : "text-amber-400 font-bold flex items-center gap-1"}>
-                    <Lock size={11} /> {isLocked ? 'Verriegelt' : 'Ausstehend'}
+                    <Lock size={11} /> {isLocked ? 'Locked' : 'Pending Lock'}
                   </span>
                 </div>
               </div>
@@ -430,25 +491,25 @@ export default function LandingPage() {
                     className="absolute top-0 right-0 px-2.5 py-1.5 bg-[#161A23] hover:bg-[#222938] border border-[#222938] hover:border-slate-600 rounded-xl text-[10px] font-semibold text-slate-300 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                   >
                     <SlidersHorizontal className="w-3 h-3 text-[#089981]" />
-                    <span>Parameter anpassen</span>
+                    <span>Adjust Thesis</span>
                   </button>
 
                   <div className="w-10 h-10 rounded-full bg-[#089981]/15 text-[#089981] border border-[#089981]/30 flex items-center justify-center shadow-lg shadow-[#089981]/20">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white tracking-wide">Trade läuft im Live-Modus</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Eröffnungsanalyse erfolgreich verriegelt.</p>
+                    <p className="text-sm font-bold text-white tracking-wide">Position Running in Active Terminal</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Pre-trade thesis locked and immutable.</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 justify-center pt-2">
                     <span className="px-2.5 py-0.5 rounded-md bg-[#089981]/15 text-[#089981] border border-[#089981]/30 text-[10px] font-mono">
                       {selectedSetup}
                     </span>
                     <span className="px-2.5 py-0.5 rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/30 text-[10px] font-mono">
-                      Mental: {selectedMental}
+                      State: {selectedMental}
                     </span>
                     <span className="px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-mono">
-                      Score: {conviction}/10
+                      Conviction: {conviction}/10
                     </span>
                   </div>
                 </div>
@@ -456,10 +517,10 @@ export default function LandingPage() {
                 <div className="space-y-4">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1.5 flex items-center gap-1">
-                      <Target size={12} className="text-[#089981]" /> 1. Setup-Klasse wählen
+                      <Target size={12} className="text-[#089981]" /> 1. Select Setup Quality
                     </span>
                     <div className="grid grid-cols-3 gap-2">
-                      {['Setup A: Perfekt', 'Setup B: Suboptimal', 'Setup C: Impulsiv / FOMO'].map((s) => (
+                      {['Setup A: A+ Model', 'Setup B: Suboptimal', 'Setup C: Impulsive / FOMO'].map((s) => (
                         <button
                           key={s}
                           type="button"
@@ -480,17 +541,17 @@ export default function LandingPage() {
 
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1.5 flex items-center gap-1">
-                      <BrainCircuit size={12} className="text-purple-400" /> 2. Mentale Verfassung
+                      <BrainCircuit size={12} className="text-purple-400" /> 2. Psychological State
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                      {['Fokus', 'FOMO', 'Müde', 'Frustriert (Revenge)', 'Überzeugt'].map((m) => (
+                      {['Focused', 'FOMO', 'Fatigued', 'Frustrated (Revenge)', 'High Conviction'].map((m) => (
                         <button
                           key={m}
                           type="button"
                           onClick={() => setSelectedMental(m)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition cursor-pointer ${
                             selectedMental === m
-                              ? m === 'FOMO' || m.includes('Frustriert')
+                              ? m === 'FOMO' || m.includes('Frustrated')
                                 ? 'bg-[#F23645]/25 text-[#F23645] border-[#F23645]/60 font-bold'
                                 : 'bg-blue-500/25 text-blue-400 border-blue-500/60 font-bold'
                               : 'bg-[#121622] border-[#1E2536] text-slate-400 hover:text-white'
@@ -504,10 +565,10 @@ export default function LandingPage() {
 
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1.5 flex items-center gap-1">
-                      <Layers size={12} className="text-amber-400" /> 3. Konfluenz-Faktoren
+                      <Layers size={12} className="text-amber-400" /> 3. Confluence Triggers
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                      {['Orderblock', 'Fibonacci', 'Imbalance', 'CVD-Divergenz', 'Liq-Cluster'].map((c) => {
+                      {['Orderblock', 'Fibonacci Retracement', 'Imbalance / FVG', 'CVD Divergence', 'Liquidity Sweep'].map((c) => {
                         const active = selectedConfluences.includes(c)
                         return (
                           <button
@@ -530,7 +591,7 @@ export default function LandingPage() {
                   <div className="pt-2 border-t border-[#161B26] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px] uppercase font-mono font-bold text-slate-400">
-                        <span>Conviction: {conviction}/10</span>
+                        <span>Conviction Level: {conviction}/10</span>
                       </div>
                       <input
                         type="range"
@@ -548,7 +609,7 @@ export default function LandingPage() {
                       className="px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer bg-[#089981] hover:bg-[#067a67] text-white shadow-lg shadow-[#089981]/25"
                     >
                       <Lock size={13} />
-                      <span>Einstiegsanalyse sichern</span>
+                      <span>Lock Pre-Trade Thesis</span>
                     </button>
                   </div>
                 </div>
@@ -572,13 +633,13 @@ export default function LandingPage() {
             </div>
             <div className="text-xs space-y-1">
               <div className="font-bold text-white uppercase tracking-wide flex items-center gap-2">
-                <span>Historischer Reality Check: Tag #{selectedMental}</span>
+                <span>Historical Reality Check: Tag #{selectedMental}</span>
                 <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-black/40 border border-white/10">
-                  {activeWarning.count} Trades erfasst
+                  {activeWarning.count} trades logged
                 </span>
               </div>
               <p className="text-slate-300 text-[11px] leading-relaxed">
-                {activeWarning.text} Deine historische Winrate liegt bei <strong className="text-white">{activeWarning.winrate}%</strong> mit einem Netto-Ergebnis von <strong className={activeWarning.type === 'positive' ? 'text-[#089981]' : 'text-[#F23645]'}>{activeWarning.pnl}</strong>.
+                {activeWarning.text} Your historical win rate sits at <strong className="text-white">{activeWarning.winrate}%</strong> with a net performance of <strong className={activeWarning.type === 'positive' ? 'text-[#089981]' : 'text-[#F23645]'}>{activeWarning.pnl}</strong>.
               </p>
             </div>
           </div>
@@ -594,13 +655,13 @@ export default function LandingPage() {
         <div className="max-w-3xl space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-[#089981] font-bold uppercase tracking-wider">
             <Clock size={14} />
-            <span>Station 02 • Post-Trade Inbox & Archiv-Integrität</span>
+            <span>Module 02 • Post-Trade Inbox & Audit Integrity</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Kein geschlossener Trade landet unanalysiert im Archiv.
+            No closed trade enters the archive without an audit.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Geschlossene Positionen fließen automatisch in deine <strong className="text-slate-200">Post-Trade Inbox</strong>. Sie werden erst für deine Gesamtstatistik freigeschaltet, wenn Austrittsgrund, Emotion und Disziplin ehrlich dokumentiert wurden.
+            Closed trades route automatically into your <strong className="text-slate-200">Post-Trade Inbox</strong>. They are withheld from your verified analytics until exit rationale, execution discipline, and post-trade mindset are documented with complete honesty.
           </p>
         </div>
 
@@ -609,9 +670,9 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#161A23] gap-2">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              1 Trade in der Post-Trade Inbox (Dokumentation ausstehend)
+              1 Trade Pending Review in Inbox
             </div>
-            <span className="text-[11px] font-mono text-slate-400">Realisierter Net-Profit: +$284,50 USDT</span>
+            <span className="text-[11px] font-mono text-slate-400">Realized Net Profit: +$284.50 USDT</span>
           </div>
 
           <div className="bg-[#07090E] border border-[#161A23] rounded-2xl p-5 space-y-5">
@@ -619,9 +680,9 @@ export default function LandingPage() {
               
               {/* Austrittsgrund */}
               <div className="bg-[#0B0E14] border border-[#161B26] p-4 rounded-xl space-y-2">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">1. Austrittsgrund</span>
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">1. Exit Reason</span>
                 <div className="flex flex-col gap-1.5">
-                  {['Take Profit (geplant)', 'Stop Loss (geplant)', 'Manueller Exit (Angst)'].map((ex) => (
+                  {['Take Profit (Planned)', 'Stop Loss (Planned)', 'Manual Close (Fear / Tilt)'].map((ex) => (
                     <button
                       key={ex}
                       type="button"
@@ -638,13 +699,13 @@ export default function LandingPage() {
 
               {/* Emotion nach Exit */}
               <div className="bg-[#0B0E14] border border-[#161B26] p-4 rounded-xl space-y-2">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">2. Emotion nach Exit</span>
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">2. Post-Trade Emotion</span>
                 <div className="grid grid-cols-2 gap-1.5">
                   {[
-                    { label: 'Erleichtert', emoji: '😮‍💨' },
-                    { label: 'Wütend', emoji: '🤬' },
-                    { label: 'Euphorisch', emoji: '🤩' },
-                    { label: 'Gleichgültig', emoji: '😐' }
+                    { label: 'Relieved', emoji: '😮‍💨' },
+                    { label: 'Angry / Tilted', emoji: '🤬' },
+                    { label: 'Euphoric', emoji: '🤩' },
+                    { label: 'Neutral', emoji: '😐' }
                   ].map((m) => (
                     <button
                       key={m.label}
@@ -664,7 +725,7 @@ export default function LandingPage() {
               {/* Disziplin & Rating */}
               <div className="bg-[#0B0E14] border border-[#161B26] p-4 rounded-xl space-y-3 flex flex-col justify-between">
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block mb-1.5">3. Management Rating</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-500 block mb-1.5">3. Execution Quality</span>
                   <div className="flex items-center gap-1.5">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <button key={s} type="button" onClick={() => setRating(s)} className="cursor-pointer">
@@ -681,19 +742,19 @@ export default function LandingPage() {
                   }`}
                 >
                   <CheckSquare size={16} />
-                  <span className="text-xs font-bold">100% Plan-Konform</span>
+                  <span className="text-xs font-bold">100% Plan Compliant</span>
                 </div>
               </div>
 
             </div>
 
             <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono border-t border-[#161A23]">
-              <span className="text-slate-500">Alle Pflichtfelder erfüllt • Integritäts-Check: Bestanden</span>
+              <span className="text-slate-500">All mandatory fields satisfied • Integrity Check: Passed</span>
               <button
                 type="button"
                 className="px-6 py-2.5 rounded-xl bg-[#089981] hover:bg-[#067a67] text-white font-bold transition shadow-md shadow-[#089981]/20 cursor-pointer"
               >
-                Trade ins Journal übertragen →
+                Commit Trade to Journal →
               </button>
             </div>
           </div>
@@ -709,13 +770,13 @@ export default function LandingPage() {
         <div className="max-w-3xl space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-[#089981] font-bold uppercase tracking-wider">
             <Calculator size={14} />
-            <span>Station 03 • Mathematische Risk-Engine</span>
+            <span>Module 03 • Mathematical Risk Engine</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Stop-Loss Distanz & Gebühren bestimmen den Hebel – nicht deine Gier.
+            Stop distance & roundtrip fees dictate leverage — never greed.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Standard-Hebelrechner ignorieren Börsengebühren. Riskil errechnet deinen exakten Hebel anhand deines maximalen Dollar-Verlusts und zieht Maker- und Taker-Roundtrips automatisch mit ein.
+            Generic leverage calculators ignore taker and liquidation slippage. RISKIL determines your maximum allowable leverage based on your strict dollar loss tolerance and automatically accounts for maker/taker fee erosion.
           </p>
         </div>
 
@@ -725,18 +786,18 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#161A23] gap-2">
             <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#089981]" />
-              Multi-Tranchen DCA-Berechnung (Bitget, OKX, Bybit, Binance Taker/Maker integriert)
+              Multi-Tranche DCA Engine (Bitget, OKX, Bybit, Binance Tiered Taker/Maker Built-In)
             </div>
             <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
-              Demo: 2 Tranchen • Vollversion: Unbegrenzte Einstiege
+              Demo: 2 Tranches • Production: Unlimited DCA Steps
             </span>
           </div>
 
           {/* Tranchen-Liste */}
           <div className="space-y-3">
             <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase font-mono">
-              <span>Einstiegs-Tranchen ({tranches.length}/2)</span>
-              <span className="text-[11px] text-slate-500">Mischkurs wird dynamisch errechnet</span>
+              <span>Entry Tranches ({tranches.length}/2)</span>
+              <span className="text-[11px] text-slate-500">Blended average price calculated dynamically</span>
             </div>
 
             {tranches.map((tranche, idx) => (
@@ -755,7 +816,7 @@ export default function LandingPage() {
                       setTranches(prev => prev.map(t => t.id === tranche.id ? { ...t, price: val } : t))
                     }}
                     className="w-full bg-[#0B0E14] border border-[#1E2536] rounded-xl py-2 px-3 text-xs font-mono text-white outline-none focus:border-[#089981]"
-                    placeholder="Kurs"
+                    placeholder="Price"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-mono">$</span>
                 </div>
@@ -769,7 +830,7 @@ export default function LandingPage() {
                       setTranches(prev => prev.map(t => t.id === tranche.id ? { ...t, margin: val } : t))
                     }}
                     className="w-full bg-[#0B0E14] border border-[#1E2536] rounded-xl py-2 px-3 text-xs font-mono text-white outline-none focus:border-[#089981]"
-                    placeholder="Marge"
+                    placeholder="Margin"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-mono">$</span>
                 </div>
@@ -794,7 +855,7 @@ export default function LandingPage() {
                 onClick={addTranche}
                 className="w-full py-2.5 border border-dashed border-[#1E2536] hover:border-[#089981]/50 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Plus size={14} /> 2. DCA-Tranche hinzufügen (Simulieren)
+                <Plus size={14} /> Add 2nd DCA Tranche (Simulate Scale-In)
               </button>
             )}
           </div>
@@ -804,7 +865,7 @@ export default function LandingPage() {
             <div className="bg-[#07090E] border border-[#161A23] p-4 rounded-xl space-y-2">
               <label className="text-xs font-bold text-[#F23645] uppercase tracking-wider flex items-center justify-between">
                 <span>Stop Loss ($)</span>
-                <span className="text-[10px] font-mono text-slate-500">Abstand: {slDistPct.toFixed(2)}%</span>
+                <span className="text-[10px] font-mono text-slate-500">Distance: {slDistPct.toFixed(2)}%</span>
               </label>
               <input
                 type="number"
@@ -817,7 +878,7 @@ export default function LandingPage() {
             <div className="bg-[#07090E] border border-[#161A23] p-4 rounded-xl space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Max. Margen-Verlust
+                  Max Portfolio Margin Risk
                 </label>
                 <div className="flex bg-[#0B0E14] p-0.5 rounded-lg border border-[#1E2536] text-[10px] font-mono">
                   <button
@@ -827,7 +888,7 @@ export default function LandingPage() {
                       riskMode === 'PERCENT' ? 'bg-[#089981] text-white font-black' : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    % von Marge
+                    % of Margin
                   </button>
                   <button
                     type="button"
@@ -836,7 +897,7 @@ export default function LandingPage() {
                       riskMode === 'USD' ? 'bg-[#089981] text-white font-black' : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    $ Betrag
+                    $ Amount
                   </button>
                 </div>
               </div>
@@ -867,8 +928,8 @@ export default function LandingPage() {
 
               <span className="text-[10px] font-mono text-slate-500 block">
                 {riskMode === 'PERCENT'
-                  ? `≈ $${maxLossUsd.toFixed(2)} von $${activeMargin.toFixed(2)} Marge`
-                  : `≈ ${effectiveLossPercent.toFixed(1)}% der Marge`}
+                  ? `≈ $${maxLossUsd.toFixed(2)} of $${activeMargin.toFixed(2)} margin`
+                  : `≈ ${effectiveLossPercent.toFixed(1)}% of total margin`}
               </span>
             </div>
           </div>
@@ -876,27 +937,27 @@ export default function LandingPage() {
           {/* ERGEBNIS MATRIX */}
           <div className="pt-4 border-t border-[#161A23] grid grid-cols-2 sm:grid-cols-4 gap-3.5 font-mono">
             <div className="bg-[#07090E] border border-[#161A23] p-4 rounded-xl">
-              <span className="text-[10px] text-slate-500 uppercase block font-bold">Mischkurs (Avg Entry)</span>
+              <span className="text-[10px] text-slate-500 uppercase block font-bold">Blended Entry Price</span>
               <span className="text-base sm:text-lg font-black text-white">${avgEntryPrice.toFixed(2)}</span>
-              <span className="text-[9px] text-slate-500 block mt-0.5">Gewichteter Einstieg</span>
+              <span className="text-[9px] text-slate-500 block mt-0.5">Weighted average fill</span>
             </div>
 
             <div className="bg-[#07090E] border border-[#089981]/50 p-4 rounded-xl shadow-[0_0_15px_rgba(8,153,129,0.1)]">
-              <span className="text-[10px] text-[#089981] uppercase block font-bold">Optimaler Hebel</span>
+              <span className="text-[10px] text-[#089981] uppercase block font-bold">Optimal Leverage</span>
               <span className="text-xl sm:text-2xl font-black text-[#089981]">{optimalLeverage.toFixed(1)}x</span>
-              <span className="text-[9px] text-slate-500 block mt-0.5">Inkl. Roundtrip Fees</span>
+              <span className="text-[9px] text-slate-500 block mt-0.5">Roundtrip fees included</span>
             </div>
 
             <div className="bg-[#07090E] border border-[#161A23] p-4 rounded-xl">
-              <span className="text-[10px] text-slate-500 uppercase block font-bold">Gesamte Marge</span>
+              <span className="text-[10px] text-slate-500 uppercase block font-bold">Total Margin</span>
               <span className="text-base sm:text-lg font-black text-white">${activeMargin.toFixed(2)}</span>
-              <span className="text-[9px] text-[#F23645] block mt-0.5">SL-Loss: -${maxLossUsd.toFixed(2)}</span>
+              <span className="text-[9px] text-[#F23645] block mt-0.5">SL Realized: -${maxLossUsd.toFixed(2)}</span>
             </div>
 
             <div className="bg-[#07090E] border border-[#161A23] p-4 rounded-xl">
-              <span className="text-[10px] text-slate-500 uppercase block font-bold">Positionswert</span>
+              <span className="text-[10px] text-slate-500 uppercase block font-bold">Position Size</span>
               <span className="text-base sm:text-lg font-black text-slate-200">${totalNotionalUsd.toFixed(0)}</span>
-              <span className="text-[9px] text-slate-500 block mt-0.5">Notional Exposure</span>
+              <span className="text-[9px] text-slate-500 block mt-0.5">Notional exposure</span>
             </div>
           </div>
 
@@ -909,13 +970,13 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-[#161A23]">
         <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
           <span className="text-[11px] font-mono tracking-widest text-[#089981] uppercase bg-[#089981]/10 px-3.5 py-1 rounded-full border border-[#089981]/25 font-bold">
-            Mobile App Experience
+            Mobile Terminal Experience
           </span>
           <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-            In 10 Sekunden auf deinem Homescreen.
+            On your home screen in 10 seconds.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
-            Kein App-Store-Download nötig. Progressive Web App im Vollbildmodus ohne störende Browser-Leiste.
+            No app store download required. Fullscreen Progressive Web App with zero browser address bar friction.
           </p>
 
           {/* OS SELECTOR SWITCH */}
@@ -1014,7 +1075,7 @@ export default function LandingPage() {
                 <div className="bg-[#121622] p-3 rounded-xl border border-[#161A23] space-y-2">
                   <div className="h-2 w-20 bg-slate-700 rounded" />
                   <div className="h-16 w-full bg-[#0B0E14] rounded-lg border border-[#161A23] flex items-center justify-center text-[10px] text-slate-500 font-mono">
-                    Performance Chart
+                    Performance Analytics
                   </div>
                 </div>
               </div>
@@ -1035,7 +1096,7 @@ export default function LandingPage() {
                         <div className="w-10 h-10 rounded-full bg-[#089981]/20 text-[#089981] flex items-center justify-center animate-bounce">
                           <Share2 size={20} />
                         </div>
-                        <span className="text-xs font-bold text-white">1. Unten auf Teilen tippen</span>
+                        <span className="text-xs font-bold text-white">1. Tap Share at the bottom</span>
                       </div>
                     )}
                     {activeStep === 1 && (
@@ -1043,7 +1104,7 @@ export default function LandingPage() {
                         <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
                           <PlusSquare size={20} />
                         </div>
-                        <span className="text-xs font-bold text-white">2. „Zum Home-Bildschirm“</span>
+                        <span className="text-xs font-bold text-white">2. Select “Add to Home Screen”</span>
                       </div>
                     )}
                     {activeStep === 2 && (
@@ -1051,7 +1112,7 @@ export default function LandingPage() {
                         <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
                           <CheckCircle2 size={20} />
                         </div>
-                        <span className="text-xs font-bold text-white">3. Oben „Hinzufügen“</span>
+                        <span className="text-xs font-bold text-white">3. Tap “Add” in top-right</span>
                       </div>
                     )}
                   </motion.div>
@@ -1069,7 +1130,7 @@ export default function LandingPage() {
                         <div className="w-10 h-10 rounded-full bg-[#089981]/20 text-[#089981] flex items-center justify-center animate-pulse">
                           <MoreVertical size={20} />
                         </div>
-                        <span className="text-xs font-bold text-white">1. Oben auf Menü (⋮) tippen</span>
+                        <span className="text-xs font-bold text-white">1. Tap menu (⋮) in top right</span>
                       </div>
                     )}
                     {activeStep === 1 && (
@@ -1077,7 +1138,7 @@ export default function LandingPage() {
                         <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
                           <Download size={20} />
                         </div>
-                        <span className="text-xs font-bold text-white">2. „Installieren & Verknüpfen“</span>
+                        <span className="text-xs font-bold text-white">2. Select “Install app”</span>
                       </div>
                     )}
                     {activeStep === 2 && (
@@ -1085,7 +1146,7 @@ export default function LandingPage() {
                         <div className="w-10 h-10 rounded-full bg-[#089981] text-white flex items-center justify-center shadow-lg shadow-[#089981]/30">
                           <CheckCircle2 size={20} />
                         </div>
-                        <span className="text-xs font-bold text-white">3. Bestätigen & Fertig</span>
+                        <span className="text-xs font-bold text-white">3. Confirm & Launch</span>
                       </div>
                     )}
                   </motion.div>
@@ -1100,23 +1161,23 @@ export default function LandingPage() {
       {/* HINDSIGHT BIAS MODAL */}
       {/* ========================================================================= */}
       {showWarningModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-[#0D111A] border border-[#1A202C] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
             <div className="flex items-center gap-3 text-amber-400 pb-2 border-b border-[#161B26]">
               <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Parameter nachträglich anpassen?</h4>
-                <p className="text-[11px] text-slate-400">Verfälschung der Journal-Integrität</p>
+                <h4 className="text-sm font-bold text-white">Unlock & Adjust Trade Thesis?</h4>
+                <p className="text-[11px] text-slate-400">Breach of journal integrity protocol</p>
               </div>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Das nachträgliche Anpassen deiner Parameter während des Trades führt zu <strong>Hindsight Bias (Rückschaufehler)</strong> und verfälscht deine statistischen Auswertungen. Sei ehrlich zu dir selbst.
+              Modifying your setup parameters after order fill induces <strong>hindsight bias</strong> and compromises your statistical edge. Do not rationalize what the market is doing.
             </p>
             <p className="text-xs text-slate-400">
-              Möchtest du die gelockte Eröffnungsanalyse für diesen Trade wirklich wieder freigeben?
+              Are you sure you want to unlock this pre-trade entry analysis?
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -1125,7 +1186,7 @@ export default function LandingPage() {
                 onClick={() => setShowWarningModal(false)}
                 className="px-4 py-2 bg-[#161A23] hover:bg-[#222938] text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
               >
-                Abbrechen
+                Cancel
               </button>
               <button 
                 type="button"
@@ -1135,9 +1196,163 @@ export default function LandingPage() {
                 }}
                 className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-amber-500/20"
               >
-                Trotzdem anpassen
+                Override & Unlock
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* CLOSED BETA ACCESS APPLICATION MODAL */}
+      {/* ========================================================================= */}
+      {showBetaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="bg-[#0B0E14] border border-[#1E2536] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+            
+            {/* Ambient Background Glow */}
+            <div 
+              className="absolute -top-24 -right-24 w-60 h-60 pointer-events-none -z-10"
+              style={{
+                background: 'radial-gradient(circle, rgba(8, 153, 129, 0.25) 0%, transparent 70%)'
+              }}
+            />
+
+            {/* Close Button */}
+            <button
+              onClick={() => setShowBetaModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-xl bg-[#141824] hover:bg-[#1E2536] text-slate-400 hover:text-white transition cursor-pointer border border-[#1E2536]"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Modal Header */}
+            <div className="space-y-2 pr-6">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#089981]/10 border border-[#089981]/30 text-[10px] font-mono text-[#089981] font-bold uppercase tracking-wider">
+                <Sparkles size={12} />
+                <span>Private Closed Beta Rolling Out</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                Apply for Terminal Access
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                We manually onboard derivatives traders to ensure zero execution friction and custom API security verification. Choose your preferred fast-track channel below:
+              </p>
+            </div>
+
+            {/* FAST TRACK DIRECT BUTTONS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              
+              {/* X / Twitter Direct Application */}
+              <a
+                href="https://x.com/robingerling"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group p-4 rounded-2xl bg-[#07090E] border border-[#1E2536] hover:border-[#089981]/60 transition-all flex flex-col justify-between gap-3 shadow-lg hover:shadow-[#089981]/10"
+              >
+                <div className="flex items-center justify-between">
+                  {/* Minimal X Logo */}
+                  <div className="w-9 h-9 rounded-xl bg-[#141824] flex items-center justify-center text-white border border-[#222938]">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-mono text-[#089981] font-bold">Fast-Track ⚡</span>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white group-hover:text-[#089981] transition flex items-center gap-1">
+                    <span>DM on X (Twitter)</span>
+                    <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">@robingerling (Instant invite)</div>
+                </div>
+              </a>
+
+              {/* Telegram Direct Application */}
+              <a
+                href="https://t.me/robingerling"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group p-4 rounded-2xl bg-[#07090E] border border-[#1E2536] hover:border-[#38BDF8]/60 transition-all flex flex-col justify-between gap-3 shadow-lg hover:shadow-[#38BDF8]/10"
+              >
+                <div className="flex items-center justify-between">
+                  {/* Telegram Icon */}
+                  <div className="w-9 h-9 rounded-xl bg-[#0284c7]/15 text-[#38BDF8] flex items-center justify-center border border-[#0284c7]/30">
+                    <Send size={16} className="-ml-0.5 mt-0.5" />
+                  </div>
+                  <span className="text-[10px] font-mono text-[#38BDF8] font-bold">Direct Desk 💬</span>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white group-hover:text-[#38BDF8] transition flex items-center gap-1">
+                    <span>Message on Telegram</span>
+                    <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Direct chat with the founder</div>
+                </div>
+              </a>
+
+            </div>
+
+            {/* SEPARATOR */}
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-[#161A23] w-full" />
+              <span className="bg-[#0B0E14] px-3 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+                or request via email
+              </span>
+            </div>
+
+            {/* EMAIL WAITLIST INPUT */}
+            <form onSubmit={handleEmailSubmit} className="space-y-3">
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="email"
+                  required
+                  disabled={isSubmitting || betaSubmitted}
+                  value={betaEmail}
+                  onChange={(e) => setBetaEmail(e.target.value)}
+                  placeholder="Enter your active trading email..."
+                  className="w-full bg-[#07090E] border border-[#1E2536] rounded-xl py-3 pl-10 pr-4 text-xs font-mono text-white outline-none focus:border-[#089981] transition shadow-inner placeholder:text-slate-600 disabled:opacity-50"
+                />
+              </div>
+
+              {submitError && (
+                <div className="p-2.5 rounded-xl bg-[#F23645]/10 border border-[#F23645]/30 text-[11px] font-mono text-[#F23645] flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting || betaSubmitted}
+                className="w-full py-3 bg-[#089981] hover:bg-[#067a67] disabled:bg-[#089981]/50 text-white text-xs font-black rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#089981]/25"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Adding to Whitelist...</span>
+                  </>
+                ) : betaSubmitted ? (
+                  <>
+                    <CheckCircle2 size={15} />
+                    <span>Application Submitted! We&apos;ll whitelist you soon.</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Submit Whitelist Request</span>
+                    <ArrowRight size={14} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="text-center">
+              <span className="text-[10px] font-mono text-slate-500">
+                🔒 Zero Spam. Read-Only derivatives API access only.
+              </span>
+            </div>
+
           </div>
         </div>
       )}
@@ -1146,18 +1361,18 @@ export default function LandingPage() {
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center space-y-6">
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-[#0D111A] to-[#07090E] border border-[#1E2536] space-y-5 shadow-2xl relative overflow-hidden">
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Schluss mit Zufallsergebnissen.
+            Eliminate random execution variance.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Teste das Terminal kostenlos. Kein Passwort, keine Kreditkarte – verifiziere einfach deine E-Mail und leg los.
+            Test the live terminal risk engine. No credit card, no password — verify your email and experience mathematical execution.
           </p>
-          <Link
-            href="/auth"
+          <button
+            onClick={() => setShowBetaModal(true)}
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#089981] hover:bg-[#067a67] text-white text-xs font-black rounded-xl transition shadow-[0_0_28px_rgba(8,153,129,0.35)] cursor-pointer"
           >
-            <span>Kostenlosen Zugang starten</span>
+            <span>Launch Free Access</span>
             <ArrowRight size={14} />
-          </Link>
+          </button>
         </div>
       </section>
 
@@ -1166,12 +1381,12 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-slate-400">
             <Zap size={14} className="text-[#089981]" />
-            <span>© {new Date().getFullYear()} Riskil. Engineering Discipline.</span>
+            <span>© {new Date().getFullYear()} RISKIL. Engineering Discipline.</span>
           </div>
           <div className="flex gap-6">
-            <Link href="/agb" className="hover:text-slate-300 transition">AGB</Link>
-            <Link href="/datenschutz" className="hover:text-slate-300 transition">Datenschutz</Link>
-            <Link href="/impressum" className="hover:text-slate-300 transition">Impressum</Link>
+            <Link href="/terms" className="hover:text-slate-300 transition">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-slate-300 transition">Privacy Policy</Link>
+            <Link href="/imprint" className="hover:text-slate-300 transition">Legal Notice</Link>
           </div>
         </div>
       </footer>
