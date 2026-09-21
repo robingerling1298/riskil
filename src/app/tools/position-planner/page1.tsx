@@ -99,6 +99,7 @@ export default function FreeFullPositionPlanner() {
   const [searchQuery, setSearchQuery] = useState<string>('')
 
   const [isExporting, setIsExporting] = useState<boolean>(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const assetDropdownRef = useRef<HTMLDivElement>(null)
   const exchangeDropdownRef = useRef<HTMLDivElement>(null)
@@ -264,7 +265,6 @@ export default function FreeFullPositionPlanner() {
   const totalPositionSizeUsd = totalMargin * calculatedLeverage
   const estimatedEntryFeesUsd = totalPositionSizeUsd * (blendedEntryFeeRatePct / 100)
 
-  // --- KORRIGIERTE TP STUFEN DURCHRECHNUNG ---
   let runningRemainingMargin = totalMargin
   let totalGrossProfit = 0
   let totalExitFeesUSD = 0
@@ -415,12 +415,17 @@ export default function FreeFullPositionPlanner() {
         pixelRatio: 2.5,
         backgroundColor: '#0a0d14'
       })
-      const link = document.createElement('a')
-      link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Plan.png`
-      link.href = dataUrl
-      link.click()
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        setPreviewImage(dataUrl)
+      } else {
+        const link = document.createElement('a')
+        link.download = `RISKIL_${selectedAsset.symbol}_${direction}_FullPlan.png`
+        link.href = dataUrl
+        link.click()
+      }
     } catch (err) {
-      console.error('Fehler beim Exportieren der Karte:', err)
+      console.error('Fehler beim Exportieren des Full-Plans:', err)
     } finally {
       setIsExporting(false)
     }
@@ -433,15 +438,15 @@ export default function FreeFullPositionPlanner() {
       <div className="text-center space-y-4 pt-10 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
           <Scale className="w-3.5 h-3.5" />
-          Krypto Perps Position & Exit Planner
+          All-in-One Krypto Perps Terminal Planner
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Position & Exits planen. <br className="hidden sm:inline" /> Entry bis Scale-Out.
+          Full Position & Exit Planner. <br className="hidden sm:inline" /> Entry bis Scale-Out.
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
-          Berechne Mischkurse über DCA-Einstiege, setze den idealen Hebel passend zu deinem Risiko und plane deine Take-Profit Leiter durch – komplett client-side und kostenlos.
+          Die Gesamtlösung: Berechne Mischkurse über mehrere DCA-Einstiege, schütze dein Konto mit exaktem Hebel-Sizing und plane deine Take-Profit Leiter in einem synchronisierten Workflow.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
@@ -454,7 +459,7 @@ export default function FreeFullPositionPlanner() {
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Image Export Ready
+            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Full Setup Export
           </span>
         </div>
       </div>
@@ -703,7 +708,7 @@ export default function FreeFullPositionPlanner() {
                 <div className="sm:col-span-3 relative">
                   <input
                     type="number"
-                    placeholder="Margenanforderung"
+                    placeholder="Marge / Kollateral"
                     value={tranche.margin}
                     onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
                     className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-500 outline-none transition shadow-inner"
@@ -1088,7 +1093,7 @@ export default function FreeFullPositionPlanner() {
         </div>
       </div>
 
-      {/* ================= TRADE PLAN CARD (EXPORTABLE) ================= */}
+      {/* ================= TRADE EXECUTION CARD (EXPORTABLE) ================= */}
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="space-y-0.5">
@@ -1259,6 +1264,41 @@ export default function FreeFullPositionPlanner() {
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
+
+      {/* ================= MOBILE IMAGE PREVIEW MODAL ================= */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-term-border pb-3">
+              <span className="text-xs font-mono font-bold text-white">Trade-Karte bereit</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-center">
+              <p className="text-[11px] font-mono text-emerald-400">
+                Halte das Bild gedrückt, um es in deiner Galerie zu speichern.
+              </p>
+              <div className="rounded-xl overflow-hidden border border-term-border bg-black">
+                <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer"
+            >
+              Fertig / Schließen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL: CUSTOM FEES POPUP ================= */}
       {isCustomFeeModalOpen && (

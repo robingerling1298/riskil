@@ -79,6 +79,7 @@ export default function FreeLeverageCalculator() {
   const [searchQuery, setSearchQuery] = useState<string>('')
 
   const [isExporting, setIsExporting] = useState<boolean>(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
 
   const assetDropdownRef = useRef<HTMLDivElement>(null)
@@ -308,10 +309,15 @@ export default function FreeLeverageCalculator() {
         pixelRatio: 2.5,
         backgroundColor: '#0a0d14'
       })
-      const link = document.createElement('a')
-      link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Setup.png`
-      link.href = dataUrl
-      link.click()
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        setPreviewImage(dataUrl)
+      } else {
+        const link = document.createElement('a')
+        link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Setup.png`
+        link.href = dataUrl
+        link.click()
+      }
     } catch (err) {
       console.error('Fehler beim Exportieren der Trade-Karte:', err)
     } finally {
@@ -603,7 +609,7 @@ export default function FreeLeverageCalculator() {
                   <div className="sm:col-span-3 relative">
                     <input
                       type="number"
-                      placeholder="Margenanforderung"
+                      placeholder="Marge / Kollateral"
                       value={tranche.margin}
                       onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
                       className="w-full min-h-[42px] bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
@@ -946,6 +952,41 @@ export default function FreeLeverageCalculator() {
         </div>
 
       </div>
+
+      {/* ================= MOBILE IMAGE PREVIEW MODAL ================= */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-term-border pb-3">
+              <span className="text-xs font-mono font-bold text-white">Trade-Karte bereit</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-center">
+              <p className="text-[11px] font-mono text-emerald-400">
+                Halte das Bild gedrückt, um es in deiner Galerie zu speichern.
+              </p>
+              <div className="rounded-xl overflow-hidden border border-term-border bg-black">
+                <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer"
+            >
+              Fertig / Schließen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL: CUSTOM FEES POPUP ================= */}
       {isCustomFeeModalOpen && (

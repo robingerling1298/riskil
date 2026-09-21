@@ -128,6 +128,7 @@ export default function FreeTakeProfitPlanner() {
   const [searchQuery, setSearchQuery] = useState<string>('')
 
   const [isExporting, setIsExporting] = useState<boolean>(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const assetDropdownRef = useRef<HTMLDivElement>(null)
   const exchangeDropdownRef = useRef<HTMLDivElement>(null)
@@ -426,10 +427,15 @@ export default function FreeTakeProfitPlanner() {
         pixelRatio: 2.5,
         backgroundColor: '#0a0d14'
       })
-      const link = document.createElement('a')
-      link.download = `RISKIL_${selectedAsset.symbol}_${positionType}_TP_Plan.png`
-      link.href = dataUrl
-      link.click()
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        setPreviewImage(dataUrl)
+      } else {
+        const link = document.createElement('a')
+        link.download = `RISKIL_${selectedAsset.symbol}_${positionType}_TP_Plan.png`
+        link.href = dataUrl
+        link.click()
+      }
     } catch (err) {
       console.error('Fehler beim Exportieren der TP-Karte:', err)
     } finally {
@@ -953,22 +959,22 @@ export default function FreeTakeProfitPlanner() {
 
                     <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
                       <span className="text-slate-500 block text-[10px]">Netto-Gewinn</span>
-                      <span className={`font-bold ${stage.hasInput && stage.isDirectionValid ? 'text-emerald-400' : 'text-slate-500'}`}>
-                        {stage.hasInput && stage.isDirectionValid ? `+$${stage.netTrancheProfit.toFixed(2)}` : '-'}
+                      <span className={`font-bold ${stage.netTrancheProfit >= 0 ? 'text-emerald-400' : 'text-[#F23645]'}`}>
+                        {stage.netTrancheProfit > 0 ? `+$${stage.netTrancheProfit.toFixed(2)}` : '-'}
                       </span>
                     </div>
 
                     <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
                       <span className="text-slate-500 block text-[10px]">Freigesetzte Marge</span>
                       <span className="font-bold text-brand">
-                        {stage.hasInput && stage.isDirectionValid ? `$${stage.trancheMargin.toFixed(2)}` : '-'}
+                        {stage.trancheMargin > 0 ? `$${stage.trancheMargin.toFixed(2)}` : '-'}
                       </span>
                     </div>
 
                     <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
                       <span className="text-slate-500 block text-[10px]">Restposition danach</span>
                       <span className="font-bold text-slate-300">
-                        {stage.hasInput && stage.isDirectionValid ? `${stage.remainingMarginPct.toFixed(1)}%` : '-'}
+                        {parsedMargin > 0 ? `${stage.remainingMarginPct.toFixed(1)}%` : '-'}
                       </span>
                     </div>
                   </div>
@@ -1121,8 +1127,8 @@ export default function FreeTakeProfitPlanner() {
               <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
                 <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Runner / Rest im Markt</span>
                 <p className="text-base sm:text-lg font-mono font-bold text-slate-300 truncate">
-                  {calculatedStages.filter(s => s.hasInput && s.isDirectionValid).length > 0
-                    ? `${calculatedStages.filter(s => s.hasInput && s.isDirectionValid).slice(-1)[0].remainingMarginPct.toFixed(1)}%`
+                  {calculatedStages.length > 0 && calculatedStages[calculatedStages.length - 1]
+                    ? `${calculatedStages[calculatedStages.length - 1].remainingMarginPct.toFixed(1)}%`
                     : '100%'}
                 </p>
               </div>
@@ -1138,23 +1144,20 @@ export default function FreeTakeProfitPlanner() {
               </div>
 
               <div className="space-y-1.5 pt-1">
-                {calculatedStages.filter(s => s.hasInput && s.isDirectionValid).length > 0 ? (
-                  calculatedStages
-                    .filter(s => s.hasInput && s.isDirectionValid)
-                    .map((s, idx) => (
-                      <div key={s.id} className="flex justify-between items-center text-[11px] text-slate-300 py-0.5">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          Target #{idx + 1} (${s.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                        </span>
-                        <span>
-                          +{s.calculatedRoe.toFixed(1)}% RoE • <strong className="text-emerald-400">+{s.netTrancheProfit > 0 ? `$${s.netTrancheProfit.toFixed(2)}` : '$0.00'}</strong> ({s.closePercent || 0}% Verkauf)
-                        </span>
-                      </div>
-                    ))
-                ) : (
-                  <span className="text-[11px] text-slate-600 italic">Noch keine gültigen TPs definiert.</span>
-                )}
+                {calculatedStages.map((s, idx) => {
+                  if (!s) return null
+                  return (
+                    <div key={s.id} className="flex justify-between items-center text-[11px] text-slate-300 py-0.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        Target #{idx + 1} ({s.calculatedTargetPrice > 0 ? `$${s.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'})
+                      </span>
+                      <span>
+                        +{s.calculatedRoe.toFixed(1)}% RoE • <strong className="text-emerald-400">+{s.netTrancheProfit > 0 ? `$${s.netTrancheProfit.toFixed(2)}` : '$0.00'}</strong> ({s.closePercent || 0}% Verkauf)
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -1176,11 +1179,12 @@ export default function FreeTakeProfitPlanner() {
                 Closed Beta
               </span>
               <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                Exits geplant. Nimmst du im Live-Markt auch wirklich deine Gewinne mit?
+                Exits geplant. Nimmst du im Live-Markt auch wirklich Gewinne mit?
               </h4>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Kein manuelles Nachführen von Trades mehr: <strong>RISKIL</strong> erfasst deine geschlossenen Positionen über eine <strong>100% sichere Read-Only API (ohne Handelsrechte)</strong> vollautomatisch und deckt schonungslos auf, wo du von deinem Exit-Plan abgewichen bist.
+              Die meisten Trader scheitern daran, Gewinne rechtzeitig zu sichern, und lassen grüne Trades wieder ins Minus laufen.
+              <strong> RISKIL</strong> automatisiert deine Pre-Lock-Disziplin vor dem Einstieg. Sichere dir jetzt kostenlosen Early Access.
             </p>
           </div>
 
@@ -1194,6 +1198,41 @@ export default function FreeTakeProfitPlanner() {
         </div>
 
       </div>
+
+      {/* ================= MOBILE IMAGE PREVIEW MODAL ================= */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-term-border pb-3">
+              <span className="text-xs font-mono font-bold text-white">Trade-Karte bereit</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-center">
+              <p className="text-[11px] font-mono text-emerald-400">
+                Halte das Bild gedrückt, um es in deiner Galerie zu speichern.
+              </p>
+              <div className="rounded-xl overflow-hidden border border-term-border bg-black">
+                <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer"
+            >
+              Fertig / Schließen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL: CUSTOM FEES POPUP ================= */}
       {isCustomFeeModalOpen && (
