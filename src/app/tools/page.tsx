@@ -10,17 +10,13 @@ import {
   ShieldCheck,
   Eye,
   Sliders,
-  Terminal,
   Activity,
-  Layers,
-  ChevronRight,
-  CheckCircle2,
-  Sparkles,
-  Lock,
   Cpu,
-  TrendingUp,
-  BarChart3,
-  Percent
+  Smartphone,
+  Share,
+  PlusSquare,
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react'
 
 interface ToolItem {
@@ -28,7 +24,6 @@ interface ToolItem {
   href: string
   title: string
   badge: string
-  pillText: string
   description: string
   icon: React.ElementType
   mockup: {
@@ -44,7 +39,6 @@ const TOOLS: ToolItem[] = [
     href: '/tools/leverage-calculator',
     title: 'Leverage & Risk Sizer',
     badge: '01 / SIZING',
-    pillText: 'Strict Math.floor',
     description: 'Berechnet Mischkurse über unbegrenzte DCA-Tranchen und drosselt den Hebel mathematisch abgerundet auf den Punkt deines maximalen Risikobudgets.',
     icon: Zap,
     mockup: {
@@ -63,7 +57,6 @@ const TOOLS: ToolItem[] = [
     href: '/tools/tp-planner',
     title: 'Take-Profit Scale-Out Planner',
     badge: '02 / EXITS',
-    pillText: 'Dynamic Margin',
     description: 'Simuliert gestaffelte Gewinnmitnahmen mit Echtzeit-Börsengebühren. Verhindert das vorzeitige Schließen profitabler Swings und kalkuliert Restmargenträger.',
     icon: Target,
     mockup: {
@@ -82,7 +75,6 @@ const TOOLS: ToolItem[] = [
     href: '/tools/position-planner',
     title: 'Full Position Execution Matrix',
     badge: '03 / ALL-IN-ONE',
-    pillText: 'Auto CRV Matrix',
     description: 'Der nahtlose Workflow: DCA-Einstiegsstaffelung, strikter Stop-Loss und Take-Profit Leiter in einem synchronisierten Dashboard mit hochauflösendem PNG-Export.',
     icon: Scale,
     mockup: {
@@ -102,6 +94,7 @@ export default function ToolsLandingPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [pwaOS, setPwaOS] = useState<'ios' | 'android'>('ios')
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return
@@ -118,7 +111,7 @@ export default function ToolsLandingPage() {
       onMouseMove={handleMouseMove}
       className="min-h-screen bg-[#05070B] text-slate-100 selection:bg-brand selection:text-black relative overflow-hidden font-sans pb-28"
     >
-      {/* ================= DYNAMIC SPOTLIGHT LAYER ================= */}
+      {/* SPOTLIGHT LAYER */}
       <div 
         className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 lg:opacity-100 -z-10"
         style={{
@@ -126,22 +119,12 @@ export default function ToolsLandingPage() {
         }}
       />
 
-      {/* AMBIENT BRAND LIGHTING */}
       <div className="absolute top-[-180px] left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-brand/15 blur-[160px] pointer-events-none -z-10 rounded-full" />
       <div className="absolute top-[45%] right-[-10%] w-[500px] h-[500px] bg-brand/10 blur-[180px] pointer-events-none -z-10 rounded-full" />
 
-      {/* SUBTLE TERMINAL GRID PATTERN */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none -z-10"
-        style={{
-          backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
-          backgroundSize: '48px 48px'
-        }}
-      />
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24 pt-16 sm:pt-28">
         
-        {/* ================= HERO SECTION ================= */}
+        {/* HERO SECTION */}
         <div className="text-center space-y-6 max-w-3xl mx-auto">
           
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-muted border border-brand-border shadow-lg backdrop-blur-md">
@@ -150,22 +133,21 @@ export default function ToolsLandingPage() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
             </span>
             <span className="text-xs font-mono font-bold text-brand tracking-widest uppercase">
-              Free Perps Terminal Suite
+              Free Perps Calculator Suite • PWA Ready
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.08]">
-            Keine Rechenfehler. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-slate-400">
-              Kein Blind-Trading.
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
+            Mathematische Präzision. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-200 to-slate-400">
+              Direkt auf deinem Homescreen.
             </span>
           </h1>
 
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-xl mx-auto font-normal">
-            Hochpräzise Rechner für Krypto-Derivate. Berechne Mischkurse, strikte Hebel-Caps und Skalierungs-Exits vor dem Einstieg. 100 % client-side, ohne Anmeldung.
+            Hochpräzise Terminal-Tools für Krypto-Derivate. Installiere die Rechner als native PWA in Sekundenschnelle auf dein Smartphone. Blitzschnell und offlinefähig.
           </p>
 
-          {/* BADGES ROW */}
           <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs font-mono text-slate-400">
             <div className="flex items-center gap-2 bg-term-card/60 px-3 py-1.5 rounded-xl border border-term-border">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -173,17 +155,13 @@ export default function ToolsLandingPage() {
             </div>
             <div className="flex items-center gap-2 bg-term-card/60 px-3 py-1.5 rounded-xl border border-term-border">
               <Cpu className="w-4 h-4 text-brand" />
-              <span>Keine Registrierung</span>
-            </div>
-            <div className="flex items-center gap-2 bg-term-card/60 px-3 py-1.5 rounded-xl border border-term-border">
-              <Activity className="w-4 h-4 text-amber-400" />
-              <span>Echtzeit Kurse</span>
+              <span>Natives App-Feeling</span>
             </div>
           </div>
 
         </div>
 
-        {/* ================= BENTO TOOL SUITE GRID ================= */}
+        {/* ================= BENTO TOOL SUITE GRID (DIREKT UNTER HERO) ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {TOOLS.map((tool) => {
             const Icon = tool.icon
@@ -200,12 +178,9 @@ export default function ToolsLandingPage() {
                     : 'border-term-border/80 bg-term-card/50 hover:border-term-border'
                 } backdrop-blur-2xl overflow-hidden`}
               >
-                {/* AMBIENT BRAND LIGHT PER CARD */}
                 <div className="absolute top-0 right-0 w-44 h-44 bg-brand/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                 <div className="space-y-6 relative z-10">
-                  
-                  {/* TOP ROW */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-term-bg border border-term-border flex items-center justify-center text-brand shadow-inner group-hover:scale-105 group-hover:border-brand transition-all duration-300">
                       <Icon className="w-6 h-6" />
@@ -215,7 +190,6 @@ export default function ToolsLandingPage() {
                     </span>
                   </div>
 
-                  {/* TITLE & DESCRIPTION */}
                   <div className="space-y-2">
                     <h3 className="text-xl font-extrabold text-white tracking-tight group-hover:text-brand transition-colors">
                       {tool.title}
@@ -225,7 +199,6 @@ export default function ToolsLandingPage() {
                     </p>
                   </div>
 
-                  {/* INTERACTIVE MINI TERMINAL PREVIEW */}
                   <div className="p-3.5 bg-[#05070c] border border-term-border/80 rounded-2xl font-mono text-xs space-y-2.5 shadow-inner">
                     <div className="flex items-center justify-between pb-2 border-b border-term-border/50 text-[10px]">
                       <span className="text-slate-300 font-bold flex items-center gap-1.5">
@@ -246,10 +219,8 @@ export default function ToolsLandingPage() {
                       ))}
                     </div>
                   </div>
-
                 </div>
 
-                {/* ACTION BUTTON */}
                 <div className="pt-8 relative z-10">
                   <Link
                     href={tool.href}
@@ -259,15 +230,179 @@ export default function ToolsLandingPage() {
                     <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
                   </Link>
                 </div>
-
               </div>
             )
           })}
         </div>
 
-        {/* ================= WORKFLOW HIGHLIGHT: 3-STEP DISCIPLINE ================= */}
-        <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-term-card to-[#060911] border border-term-border space-y-10 relative overflow-hidden shadow-2xl">
+        {/* ================= PWA INTERACTIVE SIMULATOR (WEITER UNTEN) ================= */}
+        <div className="relative rounded-3xl p-8 sm:p-12 border border-term-border bg-gradient-to-b from-term-card via-[#080d1a] to-[#05070a] shadow-2xl overflow-hidden">
           
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-brand/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            
+            {/* LEFT DESCRIPTION */}
+            <div className="lg:col-span-6 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/20 border border-brand/40 text-brand font-mono text-[11px] font-bold uppercase">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Progressive Web App (PWA)</span>
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                Wie eine native App. <br />
+                Ohne App Store Umwege.
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                Die Rechner wurden als vollwertige PWA konzipiert. Installiere das Tool mit nur zwei Klicks direkt auf deinem iPhone oder Android-Gerät als eigenständige App ohne Browser-Leisten.
+              </p>
+
+              {/* OS SWITCHER TABS */}
+              <div className="flex bg-term-bg p-1 rounded-xl border border-term-border w-fit font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => setPwaOS('ios')}
+                  className={`px-4 py-2 rounded-lg font-bold transition cursor-pointer ${
+                    pwaOS === 'ios' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  iOS (Safari)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPwaOS('android')}
+                  className={`px-4 py-2 rounded-lg font-bold transition cursor-pointer ${
+                    pwaOS === 'android' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Android (Chrome)
+                </button>
+              </div>
+
+              <div className="space-y-3 pt-2 font-mono text-xs text-slate-300">
+                {pwaOS === 'ios' ? (
+                  <>
+                    <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
+                      <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">1</span>
+                      <span>Öffne einen beliebigen <strong>RISKIL Rechner</strong> im Safari Browser.</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
+                      <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">2</span>
+                      <span className="flex items-center gap-1.5">Tippe unten auf das <strong>Teilen-Symbol</strong> <Share className="w-3.5 h-3.5 text-brand" />.</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
+                      <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">3</span>
+                      <span className="flex items-center gap-1.5">Wähle <strong>„Zum Home-Bildschirm“</strong> <PlusSquare className="w-3.5 h-3.5 text-brand" />.</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
+                      <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">1</span>
+                      <span>Öffne einen beliebigen <strong>RISKIL Rechner</strong> in Chrome.</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
+                      <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">2</span>
+                      <span>Tippe oben rechts auf das <strong>Drei-Punkte-Menü</strong>.</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
+                      <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">3</span>
+                      <span>Wähle <strong>„App installieren“</strong> oder „Zum Startbildschirm hinzufügen“.</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT MOCKUP PHONE ANIMATION */}
+            <div className="lg:col-span-6 flex items-center justify-center">
+              <div className="relative w-[280px] sm:w-[310px] h-[580px] bg-[#0c101d] border-[8px] border-[#1e273d] rounded-[48px] shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col justify-between p-4">
+                
+                {/* PHONE NOTCH / DYNAMIC ISLAND */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-[#121624] absolute right-3" />
+                </div>
+
+                {/* SIMULATED APP HEADER */}
+                <div className="pt-8 pb-3 px-2 flex items-center justify-between border-b border-term-border/60 z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-brand flex items-center justify-center text-black font-black text-xs font-mono">R</div>
+                    <span className="font-mono text-xs font-bold text-white tracking-wider">RISKIL TOOLS</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">PWA Active</span>
+                </div>
+
+                {/* SIMULATED TERMINAL CONTENT INSIDE PHONE */}
+                <div className="flex-1 py-4 space-y-3 font-mono text-[11px] overflow-hidden">
+                  <div className="bg-term-bg p-3 rounded-2xl border border-term-border space-y-2">
+                    <div className="flex justify-between text-slate-400 text-[10px]">
+                      <span>BTCUSDT PERP</span>
+                      <span className="text-emerald-400">LIVE</span>
+                    </div>
+                    <div className="text-sm font-extrabold text-white">$83,500.00</div>
+                    <div className="w-full bg-term-card h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-brand w-3/4 h-full rounded-full animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-term-bg p-2.5 rounded-xl border border-term-border">
+                      <span className="text-[9px] text-slate-500 block">Hebel Sizer</span>
+                      <span className="text-xs font-bold text-brand">22x SAFE</span>
+                    </div>
+                    <div className="bg-term-bg p-2.5 rounded-xl border border-term-border">
+                      <span className="text-[9px] text-slate-500 block">CRV Matrix</span>
+                      <span className="text-xs font-bold text-emerald-400">1 : 2.65</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-brand-muted/20 border border-brand-border rounded-2xl text-[10px] text-slate-300 space-y-1">
+                    <div className="font-bold text-brand flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Offline Ready Cache
+                    </div>
+                    <p className="text-slate-400 text-[9px]">Lädt augenblicklich ohne Latenz.</p>
+                  </div>
+                </div>
+
+                {/* SIMULATED IOS SHARE SHEET / FLOATING PROMPT ANIMATION */}
+                {pwaOS === 'ios' ? (
+                  <div className="absolute bottom-0 left-0 right-0 bg-[#141b2d]/95 backdrop-blur-xl border-t border-slate-700/80 p-5 rounded-t-3xl space-y-3 z-20 animate-in slide-in-from-bottom duration-300">
+                    <div className="w-10 h-1 bg-slate-600 rounded-full mx-auto" />
+                    <div className="flex items-center gap-3 pb-2 border-b border-slate-700/60">
+                      <div className="w-10 h-10 rounded-xl bg-brand text-black flex items-center justify-center font-black font-mono text-sm">R</div>
+                      <div>
+                        <div className="text-xs font-bold text-white">RISKIL Sizer</div>
+                        <div className="text-[10px] text-slate-400">Tools Web App</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-mono text-brand font-bold bg-brand-muted/40 p-2.5 rounded-xl border border-brand-border">
+                      <PlusSquare className="w-4 h-4 shrink-0" />
+                      <span>Zum Home-Bildschirm</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="absolute bottom-4 left-4 right-4 bg-[#141b2d] border border-slate-700 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between z-20 font-mono text-xs animate-in slide-in-from-bottom duration-300">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-brand text-black flex items-center justify-center font-black">R</div>
+                      <div>
+                        <div className="font-bold text-white text-[11px]">App installieren?</div>
+                        <div className="text-[9px] text-slate-400">Auf Startbildschirm ablegen</div>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1.5 bg-brand text-black font-black text-[10px] rounded-lg">Install</span>
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* WORKFLOW HIGHLIGHT */}
+        <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-term-card to-[#060911] border border-term-border space-y-10 relative overflow-hidden shadow-2xl">
           <div className="max-w-xl space-y-2.5">
             <div className="text-xs font-mono font-bold text-brand uppercase tracking-wider flex items-center gap-2">
               <Sliders className="w-3.5 h-3.5" />
@@ -282,59 +417,38 @@ export default function ToolsLandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
             <div className="p-6 rounded-2xl bg-term-bg border border-term-border space-y-3 relative group hover:border-brand-border transition duration-200">
-              <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">
-                01
-              </span>
+              <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">01</span>
               <h4 className="text-sm font-bold text-white font-mono">1. Entry DCA & Mischkurs</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Plane Limit-Tranchen im Voraus. Die Engine errechnet deinen volumengewichteten Break-Even-Einstieg inklusive aller anfallenden Maker-Gebühren.
-              </p>
+              <p className="text-xs text-slate-400 leading-relaxed">Plane Limit-Tranchen im Voraus. Die Engine errechnet deinen volumengewichteten Break-Even-Einstieg inklusive aller anfallenden Maker-Gebühren.</p>
             </div>
-
             <div className="p-6 rounded-2xl bg-term-bg border border-term-border space-y-3 relative group hover:border-brand-border transition duration-200">
-              <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">
-                02
-              </span>
+              <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">02</span>
               <h4 className="text-sm font-bold text-white font-mono">2. Striktes Hebel-Sizing</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Keine kaufmännischen Rundungen: Der Hebel wird zwingend mit Math.floor abgerundet, damit du im Stop-Loss-Fall keinen Cent mehr verlierst als dein definiertes Limit.
-              </p>
+              <p className="text-xs text-slate-400 leading-relaxed">Keine kaufmännischen Rundungen: Der Hebel wird zwingend mit Math.floor abgerundet, damit du im Stop-Loss-Fall keinen Cent mehr verlierst.</p>
             </div>
-
             <div className="p-6 rounded-2xl bg-term-bg border border-term-border space-y-3 relative group hover:border-brand-border transition duration-200">
-              <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">
-                03
-              </span>
+              <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">03</span>
               <h4 className="text-sm font-bold text-white font-mono">3. Dynamic Scale-Out</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Stufe deine Take-Profits prozentual von der verbleibenden Restposition ab, ermittle dein finales CRV und exportiere deine fertige Trade-Card als PNG.
-              </p>
+              <p className="text-xs text-slate-400 leading-relaxed">Stufe deine Take-Profits prozentual von der verbleibenden Restposition ab, ermittle dein finales CRV und exportiere deine fertige Trade-Card als PNG.</p>
             </div>
-
           </div>
-
         </div>
 
-        {/* ================= THE RISKIL READ-ONLY LIVE-JOURNAL ================= */}
+        {/* CLOSED BETA CTA BANNER */}
         <div className="relative rounded-3xl p-8 sm:p-12 border border-brand-border bg-gradient-to-r from-term-card via-term-bg to-brand-muted/20 shadow-2xl overflow-hidden">
-          
           <div className="absolute -right-20 -top-20 w-96 h-96 bg-brand/15 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-            
             <div className="space-y-3.5 max-w-2xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/20 border border-brand/40 text-brand font-mono text-[11px] font-bold uppercase">
                 <Eye className="w-3.5 h-3.5" />
                 <span>RISKIL Live-Journaling • 100% Read-Only API</span>
               </div>
-
               <h3 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-snug">
                 Setup geplant. <br />
                 Hältst du dich im Live-Markt an deinen Plan?
               </h3>
-
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
                 Die meisten Konten platzen durch verschobene Stops und emotionales Eingreifen während der Trade läuft.
                 <strong> RISKIL</strong> verbindet sich über eine <strong>100% sichere Read-Only API (garantiert ohne Handels- oder Ausführungsrechte)</strong> mit deiner Börse, trackt deine geschlossenen Positionen vollautomatisch und deckt Regelbrüche in deinem Journal schonungslos auf.
@@ -342,19 +456,18 @@ export default function ToolsLandingPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
-              <Link
-                href="/register"
+              <a
+                href="https://riskil.app"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
               >
                 <span>Early Access sichern</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
             </div>
-
           </div>
-
         </div>
-
 
       </div>
 

@@ -609,7 +609,7 @@ export default function FreeLeverageCalculator() {
                   <div className="sm:col-span-3 relative">
                     <input
                       type="number"
-                      placeholder="Marge / Kollateral"
+                      placeholder="Margenanforderung"
                       value={tranche.margin}
                       onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
                       className="w-full min-h-[42px] bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
@@ -942,13 +942,15 @@ export default function FreeLeverageCalculator() {
             </p>
           </div>
 
-          <Link
-            href="/register"
-            className="w-full md:w-auto px-6 py-3.5 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs font-mono rounded-xl transition shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 shrink-0 cursor-pointer active:scale-95"
-          >
-            <span>Early Access sichern</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          <a
+  href="https://riskil.app"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
+>
+  <span>Early Access sichern</span>
+  <ArrowRight className="w-4 h-4" />
+</a>
         </div>
 
       </div>
