@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toPng } from 'html-to-image'
 import {
   Plus,
@@ -21,7 +22,9 @@ import {
   Zap,
   ShieldCheck,
   Download,
-  FileImage
+  FileImage,
+  Share2,
+  Copy
 } from 'lucide-react'
 
 interface EntryTranche {
@@ -45,11 +48,11 @@ interface ExchangePreset {
 }
 
 const EXCHANGES: ExchangePreset[] = [
-  { id: 'bitget', name: 'Bitget', makerFee: 0.02, takerFee: 0.06 },
-  { id: 'bybit', name: 'Bybit', makerFee: 0.02, takerFee: 0.055 },
-  { id: 'bitunix', name: 'Bitunix', makerFee: 0.02, takerFee: 0.06 },
-  { id: 'binance', name: 'Binance', makerFee: 0.02, takerFee: 0.05 },
-  { id: 'okx', name: 'OKX', makerFee: 0.02, takerFee: 0.05 },
+  { id: 'hyperliquid', name: 'Hyperliquid (VIP0)', makerFee: 0.01, takerFee: 0.035 },
+  { id: 'bitget', name: 'Bitget (VIP0)', makerFee: 0.02, takerFee: 0.06 },
+  { id: 'bybit', name: 'Bybit (VIP0)', makerFee: 0.02, takerFee: 0.055 },
+  { id: 'binance', name: 'Binance (VIP0)', makerFee: 0.02, takerFee: 0.05 },
+  { id: 'okx', name: 'OKX (VIP0)', makerFee: 0.02, takerFee: 0.05 },
   { id: 'custom', name: 'Custom Fees', makerFee: 0.02, takerFee: 0.06 }
 ]
 
@@ -57,6 +60,7 @@ const POPULAR_ASSETS: AssetOption[] = [
   { symbol: 'BTCUSDT', name: 'Bitcoin', iconColor: 'bg-amber-500' },
   { symbol: 'ETHUSDT', name: 'Ethereum', iconColor: 'bg-indigo-500' },
   { symbol: 'SOLUSDT', name: 'Solana', iconColor: 'bg-purple-500' },
+  { symbol: 'HYPEUSDT', name: 'Hyperliquid', iconColor: 'bg-emerald-400' },
   { symbol: 'XRPUSDT', name: 'Ripple', iconColor: 'bg-blue-400' },
   { symbol: 'BNBUSDT', name: 'Binance Coin', iconColor: 'bg-yellow-500' },
   { symbol: 'DOGEUSDT', name: 'Dogecoin', iconColor: 'bg-yellow-600' },
@@ -64,7 +68,10 @@ const POPULAR_ASSETS: AssetOption[] = [
 ]
 
 export default function FreeLeverageCalculator() {
-  const [selectedExchangeId, setSelectedExchangeId] = useState<string>('bitget')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const [selectedExchangeId, setSelectedExchangeId] = useState<string>('hyperliquid')
   const [customFees, setCustomFees] = useState<{ maker: number; taker: number }>({ maker: 0.02, taker: 0.06 })
   const [isCustomFeeModalOpen, setIsCustomFeeModalOpen] = useState<boolean>(false)
   const [tempMakerFee, setTempMakerFee] = useState<string>('0.02')
@@ -80,6 +87,8 @@ export default function FreeLeverageCalculator() {
 
   const [isExporting, setIsExporting] = useState<boolean>(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [copySuccess, setCopySuccess] = useState<boolean>(false)
+  const [shareSuccess, setShareSuccess] = useState<boolean>(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   const assetDropdownRef = useRef<HTMLDivElement>(null)
@@ -98,6 +107,53 @@ export default function FreeLeverageCalculator() {
 
   const isLong = direction === 'LONG'
   const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
+
+  // URL State nur beim initialen Laden einlesen
+  useEffect(() => {
+    const assetParam = searchParams.get('asset')
+    if (assetParam) {
+      const found = POPULAR_ASSETS.find(a => a.symbol === assetParam)
+      if (found) setSelectedAsset(found)
+    }
+    const dirParam = searchParams.get('dir')
+    if (dirParam === 'LONG' || dirParam === 'SHORT') setDirection(dirParam)
+
+    const slParam = searchParams.get('sl')
+    if (slParam) setStopLoss(slParam)
+
+    const riskParam = searchParams.get('risk')
+    if (riskParam) setAllowedMarginLossPercent(riskParam)
+
+    const priceParam = searchParams.get('p1')
+    const marginParam = searchParams.get('m1')
+    if (priceParam || marginParam) {
+      setTranches(prev => prev.map((t, idx) => idx === 0 ? {
+        ...t,
+        price: priceParam || t.price,
+        margin: marginParam || t.margin
+      } : t))
+    }
+  }, [])
+
+  // Permalink in URL spiegeln (ohne Tranchen-Reset auszulösen)
+  const updateShareUrl = () => {
+    const params = new URLSearchParams()
+    params.set('asset', selectedAsset.symbol)
+    params.set('dir', direction)
+    if (stopLoss) params.set('sl', stopLoss)
+    if (allowedMarginLossPercent) params.set('risk', allowedMarginLossPercent)
+    if (tranches[0]?.price) params.set('p1', tranches[0].price)
+    if (tranches[0]?.margin) params.set('m1', tranches[0].margin)
+
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateShareUrl()
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [selectedAsset, direction, stopLoss, allowedMarginLossPercent, tranches[0]?.price, tranches[0]?.margin])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -247,6 +303,13 @@ export default function FreeLeverageCalculator() {
 
   const renderExchangeIcon = (id: string) => {
     switch (id) {
+      case 'hyperliquid':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#10B981" fillOpacity="0.2" />
+            <path d="M12 4L19 12L12 20L5 12L12 4Z" fill="#10B981" />
+          </svg>
+        )
       case 'bitget':
         return (
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -258,14 +321,6 @@ export default function FreeLeverageCalculator() {
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="24" height="24" rx="6" fill="#F7A600" fillOpacity="0.15" />
             <path d="M7 7H12C13.6569 7 15 8.34315 15 10C15 10.9 14.5 11.7 13.8 12.2C14.8 12.7 15.5 13.7 15.5 15C15.5 16.6569 14.1569 18 12.5 18H7V7ZM9.5 9.2V11.3H11.8C12.4 11.3 12.9 10.8 12.9 10.25C12.9 9.7 12.4 9.2 11.8 9.2H9.5ZM9.5 13.5V15.8H12.3C12.95 15.8 13.45 15.3 13.45 14.65C13.45 14 12.95 13.5 12.3 13.5H9.5Z" fill="#F7A600" />
-          </svg>
-        )
-      case 'bitunix':
-        return (
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="24" height="24" rx="6" fill="#3B82F6" fillOpacity="0.15" />
-            <path d="M7 7H11.5L14 12L11.5 17H7L9.5 12L7 7Z" fill="#3B82F6" />
-            <path d="M12.5 7H17L14.5 12L17 17H12.5L10 12L12.5 7Z" fill="#60A5FA" />
           </svg>
         )
       case 'binance':
@@ -300,7 +355,8 @@ export default function FreeLeverageCalculator() {
     setIsCustomFeeModalOpen(false)
   }
 
-  const handleDownloadTradeCard = async () => {
+  // Natives Web Share / Bild Export
+  const handleNativeShare = async () => {
     if (!cardRef.current) return
     setIsExporting(true)
     try {
@@ -309,20 +365,38 @@ export default function FreeLeverageCalculator() {
         pixelRatio: 2.5,
         backgroundColor: '#0a0d14'
       })
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-      if (isMobile) {
-        setPreviewImage(dataUrl)
+
+      const blob = await (await fetch(dataUrl)).blob()
+      const file = new File([blob], `RISKIL_${selectedAsset.symbol}_${direction}.png`, { type: 'image/png' })
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `${selectedAsset.symbol} ${direction} Setup`,
+          text: `Planned via RISKIL Free Leverage Sizer (${calculatedLeverage}x)`
+        })
       } else {
-        const link = document.createElement('a')
-        link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Setup.png`
-        link.href = dataUrl
-        link.click()
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+        if (isMobile) {
+          setPreviewImage(dataUrl)
+        } else {
+          const link = document.createElement('a')
+          link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Setup.png`
+          link.href = dataUrl
+          link.click()
+        }
       }
     } catch (err) {
-      console.error('Error exporting trade card:', err)
+      console.error('Error sharing trade card:', err)
     } finally {
       setIsExporting(false)
     }
+  }
+
+  const handleCopyShareLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopySuccess(true)
+    setTimeout(() => setCopySuccess(false), 2000)
   }
 
   return (
@@ -765,37 +839,48 @@ export default function FreeLeverageCalculator() {
         {/* ================= TRADE PLAN CARD (EXPORTABLE) ================= */}
         <div className="space-y-4 pt-2">
           
-          {/* ACTION BAR: DOWNLOAD BUTTON */}
+          {/* ACTION BAR: SHARE & DOWNLOAD BUTTONS (DIREKT BEI DEN ERGEBNISSEN) */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
             <div className="space-y-0.5">
               <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
                 <FileImage className="w-4 h-4 text-brand" />
-                <span>Save Trade Setup to Your Device</span>
+                <span>Share Setup & Save Trade Card</span>
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Exports all entry levels, SL, and position sizing into a high-res PNG image card.
+                Directly share the rendered PNG via Web Share API or copy the permalink.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleDownloadTradeCard}
-              disabled={isExporting || !isValidSetup}
-              className={`min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2.5 shadow-lg shrink-0 cursor-pointer ${
-                isValidSetup
-                  ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
-                  : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              <Download className="w-4 h-4" />
-              <span>
-                {isExporting 
-                  ? 'Generating Image...' 
-                  : isValidSetup 
-                    ? 'Download Setup Card (.PNG)' 
-                    : 'Setup Incomplete'}
-              </span>
-            </button>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-term-bg hover:bg-term-hover border border-term-border text-xs font-mono font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Copy className="w-3.5 h-3.5 text-brand" />
+                <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNativeShare}
+                disabled={isExporting || !isValidSetup}
+                className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
+                  isValidSetup
+                    ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
+                    : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                <Share2 className="w-4 h-4" />
+                <span>
+                  {isExporting 
+                    ? 'Generating...' 
+                    : isValidSetup 
+                      ? 'Share / Export (.PNG)' 
+                      : 'Incomplete'}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* DIESER BEREICH WIRD IN DAS BILD GERENDERT */}
@@ -917,7 +1002,7 @@ export default function FreeLeverageCalculator() {
             {/* FOOTER WATERMARK / BRANDING */}
             <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-term-border/50">
               <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" /> Designed for <strong>RISKIL Live-Journaling</strong>
+                <ShieldCheck className="w-3 h-3 text-emerald-400" /> Free Calculator → <strong>riskil.app/tools</strong>
               </span>
               <span className="text-slate-500 font-semibold">riskil.app</span>
             </div>
