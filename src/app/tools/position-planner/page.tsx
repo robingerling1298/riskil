@@ -1159,39 +1159,52 @@ function FreeFullPositionPlannerInner() {
         </div>
       </div>
 
+      {/* ================= ACTION BAR: COPY LINK & SHARE ================= */}
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="space-y-0.5">
             <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
               <FileImage className="w-4 h-4 text-brand" />
-              <span>Export Full Plan as Trade Card</span>
+              <span>Share Setup & Save Trade Card</span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono">
-              Includes all tranches, computed leverage, stop loss, and the TP ladder in a single image.
+              Directly share the rendered PNG via Web Share API or copy the permalink.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleDownloadTradeCard}
-            disabled={isExporting || !isValidSetup}
-            className={`min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2.5 shadow-lg shrink-0 cursor-pointer ${
-              isValidSetup
-                ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
-                : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
-            }`}
-          >
-            <Download className="w-4 h-4" />
-            <span>
-              {isExporting 
-                ? 'Generating Image...' 
-                : isValidSetup 
-                  ? 'Download Full Plan Card (.PNG)' 
-                  : 'Parameters Incomplete'}
-            </span>
-          </button>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleCopyShareLink}
+              className="min-h-[40px] px-3.5 py-2 rounded-xl bg-term-bg hover:bg-term-hover border border-term-border text-xs font-mono font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Copy className="w-3.5 h-3.5 text-brand" />
+              <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadTradeCard}
+              disabled={isExporting || !isValidSetup}
+              className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
+                isValidSetup
+                  ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
+                  : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              <Share2 className="w-4 h-4" />
+              <span>
+                {isExporting 
+                  ? 'Generating...' 
+                  : isValidSetup 
+                    ? 'Share / Export (.PNG)' 
+                    : 'Incomplete'}
+              </span>
+            </button>
+          </div>
         </div>
 
+        {/* ================= TRADE CARD (EXPORTABLE) ================= */}
         <div
           ref={cardRef}
           className="bg-term-card border border-brand-border/80 rounded-2xl p-4 sm:p-6 space-y-5 shadow-2xl relative overflow-hidden"
