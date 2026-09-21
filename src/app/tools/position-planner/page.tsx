@@ -106,7 +106,7 @@ export default function FreeFullPositionPlanner() {
 
   const [direction, setDirection] = useState<'LONG' | 'SHORT'>('LONG')
 
-  // --- ENTRY TRANCHEN ---
+  // --- ENTRY TRANCHES ---
   const [tranches, setTranches] = useState<EntryTranche[]>([
     { id: '1', price: '', margin: '', orderType: 'LIMIT' },
   ])
@@ -123,7 +123,7 @@ export default function FreeFullPositionPlanner() {
   ])
 
   const isLong = direction === 'LONG'
-  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / EINFACH'
+  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -139,7 +139,7 @@ export default function FreeFullPositionPlanner() {
   }, [])
 
   const fetchLivePrice = async (symbol: string) => {
-    if (symbol === 'CUSTOM / EINFACH') {
+    if (symbol === 'CUSTOM / MANUAL') {
       setCurrentPrice(null)
       setPriceChange24h(null)
       return
@@ -162,14 +162,14 @@ export default function FreeFullPositionPlanner() {
 
   useEffect(() => {
     fetchLivePrice(selectedAsset.symbol)
-    if (selectedAsset.symbol === 'CUSTOM / EINFACH') return
+    if (selectedAsset.symbol === 'CUSTOM / MANUAL') return
     const interval = setInterval(() => {
       fetchLivePrice(selectedAsset.symbol)
     }, 3000)
     return () => clearInterval(interval)
   }, [selectedAsset])
 
-  // --- TRANCHEN HANDLERS ---
+  // --- TRANCHE HANDLERS ---
   const handleAddTranche = () => {
     setTranches(prev => [...prev, { id: Date.now().toString(), price: '', margin: '', orderType: 'LIMIT' }])
   }
@@ -207,7 +207,7 @@ export default function FreeFullPositionPlanner() {
     setTpStages(prev => prev.map(s => s.id === id ? { ...s, mode: 'ROE', roePercent: value } : s))
   }
 
-  // --- BERECHNUNGS ENGINE ---
+  // --- CALCULATION ENGINE ---
   const validTranches = tranches.filter(t => (parseFloat(t.price) || 0) > 0 && (parseFloat(t.margin) || 0) > 0)
   const activeMargin = validTranches.reduce((sum, t) => sum + parseFloat(t.margin), 0)
   const avgEntryPrice = activeMargin > 0
@@ -425,7 +425,7 @@ export default function FreeFullPositionPlanner() {
         link.click()
       }
     } catch (err) {
-      console.error('Fehler beim Exportieren des Full-Plans:', err)
+      console.error('Error exporting full plan card:', err)
     } finally {
       setIsExporting(false)
     }
@@ -438,15 +438,15 @@ export default function FreeFullPositionPlanner() {
       <div className="text-center space-y-4 pt-10 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
           <Scale className="w-3.5 h-3.5" />
-          All-in-One Krypto Perps Terminal Planner
+          All-in-One Crypto Perps Terminal Planner
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Full Position & Exit Planner. <br className="hidden sm:inline" /> Entry bis Scale-Out.
+          Full Position & Exit Planner. <br className="hidden sm:inline" /> From Entry to Scale-Out.
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
-          Die Gesamtlösung: Berechne Mischkurse über mehrere DCA-Einstiege, schütze dein Konto mit exaktem Hebel-Sizing und plane deine Take-Profit Leiter in einem synchronisierten Workflow.
+          The ultimate all-in-one suite: Calculate blended averages across multiple DCA entries, protect your account with precise leverage sizing, and plan your take-profit ladder in a synchronized workflow.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
@@ -455,7 +455,7 @@ export default function FreeFullPositionPlanner() {
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Kalkulation
+            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Engine
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1.5">
@@ -484,7 +484,7 @@ export default function FreeFullPositionPlanner() {
                   <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <input
                     type="text"
-                    placeholder="Asset suchen..."
+                    placeholder="Search asset..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-transparent text-xs text-white placeholder-slate-500 outline-none font-mono"
@@ -496,22 +496,22 @@ export default function FreeFullPositionPlanner() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedAsset({ symbol: 'CUSTOM / EINFACH', name: 'Manuelle Eingabe', iconColor: 'bg-slate-400' })
+                      setSelectedAsset({ symbol: 'CUSTOM / MANUAL', name: 'Manual Input', iconColor: 'bg-slate-400' })
                       setIsAssetDropdownOpen(false)
                       setSearchQuery('')
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
-                      selectedAsset.symbol === 'CUSTOM / EINFACH' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
+                      selectedAsset.symbol === 'CUSTOM / MANUAL' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <Calculator className="w-3.5 h-3.5 text-brand" />
                       <div className="text-left">
-                        <div className="font-bold">Manuelle Eingabe</div>
-                        <div className="text-[10px] text-slate-500 font-mono">Ohne API</div>
+                        <div className="font-bold">Manual Input</div>
+                        <div className="text-[10px] text-slate-500 font-mono">Without API</div>
                       </div>
                     </div>
-                    {selectedAsset.symbol === 'CUSTOM / EINFACH' && <Check className="w-3.5 h-3.5 text-brand" />}
+                    {selectedAsset.symbol === 'CUSTOM / MANUAL' && <Check className="w-3.5 h-3.5 text-brand" />}
                   </button>
 
                   {filteredAssets.map((asset) => {
@@ -554,7 +554,7 @@ export default function FreeFullPositionPlanner() {
             </span>
             <span className="text-slate-500 font-medium">Index:</span>
             <span className="font-bold text-white">
-              {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manuell'}
+              {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manual'}
             </span>
             {priceChange24h !== null && !isCustomAsset && (
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priceChange24h >= 0 ? 'text-[#089981] bg-[#089981]/10' : 'text-[#F23645] bg-[#F23645]/10'}`}>
@@ -626,7 +626,7 @@ export default function FreeFullPositionPlanner() {
                     }}
                     className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Settings className="w-3 h-3" /> Eigene Fees einstellen...
+                    <Settings className="w-3 h-3" /> Set custom fees...
                   </button>
                 </div>
               </div>
@@ -656,12 +656,12 @@ export default function FreeFullPositionPlanner() {
         </div>
       </div>
 
-      {/* ================= SCHRITT 1: ENTRY TRANCHEN (DCA) ================= */}
+      {/* ================= STEP 1: ENTRY TRANCHES (DCA) ================= */}
       <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded-full bg-brand/20 text-brand flex items-center justify-center font-mono font-bold text-[11px]">1</span>
-            <span className="font-mono text-white uppercase tracking-wider">EINSTIEGS-TRANCHEN (DCA)</span>
+            <span className="font-mono text-white uppercase tracking-wider">ENTRY TRANCHES (DCA)</span>
           </div>
           {currentPrice && (
             <button
@@ -669,7 +669,7 @@ export default function FreeFullPositionPlanner() {
               onClick={handleUseCurrentPrice}
               className="text-[11px] font-mono text-brand hover:underline transition cursor-pointer text-left sm:text-right"
             >
-              Live-Kurs (${currentPrice.toFixed(2)}) als Entry 1 übernehmen
+              Use live price (${currentPrice.toFixed(2)}) as Entry 1
             </button>
           )}
         </div>
@@ -697,7 +697,7 @@ export default function FreeFullPositionPlanner() {
                 <div className="sm:col-span-3 relative">
                   <input
                     type="number"
-                    placeholder="Preis"
+                    placeholder="Price"
                     value={tranche.price}
                     onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
                     className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-500 outline-none transition shadow-inner"
@@ -708,7 +708,7 @@ export default function FreeFullPositionPlanner() {
                 <div className="sm:col-span-3 relative">
                   <input
                     type="number"
-                    placeholder="Margenanforderung"
+                    placeholder="Margin required"
                     value={tranche.margin}
                     onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
                     className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-500 outline-none transition shadow-inner"
@@ -760,34 +760,34 @@ export default function FreeFullPositionPlanner() {
             className="py-2.5 px-4 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-sm cursor-pointer font-mono"
           >
             <Plus className="w-4 h-4 text-brand" />
-            <span>Tranche hinzufügen</span>
+            <span>Add Tranche</span>
           </button>
 
           <div className="flex items-center gap-4 text-xs font-mono bg-term-bg p-2.5 rounded-xl border border-term-border">
-            <span className="text-slate-400">Mischkurs: <strong className="text-white">${avgEntryPrice > 0 ? avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</strong></span>
+            <span className="text-slate-400">Avg Entry: <strong className="text-white">${avgEntryPrice > 0 ? avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</strong></span>
             <span className="text-slate-500">•</span>
-            <span className="text-slate-400">Gesamt-Marge: <strong className="text-brand">${totalMargin > 0 ? totalMargin.toFixed(2) : '-'}</strong></span>
+            <span className="text-slate-400">Total Margin: <strong className="text-brand">${totalMargin > 0 ? totalMargin.toFixed(2) : '-'}</strong></span>
           </div>
         </div>
       </div>
 
-      {/* ================= SCHRITT 2: RISIKO & STOP LOSS ================= */}
+      {/* ================= STEP 2: RISK & STOP LOSS ================= */}
       <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
           <span className="w-5 h-5 rounded-full bg-[#F23645]/20 text-[#F23645] flex items-center justify-center font-mono font-bold text-[11px]">2</span>
-          <span className="font-mono text-white uppercase tracking-wider">RISIKO- & STOP LOSS SIZING</span>
+          <span className="font-mono text-white uppercase tracking-wider">RISK & STOP LOSS SIZING</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-xs font-semibold text-[#F23645] flex items-center gap-1.5 font-mono">
               <span className="w-2 h-2 rounded-full bg-[#F23645]" />
-              Stop Loss Preis
+              Stop Loss Price
             </label>
             <div className="relative">
               <input
                 type="number"
-                placeholder="Stop Loss Preis"
+                placeholder="Stop loss price"
                 value={stopLoss}
                 onChange={(e) => setStopLoss(e.target.value)}
                 className="w-full min-h-[44px] bg-[#0d1424] border border-[#F23645]/40 focus:border-[#F23645] rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-500 outline-none transition"
@@ -795,27 +795,27 @@ export default function FreeFullPositionPlanner() {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
             </div>
             <span className="text-[10px] text-slate-500 font-mono block">
-              Distanz zum Mischkurs: <strong className="text-slate-300">{rawSlDistancePercent > 0 ? `${rawSlDistancePercent.toFixed(2)}%` : '-'}</strong>
+              Distance to avg entry: <strong className="text-slate-300">{rawSlDistancePercent > 0 ? `${rawSlDistancePercent.toFixed(2)}%` : '-'}</strong>
             </span>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-semibold text-slate-300 font-mono">Max. Verlust-Toleranz</label>
+              <label className="text-xs font-semibold text-slate-300 font-mono">Max. Loss Tolerance</label>
               <div className="flex bg-[#05070c] p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
                 <button
                   type="button"
                   onClick={() => setRiskMode('PERCENT')}
                   className={`px-2 py-0.5 rounded transition cursor-pointer ${riskMode === 'PERCENT' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
                 >
-                  % Marge
+                  % Margin
                 </button>
                 <button
                   type="button"
                   onClick={() => setRiskMode('USD')}
                   className={`px-2 py-0.5 rounded transition cursor-pointer ${riskMode === 'USD' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
                 >
-                  $ Betrag
+                  $ Amount
                 </button>
               </div>
             </div>
@@ -824,7 +824,7 @@ export default function FreeFullPositionPlanner() {
               <div className="relative">
                 <input
                   type="number"
-                  placeholder="Verlust in % der Marge"
+                  placeholder="Max loss in % of margin"
                   value={allowedMarginLossPercent}
                   onChange={(e) => handlePercentChange(e.target.value)}
                   className="w-full min-h-[44px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-500 outline-none transition"
@@ -835,7 +835,7 @@ export default function FreeFullPositionPlanner() {
               <div className="relative">
                 <input
                   type="number"
-                  placeholder="Max. Verlust in $"
+                  placeholder="Max loss in $"
                   value={allowedMarginLossUsd}
                   onChange={(e) => handleUsdChange(e.target.value)}
                   className="w-full min-h-[44px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-500 outline-none transition"
@@ -849,7 +849,7 @@ export default function FreeFullPositionPlanner() {
                 Risk: <strong className="text-[#F23645]">{maxLossUsd > 0 ? `-$${maxLossUsd.toFixed(2)}` : '-'}</strong>
               </span>
               <span className="text-brand font-bold">
-                Optimaler Hebel: {isValidSetup && calculatedLeverage > 0 ? `${calculatedLeverage}x` : '-'}
+                Optimal Leverage: {isValidSetup && calculatedLeverage > 0 ? `${calculatedLeverage}x` : '-'}
               </span>
             </div>
           </div>
@@ -858,20 +858,20 @@ export default function FreeFullPositionPlanner() {
         {numStopLoss > 0 && avgEntryPrice > 0 && !isValidSetup && (
           <div className="flex items-center gap-2.5 text-xs text-[#F23645] bg-[#F23645]/10 border border-[#F23645]/30 p-3.5 rounded-xl">
             <ShieldAlert className="w-5 h-5 shrink-0" />
-            <span>Ungültiger Stop: SL muss bei {isLong ? 'Long UNTER' : 'Short ÜBER'} dem Mischkurs (${avgEntryPrice.toFixed(2)}) liegen.</span>
+            <span>Invalid stop loss: SL must be {isLong ? 'BELOW' : 'ABOVE'} average entry price (${avgEntryPrice.toFixed(2)}).</span>
           </div>
         )}
       </div>
 
-      {/* ================= SCHRITT 3: TAKE PROFIT LEITER ================= */}
+      {/* ================= STEP 3: TAKE PROFIT LADDER ================= */}
       <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
             <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono font-bold text-[11px]">3</span>
-            <span className="font-mono text-white uppercase tracking-wider">TAKE-PROFIT EXITS ({tpStages.length} Stufen)</span>
+            <span className="font-mono text-white uppercase tracking-wider">TAKE-PROFIT EXITS ({tpStages.length} tiers)</span>
           </div>
           <span className="text-[11px] font-mono text-slate-500">
-            Kalkuliert automatisch auf Basis von Mischkurs und Hebel ({calculatedLeverage > 0 ? `${calculatedLeverage}x` : 'Hebel noch offen'})
+            Computed automatically based on avg entry and leverage ({calculatedLeverage > 0 ? `${calculatedLeverage}x` : 'leverage pending'})
           </span>
         </div>
 
@@ -909,7 +909,7 @@ export default function FreeFullPositionPlanner() {
                           stage.mode === 'PRICE' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        $ Kurs
+                        $ Price
                       </button>
                     </div>
                   </div>
@@ -917,7 +917,7 @@ export default function FreeFullPositionPlanner() {
                   <div className="md:col-span-4 relative">
                     <input
                       type="number"
-                      placeholder={stage.mode === 'ROE' ? 'Ziel RoE in %' : 'Zielpreis in $'}
+                      placeholder={stage.mode === 'ROE' ? 'Target RoE in %' : 'Target price in $'}
                       value={(stage.mode === 'ROE' ? stage.roePercent : stage.targetPrice) || ''}
                       onChange={(e) => handleTpStageChange(stage.id, stage.mode === 'ROE' ? 'roePercent' : 'targetPrice', e.target.value)}
                       className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-extrabold text-white placeholder-slate-500 outline-none transition shadow-inner"
@@ -931,7 +931,7 @@ export default function FreeFullPositionPlanner() {
                     <div className="relative flex-1">
                       <input
                         type="number"
-                        placeholder="Verkauf in %"
+                        placeholder="Close in %"
                         value={stage.closePercent || ''}
                         onChange={(e) => handleTpStageChange(stage.id, 'closePercent', e.target.value)}
                         className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-emerald-400 rounded-xl py-2 px-3 pr-7 text-xs font-mono font-extrabold text-white text-right placeholder-slate-500 outline-none transition shadow-inner"
@@ -954,7 +954,7 @@ export default function FreeFullPositionPlanner() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
                     <div className="flex justify-between items-center text-[10px] font-mono">
-                      <span className="text-slate-400 font-medium">RoE Schnellwahl {stage.mode === 'PRICE' && stage.calculatedRoe !== 0 && `(${stage.calculatedRoe.toFixed(1)}%)`}</span>
+                      <span className="text-slate-400 font-medium">RoE Quick Select {stage.mode === 'PRICE' && stage.calculatedRoe !== 0 && `(${stage.calculatedRoe.toFixed(1)}%)`}</span>
                       <div className="flex gap-1">
                         {['10', '25', '50', '100'].map((val) => (
                           <button
@@ -982,7 +982,7 @@ export default function FreeFullPositionPlanner() {
 
                   <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
                     <div className="flex justify-between items-center text-[10px] font-mono">
-                      <span className="text-slate-400 font-medium">Verkauf Restposition</span>
+                      <span className="text-slate-400 font-medium">Close Position %</span>
                       <div className="flex gap-1">
                         {['25', '50', '75', '100'].map((val) => (
                           <button
@@ -1011,28 +1011,28 @@ export default function FreeFullPositionPlanner() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
                   <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                    <span className="text-slate-500 block text-[10px]">Zielkurs</span>
+                    <span className="text-slate-500 block text-[10px]">Target Price</span>
                     <span className="font-bold text-white">
                       {stage.calculatedTargetPrice > 0 ? `$${stage.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                     </span>
                   </div>
 
                   <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                    <span className="text-slate-500 block text-[10px]">Netto-Gewinn</span>
+                    <span className="text-slate-500 block text-[10px]">Net Profit</span>
                     <span className={`font-bold ${stage.hasInput && stage.isDirectionValid ? 'text-emerald-400' : 'text-slate-500'}`}>
                       {stage.hasInput && stage.isDirectionValid ? `+$${stage.netTrancheProfit.toFixed(2)}` : '-'}
                     </span>
                   </div>
 
                   <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                    <span className="text-slate-500 block text-[10px]">Freigesetzte Marge</span>
+                    <span className="text-slate-500 block text-[10px]">Released Margin</span>
                     <span className="font-bold text-brand">
                       {stage.hasInput && stage.isDirectionValid ? `$${stage.trancheMargin.toFixed(2)}` : '-'}
                     </span>
                   </div>
 
                   <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                    <span className="text-slate-500 block text-[10px]">Restposition danach</span>
+                    <span className="text-slate-500 block text-[10px]">Remaining Position</span>
                     <span className="font-bold text-slate-300">
                       {stage.hasInput && stage.isDirectionValid ? `${stage.remainingMarginPct.toFixed(1)}%` : '-'}
                     </span>
@@ -1049,18 +1049,18 @@ export default function FreeFullPositionPlanner() {
           className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer font-mono"
         >
           <Plus className="w-4 h-4 text-brand" />
-          <span>Weiteren Take-Profit hinzufügen</span>
+          <span>Add Take-Profit Tier</span>
         </button>
       </div>
 
-      {/* ================= SCHRITT 4: CHART & VERLAUF ================= */}
+      {/* ================= STEP 4: CHART & PROGRESSION ================= */}
       <div className="bg-term-card border border-term-border rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
         <div className="flex items-center justify-between border-b border-term-border pb-3">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <span>Ertrags- & Risikoverlauf</span>
+            <span>Yield & Risk Progression</span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500">Grün: Kumulierter Netto-Gewinn • Blau: Verbleibende Marge</span>
+          <span className="text-[10px] font-mono text-slate-500">Green: Cumulative Net Profit • Blue: Open Margin</span>
         </div>
 
         <div className="h-60 w-full pt-2">
@@ -1086,8 +1086,8 @@ export default function FreeFullPositionPlanner() {
                   fontFamily: 'monospace'
                 }}
               />
-              <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#fullPlannerProfitGrad)" name="Netto-Gewinn ($)" />
-              <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Rest-Position (%)" />
+              <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#fullPlannerProfitGrad)" name="Net Profit ($)" />
+              <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Open Position (%)" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -1099,10 +1099,10 @@ export default function FreeFullPositionPlanner() {
           <div className="space-y-0.5">
             <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
               <FileImage className="w-4 h-4 text-brand" />
-              <span>Kompletten Plan als Trade-Card exportieren</span>
+              <span>Export Full Plan as Trade Card</span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono">
-              Enthält alle Tranchen, berechneten Hebel, Stop Loss und die TP-Leiter in einem Bild.
+              Includes all tranches, computed leverage, stop loss, and the TP ladder in a single image.
             </p>
           </div>
 
@@ -1119,15 +1119,15 @@ export default function FreeFullPositionPlanner() {
             <Download className="w-4 h-4" />
             <span>
               {isExporting 
-                ? 'Generiere Bild...' 
+                ? 'Generating Image...' 
                 : isValidSetup 
-                  ? 'Full-Plan Karte speichern (.PNG)' 
-                  : 'Parameter unvollständig'}
+                  ? 'Download Full Plan Card (.PNG)' 
+                  : 'Parameters Incomplete'}
             </span>
           </button>
         </div>
 
-        {/* BILD-CONTAINER */}
+        {/* IMAGE CONTAINER */}
         <div
           ref={cardRef}
           className="bg-term-card border border-brand-border/80 rounded-2xl p-4 sm:p-6 space-y-5 shadow-2xl relative overflow-hidden"
@@ -1148,7 +1148,7 @@ export default function FreeFullPositionPlanner() {
                 </span>
               </div>
               <p className="text-[11px] font-mono text-slate-500">
-                Börse: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Total Notional: <span className="text-slate-400">${totalPositionSizeUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                Exchange: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Total Notional: <span className="text-slate-400">${totalPositionSizeUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </p>
             </div>
 
@@ -1162,7 +1162,7 @@ export default function FreeFullPositionPlanner() {
           {/* 4 CORE KPI CARDS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
             <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Mischkurs (Avg Entry)</span>
+              <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Avg. Entry Price</span>
               <p className="text-base sm:text-lg font-mono font-bold text-white truncate">
                 {avgEntryPrice > 0 ? `$${avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
               </p>
@@ -1177,7 +1177,7 @@ export default function FreeFullPositionPlanner() {
             </div>
 
             <div className="bg-term-bg border border-emerald-500/40 p-3 rounded-xl space-y-1">
-              <span className="text-[10px] font-mono text-emerald-400 font-medium uppercase">Netto-Gewinn Total</span>
+              <span className="text-[10px] font-mono text-emerald-400 font-medium uppercase">Total Net Profit</span>
               <p className="text-base sm:text-lg font-mono font-bold text-emerald-400 truncate">
                 {totalNetProfitUSD > 0 ? `+$${totalNetProfitUSD.toFixed(2)}` : '-'}
               </p>
@@ -1185,19 +1185,19 @@ export default function FreeFullPositionPlanner() {
             </div>
 
             <div className="bg-term-bg border border-brand-border/60 p-3 rounded-xl space-y-1">
-              <span className="text-[10px] font-mono text-brand font-medium uppercase">Chance / Risiko (CRV)</span>
+              <span className="text-[10px] font-mono text-brand font-medium uppercase">Risk / Reward (CRV)</span>
               <p className="text-base sm:text-lg font-mono font-extrabold text-brand truncate">
                 {calculatedCrv ? `1 : ${calculatedCrv}` : '-'}
               </p>
-              <p className="text-[10px] font-mono text-slate-500">Gebühren: -${totalFeesUSD.toFixed(2)}</p>
+              <p className="text-[10px] font-mono text-slate-500">Fees: -${totalFeesUSD.toFixed(2)}</p>
             </div>
           </div>
 
           {/* TWO COLUMN MATRIX: ENTRIES VS EXITS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono text-xs">
-            <div className="bg-term-bg border border-term-border rounded-xl p-3.5 space-y-2">
+            <div className="bg-term-card border border-term-border rounded-xl p-3.5 space-y-2">
               <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block border-b border-term-border/60 pb-1.5">
-                Einstieg ({validTranches.length} Tranchen)
+                Entries ({validTranches.length} tranches)
               </span>
               <div className="space-y-1">
                 {validTranches.map((t, i) => (
@@ -1209,9 +1209,9 @@ export default function FreeFullPositionPlanner() {
               </div>
             </div>
 
-            <div className="bg-term-bg border border-term-border rounded-xl p-3.5 space-y-2">
+            <div className="bg-term-card border border-term-border rounded-xl p-3.5 space-y-2">
               <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block border-b border-term-border/60 pb-1.5">
-                Exits ({calculatedStages.filter(s => s.hasInput && s.isDirectionValid).length} Stufen)
+                Exits ({calculatedStages.filter(s => s.hasInput && s.isDirectionValid).length} tiers)
               </span>
               <div className="space-y-1">
                 {calculatedStages.filter(s => s.hasInput && s.isDirectionValid).length > 0 ? (
@@ -1224,7 +1224,7 @@ export default function FreeFullPositionPlanner() {
                       </div>
                     ))
                 ) : (
-                  <span className="text-[11px] text-slate-600 italic">Noch keine gültigen TPs definiert.</span>
+                  <span className="text-[11px] text-slate-600 italic">No valid TPs defined yet.</span>
                 )}
               </div>
             </div>
@@ -1233,7 +1233,7 @@ export default function FreeFullPositionPlanner() {
           {/* FOOTER WATERMARK */}
           <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-term-border/50">
             <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" /> Geplant für <strong>RISKIL Live-Journaling</strong>
+              <ShieldCheck className="w-3 h-3 text-emerald-400" /> Designed for <strong>RISKIL Live-Journaling</strong>
             </span>
             <span className="text-slate-500 font-semibold">riskil.app</span>
           </div>
@@ -1248,24 +1248,23 @@ export default function FreeFullPositionPlanner() {
               Closed Beta
             </span>
             <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">
-              Setup geplant. Hältst du dich im Live-Markt an deinen Plan?
+              Setup Planned. Do You Stick to Your Plan Live?
             </h4>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Kein manuelles Journaling mehr: <strong>RISKIL</strong> liest deine Trades über eine <strong>100% sichere Read-Only API (ohne Handelsrechte)</strong> automatisch aus deiner Börse aus und erkennt sofort, ob du deinen Stop verschoben oder deine TPs ignoriert hast.
+            No more manual journaling: <strong>RISKIL</strong> automatically reads your trades from your exchange via a <strong>100% secure Read-Only API (zero trading rights)</strong> and detects immediately if you shifted your stop or ignored your TPs.
           </p>
         </div>
 
-      
-          <a
-  href="https://riskil.app"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
->
-  <span>Early Access sichern</span>
-  <ArrowRight className="w-4 h-4" />
-</a>
+        <a
+          href="https://riskil.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
+        >
+          <span>Secure Early Access</span>
+          <ArrowRight className="w-4 h-4" />
+        </a>
       </div>
 
       {/* ================= MOBILE IMAGE PREVIEW MODAL ================= */}
@@ -1273,7 +1272,7 @@ export default function FreeFullPositionPlanner() {
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-term-border pb-3">
-              <span className="text-xs font-mono font-bold text-white">Trade-Karte bereit</span>
+              <span className="text-xs font-mono font-bold text-white">Trade Card Ready</span>
               <button
                 type="button"
                 onClick={() => setPreviewImage(null)}
@@ -1285,7 +1284,7 @@ export default function FreeFullPositionPlanner() {
 
             <div className="space-y-2 text-center">
               <p className="text-[11px] font-mono text-emerald-400">
-                Halte das Bild gedrückt, um es in deiner Galerie zu speichern.
+                Long-press the image to save it to your camera roll.
               </p>
               <div className="rounded-xl overflow-hidden border border-term-border bg-black">
                 <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
@@ -1297,7 +1296,7 @@ export default function FreeFullPositionPlanner() {
               onClick={() => setPreviewImage(null)}
               className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer"
             >
-              Fertig / Schließen
+              Done / Close
             </button>
           </div>
         </div>
@@ -1310,7 +1309,7 @@ export default function FreeFullPositionPlanner() {
             <div className="flex items-center justify-between border-b border-term-border pb-3">
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-brand" />
-                <h3 className="text-sm font-bold text-white font-mono">Börsengebühren anpassen</h3>
+                <h3 className="text-sm font-bold text-white font-mono">Customize Exchange Fees</h3>
               </div>
               <button
                 type="button"
@@ -1323,7 +1322,7 @@ export default function FreeFullPositionPlanner() {
 
             <form onSubmit={handleSaveCustomFees} className="space-y-4">
               <p className="text-xs text-slate-400">
-                Gib die Maker- und Taker-Gebühren deiner Börse bzw. deines VIP-Levels in Prozent ein:
+                Enter your exchange or VIP tier maker and taker fee percentages:
               </p>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1366,13 +1365,13 @@ export default function FreeFullPositionPlanner() {
                   onClick={() => setIsCustomFeeModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer"
                 >
-                  Speichern & Anwenden
+                  Save & Apply
                 </button>
               </div>
             </form>

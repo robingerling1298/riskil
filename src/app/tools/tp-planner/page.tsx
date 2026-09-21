@@ -103,7 +103,7 @@ const PRESETS: Preset[] = [
   {
     id: 'moonshot',
     label: '🚀 Moonshot Runner',
-    description: '3 Stufen + 40% Runner im Markt',
+    description: '3 Tiers + 40% Runner in Market',
     stages: [
       { roePercent: '25', closePercent: '50' },
       { roePercent: '50', closePercent: '50' },
@@ -150,7 +150,7 @@ export default function FreeTakeProfitPlanner() {
   ])
 
   const isLong = positionType === 'LONG'
-  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / EINFACH'
+  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -166,7 +166,7 @@ export default function FreeTakeProfitPlanner() {
   }, [])
 
   const fetchLivePrice = async (symbol: string) => {
-    if (symbol === 'CUSTOM / EINFACH') {
+    if (symbol === 'CUSTOM / MANUAL') {
       setCurrentPrice(null)
       setPriceChange24h(null)
       return
@@ -189,7 +189,7 @@ export default function FreeTakeProfitPlanner() {
 
   useEffect(() => {
     fetchLivePrice(selectedAsset.symbol)
-    if (selectedAsset.symbol === 'CUSTOM / EINFACH') return
+    if (selectedAsset.symbol === 'CUSTOM / MANUAL') return
     const interval = setInterval(() => {
       fetchLivePrice(selectedAsset.symbol)
     }, 3000)
@@ -437,7 +437,7 @@ export default function FreeTakeProfitPlanner() {
         link.click()
       }
     } catch (err) {
-      console.error('Fehler beim Exportieren der TP-Karte:', err)
+      console.error('Error exporting TP card:', err)
     } finally {
       setIsExporting(false)
     }
@@ -450,15 +450,15 @@ export default function FreeTakeProfitPlanner() {
       <div className="text-center space-y-4 pt-10 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
           <Target className="w-3.5 h-3.5" />
-          Krypto Perps Take-Profit & Scale-Out Planner
+          Crypto Perps Take-Profit & Scale-Out Planner
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Gewinne & Stufen-Exits <br className="hidden sm:inline" /> exakt vorausplanen.
+          Plan Profits & Tiered Exits <br className="hidden sm:inline" /> with Precision.
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
-          Plane Teilverkäufe, kalkuliere Börsengebühren in Echtzeit ein und sichere Gewinne systematisch – ohne manuelle Fehlkalkulationen.
+          Scale out partial profits, factor in real-time exchange fees, and secure gains systematically without manual miscalculations.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
@@ -467,7 +467,7 @@ export default function FreeTakeProfitPlanner() {
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Ohne Registrierung
+            <ShieldCheck className="w-4 h-4 text-emerald-400" /> No Registration Required
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1.5">
@@ -500,7 +500,7 @@ export default function FreeTakeProfitPlanner() {
                     <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <input
                       type="text"
-                      placeholder="Asset suchen..."
+                      placeholder="Search asset..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-transparent text-xs text-white placeholder-slate-500 outline-none font-mono"
@@ -512,22 +512,22 @@ export default function FreeTakeProfitPlanner() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedAsset({ symbol: 'CUSTOM / EINFACH', name: 'Manuelle Eingabe', iconColor: 'bg-slate-400' })
+                        setSelectedAsset({ symbol: 'CUSTOM / MANUAL', name: 'Manual Input', iconColor: 'bg-slate-400' })
                         setIsAssetDropdownOpen(false)
                         setSearchQuery('')
                       }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
-                        selectedAsset.symbol === 'CUSTOM / EINFACH' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
+                        selectedAsset.symbol === 'CUSTOM / MANUAL' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <Calculator className="w-3.5 h-3.5 text-brand" />
                         <div className="text-left">
-                          <div className="font-bold">Manuelle Eingabe</div>
-                          <div className="text-[10px] text-slate-500 font-mono">Ohne API</div>
+                          <div className="font-bold">Manual Input</div>
+                          <div className="text-[10px] text-slate-500 font-mono">Without API</div>
                         </div>
                       </div>
-                      {selectedAsset.symbol === 'CUSTOM / EINFACH' && <Check className="w-3.5 h-3.5 text-brand" />}
+                      {selectedAsset.symbol === 'CUSTOM / MANUAL' && <Check className="w-3.5 h-3.5 text-brand" />}
                     </button>
 
                     {filteredAssets.map((asset) => {
@@ -571,7 +571,7 @@ export default function FreeTakeProfitPlanner() {
               </span>
               <span className="text-slate-500 font-medium">Index:</span>
               <span className="font-bold text-white">
-                {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manuell'}
+                {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manual'}
               </span>
               {priceChange24h !== null && !isCustomAsset && (
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priceChange24h >= 0 ? 'text-[#089981] bg-[#089981]/10' : 'text-[#F23645] bg-[#F23645]/10'}`}>
@@ -581,7 +581,7 @@ export default function FreeTakeProfitPlanner() {
             </div>
           </div>
 
-          {/* BÖRSE & DIRECTION */}
+          {/* EXCHANGE & DIRECTION */}
           <div className="flex flex-wrap items-center justify-end gap-3">
             <div className="relative inline-block" ref={exchangeDropdownRef}>
               <button
@@ -644,7 +644,7 @@ export default function FreeTakeProfitPlanner() {
                       }}
                       className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Settings className="w-3 h-3" /> Eigene Fees einstellen...
+                      <Settings className="w-3 h-3" /> Set custom fees...
                     </button>
                   </div>
                 </div>
@@ -679,7 +679,7 @@ export default function FreeTakeProfitPlanner() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide font-mono flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-brand" />
-              1. Positions-Parameter
+              1. Position Parameters
             </span>
             {currentPrice && (
               <button
@@ -687,20 +687,20 @@ export default function FreeTakeProfitPlanner() {
                 onClick={handleUseCurrentPrice}
                 className="text-[11px] font-mono text-brand hover:underline transition cursor-pointer"
               >
-                Live-Kurs (${currentPrice.toFixed(2)}) als Einstieg übernehmen
+                Use live price (${currentPrice.toFixed(2)}) as entry
               </button>
             )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 font-mono">Marge ($)</label>
+              <label className="text-xs font-medium text-slate-400 font-mono">Margin ($)</label>
               <div className="relative">
                 <input
                   type="number"
                   value={margin}
                   onChange={(e) => setMargin(e.target.value)}
-                  placeholder="Marge eingeben"
+                  placeholder="Enter margin"
                   className="w-full min-h-[44px] bg-[#0d131f] border border-slate-700/80 focus:border-brand rounded-xl py-2.5 px-3 pr-7 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition shadow-inner"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
@@ -708,14 +708,14 @@ export default function FreeTakeProfitPlanner() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 font-mono">Hebel (Ganzzahlig)</label>
+              <label className="text-xs font-medium text-slate-400 font-mono">Leverage (Integer)</label>
               <div className="relative">
                 <input
                   type="number"
                   step="1"
                   value={leverage}
                   onChange={(e) => setLeverage(e.target.value)}
-                  placeholder="Hebel z.B. 10"
+                  placeholder="Leverage e.g. 10"
                   className="w-full min-h-[44px] bg-[#0d131f] border border-slate-700/80 focus:border-brand rounded-xl py-2.5 px-3 pr-7 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition shadow-inner"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">x</span>
@@ -723,13 +723,13 @@ export default function FreeTakeProfitPlanner() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 font-mono">Einstiegskurs ($)</label>
+              <label className="text-xs font-medium text-slate-400 font-mono">Entry Price ($)</label>
               <div className="relative">
                 <input
                   type="number"
                   value={entryPrice}
                   onChange={(e) => setEntryPrice(e.target.value)}
-                  placeholder="Einstiegspreis"
+                  placeholder="Entry price"
                   className="w-full min-h-[44px] bg-[#0d131f] border border-slate-700/80 focus:border-brand rounded-xl py-2.5 px-3 pr-7 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition shadow-inner"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
@@ -739,7 +739,7 @@ export default function FreeTakeProfitPlanner() {
 
           <div className="pt-2 border-t border-term-border/70 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400 gap-2">
             <div>
-              <span>Order-Typ Entry: </span>
+              <span>Entry Order Type: </span>
               <button
                 type="button"
                 onClick={() => setEntryOrderType(prev => prev === 'maker' ? 'taker' : 'maker')}
@@ -749,21 +749,21 @@ export default function FreeTakeProfitPlanner() {
               </button>
             </div>
             <div>
-              <span>Gesamter Positionswert: </span>
+              <span>Total Position Size: </span>
               <span className="text-white font-extrabold text-sm">${positionSize.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>
 
-        {/* STRATEGIE PRESETS (DEFAULT EINGEKLAPPT) */}
+        {/* STRATEGY PRESETS */}
         <details className="group bg-term-card border border-term-border rounded-2xl overflow-hidden shadow-md transition-all">
           <summary className="flex items-center justify-between p-3.5 sm:p-4 cursor-pointer list-none select-none hover:bg-term-bg/60 transition">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-300 group-hover:text-amber-400 transition">
               <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span>Schnell-Presets für Scale-Out (Optional)</span>
+              <span>Scale-Out Quick Presets (Optional)</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">Klicken zum Anzeigen</span>
+              <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">Click to expand</span>
               <ChevronDown className="w-4 h-4 text-slate-500 transition-transform duration-200 group-open:rotate-180 group-open:text-amber-400" />
             </div>
           </summary>
@@ -794,10 +794,10 @@ export default function FreeTakeProfitPlanner() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide font-mono flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              2. Take-Profit Stufen ({tpStages.length} Stufen aktiv)
+              2. Take-Profit Tiers ({tpStages.length} active tiers)
             </span>
             <span className="text-[11px] font-mono text-slate-500">
-              Verkauf bezieht sich dynamisch auf die verbleibende Restposition
+              Closes scale dynamically off the remaining open position size
             </span>
           </div>
 
@@ -812,10 +812,8 @@ export default function FreeTakeProfitPlanner() {
                   key={stage.id}
                   className="p-4 sm:p-5 bg-[#090d16] border border-slate-800 rounded-2xl space-y-4 shadow-xl hover:border-slate-700 transition"
                 >
-                  {/* TOP ROW: TP BADGE, MODE, ZIEL-INPUT & VERKAUFS-INPUT */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pb-3 border-b border-slate-800/80">
                     
-                    {/* TP # & MODE TOGGLE */}
                     <div className="md:col-span-4 flex items-center gap-2">
                       <span className="text-xs font-mono font-black px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 rounded-lg shrink-0">
                         TP #{idx + 1}
@@ -838,16 +836,15 @@ export default function FreeTakeProfitPlanner() {
                             stage.mode === 'PRICE' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
                           }`}
                         >
-                          $ Kurs
+                          $ Price
                         </button>
                       </div>
                     </div>
 
-                    {/* ZIEL-WERT EINGABE */}
                     <div className="md:col-span-4 relative">
                       <input
                         type="number"
-                        placeholder={stage.mode === 'ROE' ? 'Ziel RoE in %' : 'Zielpreis in $'}
+                        placeholder={stage.mode === 'ROE' ? 'Target RoE in %' : 'Target price in $'}
                         value={(stage.mode === 'ROE' ? stage.roePercent : stage.targetPrice) || ''}
                         onChange={(e) =>
                           handleTpStageChange(
@@ -863,12 +860,11 @@ export default function FreeTakeProfitPlanner() {
                       </span>
                     </div>
 
-                    {/* VERKAUF RESTPOSITION EINGABE */}
                     <div className="md:col-span-4 flex items-center gap-2">
                       <div className="relative flex-1">
                         <input
                           type="number"
-                          placeholder="Verkauf in %"
+                          placeholder="Close in %"
                           value={stage.closePercent || ''}
                           onChange={(e) => handleTpStageChange(stage.id, 'closePercent', e.target.value)}
                           className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-emerald-400 rounded-xl py-2 px-3 pr-7 text-xs font-mono font-extrabold text-white text-right placeholder-slate-500 outline-none transition shadow-inner"
@@ -881,7 +877,7 @@ export default function FreeTakeProfitPlanner() {
                           type="button"
                           onClick={() => handleRemoveTpStage(stage.id)}
                           className="p-2 text-slate-500 hover:text-[#F23645] hover:bg-[#F23645]/10 rounded-xl transition cursor-pointer shrink-0"
-                          title="Stufe entfernen"
+                          title="Remove tier"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -893,7 +889,7 @@ export default function FreeTakeProfitPlanner() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
                       <div className="flex justify-between items-center text-[10px] font-mono">
-                        <span className="text-slate-400 font-medium">RoE Schnellwahl {stage.mode === 'PRICE' && stage.calculatedRoe !== 0 && `(${stage.calculatedRoe.toFixed(1)}%)`}</span>
+                        <span className="text-slate-400 font-medium">RoE Quick Select {stage.mode === 'PRICE' && stage.calculatedRoe !== 0 && `(${stage.calculatedRoe.toFixed(1)}%)`}</span>
                         <div className="flex gap-1">
                           {['10', '25', '50', '100'].map((val) => (
                             <button
@@ -921,7 +917,7 @@ export default function FreeTakeProfitPlanner() {
 
                     <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
                       <div className="flex justify-between items-center text-[10px] font-mono">
-                        <span className="text-slate-400 font-medium">Verkauf Restposition</span>
+                        <span className="text-slate-400 font-medium">Close Position %</span>
                         <div className="flex gap-1">
                           {['25', '50', '75', '100'].map((val) => (
                             <button
@@ -948,31 +944,31 @@ export default function FreeTakeProfitPlanner() {
                     </div>
                   </div>
 
-                  {/* DETAIL BOXEN */}
+                  {/* DETAIL BOXES */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
                     <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[10px]">Zielkurs</span>
+                      <span className="text-slate-500 block text-[10px]">Target Price</span>
                       <span className="font-bold text-white">
                         {stage.calculatedTargetPrice > 0 ? `$${stage.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                       </span>
                     </div>
 
                     <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[10px]">Netto-Gewinn</span>
+                      <span className="text-slate-500 block text-[10px]">Net Profit</span>
                       <span className={`font-bold ${stage.netTrancheProfit >= 0 ? 'text-emerald-400' : 'text-[#F23645]'}`}>
                         {stage.netTrancheProfit > 0 ? `+$${stage.netTrancheProfit.toFixed(2)}` : '-'}
                       </span>
                     </div>
 
                     <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[10px]">Freigesetzte Marge</span>
+                      <span className="text-slate-500 block text-[10px]">Released Margin</span>
                       <span className="font-bold text-brand">
                         {stage.trancheMargin > 0 ? `$${stage.trancheMargin.toFixed(2)}` : '-'}
                       </span>
                     </div>
 
                     <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[10px]">Restposition danach</span>
+                      <span className="text-slate-500 block text-[10px]">Remaining Position</span>
                       <span className="font-bold text-slate-300">
                         {parsedMargin > 0 ? `${stage.remainingMarginPct.toFixed(1)}%` : '-'}
                       </span>
@@ -989,18 +985,18 @@ export default function FreeTakeProfitPlanner() {
             className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer font-mono"
           >
             <Plus className="w-4 h-4 text-brand" />
-            <span>Weiteren Take-Profit hinzufügen</span>
+            <span>Add another Take-Profit tier</span>
           </button>
         </div>
 
-        {/* 3. VISUELLER CHARTS BLOCK */}
+        {/* 3. VISUAL CHART BLOCK */}
         <div className="bg-term-card border border-term-border rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
           <div className="flex items-center justify-between border-b border-term-border pb-3">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
-              <span>Gewinn- & Restpositionsverlauf</span>
+              <span>Profit & Remaining Position Progression</span>
             </div>
-            <span className="text-[10px] font-mono text-slate-500">Grün: Netto-Gewinn ($) • Blau: Offene Marge (%)</span>
+            <span className="text-[10px] font-mono text-slate-500">Green: Net Profit ($) • Blue: Open Margin (%)</span>
           </div>
 
           <div className="h-60 w-full pt-2">
@@ -1026,8 +1022,8 @@ export default function FreeTakeProfitPlanner() {
                     fontFamily: 'monospace'
                   }}
                 />
-                <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#tpProfitGrad)" name="Netto-Gewinn ($)" />
-                <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Rest-Position (%)" />
+                <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#tpProfitGrad)" name="Net Profit ($)" />
+                <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Open Position (%)" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -1040,10 +1036,10 @@ export default function FreeTakeProfitPlanner() {
             <div className="space-y-0.5">
               <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
                 <FileImage className="w-4 h-4 text-brand" />
-                <span>Take-Profit Plan für dein Smartphone sichern</span>
+                <span>Save Take-Profit Plan to Your Device</span>
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Exportiert deine Stufen-Targets, Exit-Kurse und Erträge als PNG-Bild.
+                Exports your tier targets, exit prices, and yields into a high-res PNG image.
               </p>
             </div>
 
@@ -1060,10 +1056,10 @@ export default function FreeTakeProfitPlanner() {
               <Download className="w-4 h-4" />
               <span>
                 {isExporting 
-                  ? 'Generiere Bild...' 
+                  ? 'Generating Image...' 
                   : isValidSetup 
-                    ? 'TP-Plan herunterladen (.PNG)' 
-                    : 'Parameter unvollständig'}
+                    ? 'Download TP Plan (.PNG)' 
+                    : 'Parameters Incomplete'}
               </span>
             </button>
           </div>
@@ -1089,7 +1085,7 @@ export default function FreeTakeProfitPlanner() {
                   </span>
                 </div>
                 <p className="text-[11px] font-mono text-slate-500">
-                  Börse: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Gebühren: <span className="text-slate-400">{makerRate}% Maker</span>
+                  Exchange: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Fees: <span className="text-slate-400">{makerRate}% Maker</span>
                 </p>
               </div>
 
@@ -1104,28 +1100,28 @@ export default function FreeTakeProfitPlanner() {
             {/* 4 SUMMARY METRICS */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
               <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Netto-Gewinn gesamt</span>
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Total Net Profit</span>
                 <p className={`text-base sm:text-lg font-mono font-bold truncate ${totalNetProfitUSD >= 0 ? 'text-emerald-400' : 'text-[#F23645]'}`}>
                   {totalNetProfitUSD >= 0 ? '+' : ''}${totalNetProfitUSD.toFixed(2)}
                 </p>
               </div>
 
               <div className="bg-term-bg border border-brand-border/60 p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-mono text-brand font-medium uppercase">Effektiver Netto-RoE</span>
+                <span className="text-[10px] font-mono text-brand font-medium uppercase">Effective Net RoE</span>
                 <p className="text-base sm:text-lg font-mono font-extrabold text-brand truncate">
                   {totalNetRoe >= 0 ? '+' : ''}{totalNetRoe.toFixed(1)}%
                 </p>
               </div>
 
               <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Kalkulierte Gebühren</span>
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Estimated Fees</span>
                 <p className="text-base sm:text-lg font-mono font-bold text-[#F23645] truncate">
                   -${totalFeesUSD.toFixed(2)}
                 </p>
               </div>
 
               <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Runner / Rest im Markt</span>
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Market Runner</span>
                 <p className="text-base sm:text-lg font-mono font-bold text-slate-300 truncate">
                   {calculatedStages.length > 0 && calculatedStages[calculatedStages.length - 1]
                     ? `${calculatedStages[calculatedStages.length - 1].remainingMarginPct.toFixed(1)}%`
@@ -1137,9 +1133,9 @@ export default function FreeTakeProfitPlanner() {
             {/* TP STEPS OVERVIEW */}
             <div className="bg-term-bg border border-term-border rounded-xl p-3.5 space-y-2 font-mono text-xs">
               <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between border-b border-term-border/60 pb-2">
-                <span>Geplante Take-Profit Stufen</span>
+                <span>Planned Take-Profit Tiers</span>
                 <span className="text-slate-400 font-normal">
-                  Einstieg: <strong className="text-white">${parsedEntry > 0 ? parsedEntry.toLocaleString('en-US') : '-'}</strong>
+                  Entry: <strong className="text-white">${parsedEntry > 0 ? parsedEntry.toLocaleString('en-US') : '-'}</strong>
                 </span>
               </div>
 
@@ -1153,7 +1149,7 @@ export default function FreeTakeProfitPlanner() {
                         Target #{idx + 1} ({s.calculatedTargetPrice > 0 ? `$${s.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'})
                       </span>
                       <span>
-                        +{s.calculatedRoe.toFixed(1)}% RoE • <strong className="text-emerald-400">+{s.netTrancheProfit > 0 ? `$${s.netTrancheProfit.toFixed(2)}` : '$0.00'}</strong> ({s.closePercent || 0}% Verkauf)
+                        +{s.calculatedRoe.toFixed(1)}% RoE • <strong className="text-emerald-400">+{s.netTrancheProfit > 0 ? `$${s.netTrancheProfit.toFixed(2)}` : '$0.00'}</strong> ({s.closePercent || 0}% closed)
                       </span>
                     </div>
                   )
@@ -1164,7 +1160,7 @@ export default function FreeTakeProfitPlanner() {
             {/* FOOTER WATERMARK */}
             <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-term-border/50">
               <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" /> Geplant für <strong>RISKIL Live-Journaling</strong>
+                <ShieldCheck className="w-3 h-3 text-emerald-400" /> Designed for <strong>RISKIL Live-Journaling</strong>
               </span>
               <span className="text-slate-500 font-semibold">riskil.app</span>
             </div>
@@ -1179,24 +1175,24 @@ export default function FreeTakeProfitPlanner() {
                 Closed Beta
               </span>
               <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                Exits geplant. Nimmst du im Live-Markt auch wirklich Gewinne mit?
+                Exits Planned. Do You Actually Take Profits Live?
               </h4>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Die meisten Trader scheitern daran, Gewinne rechtzeitig zu sichern, und lassen grüne Trades wieder ins Minus laufen.
-              <strong> RISKIL</strong> automatisiert deine Pre-Lock-Disziplin vor dem Einstieg. Sichere dir jetzt kostenlosen Early Access.
+              Most traders fail to secure profits in time, letting green trades slide back into the red.
+              <strong> RISKIL</strong> automates your pre-lock discipline before you enter. Secure free early access now.
             </p>
           </div>
 
           <a
-  href="https://riskil.app"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
->
-  <span>Early Access sichern</span>
-  <ArrowRight className="w-4 h-4" />
-</a>
+            href="https://riskil.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
+          >
+            <span>Secure Early Access</span>
+            <ArrowRight className="w-4 h-4" />
+          </a>
         </div>
 
       </div>
@@ -1206,7 +1202,7 @@ export default function FreeTakeProfitPlanner() {
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-term-border pb-3">
-              <span className="text-xs font-mono font-bold text-white">Trade-Karte bereit</span>
+              <span className="text-xs font-mono font-bold text-white">Trade Card Ready</span>
               <button
                 type="button"
                 onClick={() => setPreviewImage(null)}
@@ -1218,7 +1214,7 @@ export default function FreeTakeProfitPlanner() {
 
             <div className="space-y-2 text-center">
               <p className="text-[11px] font-mono text-emerald-400">
-                Halte das Bild gedrückt, um es in deiner Galerie zu speichern.
+                Long-press the image to save it to your camera roll.
               </p>
               <div className="rounded-xl overflow-hidden border border-term-border bg-black">
                 <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
@@ -1230,7 +1226,7 @@ export default function FreeTakeProfitPlanner() {
               onClick={() => setPreviewImage(null)}
               className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer"
             >
-              Fertig / Schließen
+              Done / Close
             </button>
           </div>
         </div>
@@ -1243,7 +1239,7 @@ export default function FreeTakeProfitPlanner() {
             <div className="flex items-center justify-between border-b border-term-border pb-3">
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-brand" />
-                <h3 className="text-sm font-bold text-white font-mono">Börsengebühren anpassen</h3>
+                <h3 className="text-sm font-bold text-white font-mono">Customize Exchange Fees</h3>
               </div>
               <button
                 type="button"
@@ -1256,7 +1252,7 @@ export default function FreeTakeProfitPlanner() {
 
             <form onSubmit={handleSaveCustomFees} className="space-y-4">
               <p className="text-xs text-slate-400">
-                Gib die Maker- und Taker-Gebühren deiner Börse bzw. deines VIP-Levels in Prozent ein:
+                Enter your exchange or VIP tier maker and taker fee percentages:
               </p>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1299,13 +1295,13 @@ export default function FreeTakeProfitPlanner() {
                   onClick={() => setIsCustomFeeModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer"
                 >
-                  Speichern & Anwenden
+                  Save & Apply
                 </button>
               </div>
             </form>

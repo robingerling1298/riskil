@@ -15,7 +15,7 @@ export default function ToolsLayout({
         <main>{children}</main>
       </div>
 
-      {/* GLOBALER TOOLS FOOTER MIT DEV-CONTACT */}
+      {/* GLOBAL TOOLS FOOTER WITH DEV-CONTACT */}
       <footer className="w-full max-w-6xl mx-auto border-t border-term-border/80 py-12 mt-20 space-y-8">
         
         {/* SUPPORT / FEEDBACK BANNER */}
@@ -23,10 +23,10 @@ export default function ToolsLayout({
           <div className="space-y-1 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-mono font-bold text-white">
               <MessageSquare className="w-4 h-4 text-brand" />
-              <span>Fragen, Bugs oder Feature-Wünsche?</span>
+              <span>Questions, bugs, or feature requests?</span>
             </div>
             <p className="text-xs text-slate-400 font-mono">
-              Die Tools sind gratis – bei Feedback oder Ideen erreichst du mich direkt über diesen Weg:
+              The tools are free – if you have feedback or ideas, reach out to me directly here:
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export default function ToolsLayout({
               <span>Telegram</span>
             </a>
 
-            {/* X / TWITTER BUTTON MIT NATIVEM SVG */}
+            {/* X / TWITTER BUTTON WITH NATIVE SVG */}
             <a
               href="https://x.com/robingerling"
               target="_blank"
@@ -57,7 +57,7 @@ export default function ToolsLayout({
           </div>
         </div>
 
-        {/* UNTERER FOOTER TEIL (LINKS & COPYRIGHT) */}
+        {/* LOWER FOOTER SECTION (LINKS & COPYRIGHT) */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500 border-t border-term-border/50 pt-6">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-brand" />
@@ -71,9 +71,9 @@ export default function ToolsLayout({
             <Link href="/tools/tp-planner" className="hover:text-white transition">TP Planner</Link>
             <Link href="/tools/position-planner" className="hover:text-white transition">Full Matrix</Link>
             <span className="text-slate-700 hidden sm:inline">|</span>
-            <Link href="/impressum" className="hover:text-white transition">Impressum</Link>
-            <Link href="/datenschutz" className="hover:text-white transition">Datenschutz</Link>
-            <Link href="/agb" className="hover:text-white transition">AGB</Link>
+            <Link href="/impressum" className="hover:text-white transition">Imprint</Link>
+            <Link href="/datenschutz" className="hover:text-white transition">Privacy</Link>
+            <Link href="/agb" className="hover:text-white transition">Terms</Link>
             <span className="text-slate-700 hidden sm:inline">|</span>
             <span className="text-slate-500">riskil.app</span>
           </div>

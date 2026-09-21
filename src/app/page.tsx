@@ -31,7 +31,9 @@ import {
   X,
   Sparkles,
   Mail,
-  Loader2
+  Loader2,
+  FileImage,
+  Scale
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -398,6 +400,194 @@ export default function LandingPage() {
               <div className="font-bold text-white">Real-Time Sync</div>
               <div className="text-[10px] text-slate-500">No manual CSV uploads or logs</div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* FREE TOOLS BENTO GRID PREVIEW INJECTION */}
+      {/* ========================================================================= */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+        <div className="relative rounded-3xl border border-[#089981]/40 bg-gradient-to-b from-[#0B0E14] via-[#080d1a] to-[#05070a] p-6 sm:p-10 shadow-2xl overflow-hidden group">
+          
+          <div className="absolute top-0 right-1/3 w-96 h-96 bg-[#089981]/15 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-8">
+            
+            {/* Header intro */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-[#161A23]">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#089981]/15 border border-[#089981]/30 text-[#089981] font-mono text-[10px] font-bold uppercase">
+                  <Calculator size={13} />
+                  <span>Instant Access • No Login Required • PWA Ready</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Free Perps Calculator Suite. Built for Speed.
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                  Need instant pre-trade numbers without setting up an API? Use our standalone client-side terminal tools right in your browser or install them on your home screen.
+                </p>
+              </div>
+
+              <div className="shrink-0">
+                <a
+                  href="https://go.riskil.app/tools"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-[#089981] hover:bg-[#067a67] text-white font-black text-xs rounded-xl transition shadow-[0_0_25px_rgba(8,153,129,0.35)] cursor-pointer active:scale-95"
+                >
+                  <span>Open Free Tools Terminal</span>
+                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                </a>
+              </div>
+            </div>
+
+            {/* Bento Grid Preview Cards (3 Tools) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              
+              {/* Tool 1: Leverage Sizer */}
+              <div className="bg-[#07090E] border border-[#161A23] hover:border-[#089981]/50 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition-all duration-300">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-[#089981]/10 border border-[#089981]/30 flex items-center justify-center text-[#089981]">
+                      <Zap size={18} />
+                    </div>
+                    <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-[#121622] text-slate-400 font-bold">
+                      01 / SIZING
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Leverage & Risk Sizer</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Computes blended DCA entries over unlimited tranches and mathematically rounds down leverage to fit your exact dollar risk budget.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-[#0B0E14] border border-[#161A23] rounded-xl font-mono text-[11px] space-y-2">
+                  <div className="flex justify-between text-slate-500 text-[10px]">
+                    <span>BTCUSDT • SHORT</span>
+                    <span className="text-[#089981] font-bold">22x SAFE</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-[#07090E] p-1.5 rounded border border-[#161A23]">
+                      <span className="text-[9px] text-slate-500 block">Avg Entry</span>
+                      <span className="font-bold text-slate-200">$83,035</span>
+                    </div>
+                    <div className="bg-[#07090E] p-1.5 rounded border border-[#161A23]">
+                      <span className="text-[9px] text-slate-500 block">Max Risk</span>
+                      <span className="font-bold text-[#F23645]">-$50.00</span>
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href="https://go.riskil.app/tools/leverage-calculator"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-[#121622] hover:bg-[#089981] text-slate-300 hover:text-white rounded-xl text-xs font-bold font-mono transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Launch Sizer</span>
+                  <ArrowRight size={12} />
+                </a>
+              </div>
+
+              {/* Tool 2: TP Planner */}
+              <div className="bg-[#07090E] border border-[#161A23] hover:border-[#089981]/50 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition-all duration-300">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                      <Target size={18} />
+                    </div>
+                    <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-[#121622] text-slate-400 font-bold">
+                      02 / EXITS
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Take-Profit Scale-Out Planner</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Simulates tiered profit-taking with live exchange fees. Prevents premature closes on high-conviction swings with residual margin tracking.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-[#0B0E14] border border-[#161A23] rounded-xl font-mono text-[11px] space-y-2">
+                  <div className="flex justify-between text-slate-500 text-[10px]">
+                    <span>BTCUSDT • SCALE-OUT</span>
+                    <span className="text-emerald-400 font-bold">3 TIERS</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-[#07090E] p-1.5 rounded border border-[#161A23]">
+                      <span className="text-[9px] text-slate-500 block">TP1 (25% RoE)</span>
+                      <span className="font-bold text-emerald-400">+$43.20</span>
+                    </div>
+                    <div className="bg-[#07090E] p-1.5 rounded border border-[#161A23]">
+                      <span className="text-[9px] text-slate-500 block">Net Profit</span>
+                      <span className="font-bold text-white">+$128.78</span>
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href="https://go.riskil.app/tools/tp-planner"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-[#121622] hover:bg-[#089981] text-slate-300 hover:text-white rounded-xl text-xs font-bold font-mono transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Launch TP Planner</span>
+                  <ArrowRight size={12} />
+                </a>
+              </div>
+
+              {/* Tool 3: Full Matrix */}
+              <div className="bg-[#07090E] border border-[#161A23] hover:border-[#089981]/50 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition-all duration-300">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                      <FileImage size={18} />
+                    </div>
+                    <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-[#121622] text-slate-400 font-bold">
+                      03 / EXPORT & PNG
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Full Execution Matrix</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      The seamless workflow combining DCA entries, strict stop loss, and TP ladders into a synchronized dashboard with high-res PNG trade card export.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-[#0B0E14] border border-[#161A23] rounded-xl font-mono text-[11px] space-y-2">
+                  <div className="flex justify-between text-slate-500 text-[10px]">
+                    <span>SETUP MATRIX</span>
+                    <span className="text-purple-400 font-bold">PNG READY</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-[#07090E] p-1.5 rounded border border-[#161A23]">
+                      <span className="text-[9px] text-slate-500 block">Total Margin</span>
+                      <span className="font-bold text-white">$300.00</span>
+                    </div>
+                    <div className="bg-[#07090E] p-1.5 rounded border border-[#161A23]">
+                      <span className="text-[9px] text-slate-500 block">CRV Ratio</span>
+                      <span className="font-bold text-emerald-400">1 : 2.65</span>
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href="https://go.riskil.app/tools/position-planner"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-[#121622] hover:bg-[#089981] text-slate-300 hover:text-white rounded-xl text-xs font-bold font-mono transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Launch Full Matrix</span>
+                  <ArrowRight size={12} />
+                </a>
+              </div>
+
+            </div>
+
           </div>
         </div>
       </section>
@@ -1380,7 +1570,7 @@ export default function LandingPage() {
       <footer className="border-t border-[#161A23] py-8 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-slate-400">
-            <Zap size={14} className="text-[#089981]" />
+            <Zap size= {14} className="text-[#089981]" />
             <span>© {new Date().getFullYear()} RISKIL. Engineering Discipline.</span>
           </div>
           <div className="flex gap-6">

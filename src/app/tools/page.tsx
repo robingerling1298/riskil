@@ -39,11 +39,11 @@ const TOOLS: ToolItem[] = [
     href: '/tools/leverage-calculator',
     title: 'Leverage & Risk Sizer',
     badge: '01 / SIZING',
-    description: 'Berechnet Mischkurse über unbegrenzte DCA-Tranchen und drosselt den Hebel mathematisch abgerundet auf den Punkt deines maximalen Risikobudgets.',
+    description: 'Calculate average entry prices across unlimited DCA tranches and mathematically round down leverage to match your exact max risk budget.',
     icon: Zap,
     mockup: {
       tag: 'BTCUSDT • SHORT 22x',
-      sub: 'Mischkurs: $83,035.71',
+      sub: 'Avg Entry: $83,035.71',
       stats: [
         { label: 'Avg Entry', value: '$83,035.71' },
         { label: 'Stop Loss', value: '$83,500.00' },
@@ -57,11 +57,11 @@ const TOOLS: ToolItem[] = [
     href: '/tools/tp-planner',
     title: 'Take-Profit Scale-Out Planner',
     badge: '02 / EXITS',
-    description: 'Simuliert gestaffelte Gewinnmitnahmen mit Echtzeit-Börsengebühren. Verhindert das vorzeitige Schließen profitabler Swings und kalkuliert Restmargenträger.',
+    description: 'Simulate tiered profit-taking factoring in real-time exchange fees. Prevent premature exits on high-conviction swings and calculate residual margin carryovers.',
     icon: Target,
     mockup: {
       tag: 'BTCUSDT • SCALE-OUT',
-      sub: 'Einstieg: $85,000.00',
+      sub: 'Entry: $85,000.00',
       stats: [
         { label: 'TP1 (25% RoE)', value: '+$43.20' },
         { label: 'TP2 (50% RoE)', value: '+$86.40' },
@@ -75,13 +75,13 @@ const TOOLS: ToolItem[] = [
     href: '/tools/position-planner',
     title: 'Full Position Execution Matrix',
     badge: '03 / ALL-IN-ONE',
-    description: 'Der nahtlose Workflow: DCA-Einstiegsstaffelung, strikter Stop-Loss und Take-Profit Leiter in einem synchronisierten Dashboard mit hochauflösendem PNG-Export.',
+    description: 'The ultimate seamless workflow: DCA tranche scaling, strict stop-loss, and take-profit ladders combined in a synchronized dashboard with high-res PNG export.',
     icon: Scale,
     mockup: {
       tag: 'FULL SETUP MATRIX',
-      sub: '3 Tranchen • 3 Exits',
+      sub: '3 Tranches • 3 Exits',
       stats: [
-        { label: 'Total Marge', value: '$300.00' },
+        { label: 'Total Margin', value: '$300.00' },
         { label: 'Max Loss', value: '-$50.00' },
         { label: 'Total Net', value: '+$132.42' },
         { label: 'R:R / CRV', value: '1 : 2.65', highlight: true }
@@ -138,14 +138,14 @@ export default function ToolsLandingPage() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-            Mathematische Präzision. <br />
+            Zero Math Errors. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-200 to-slate-400">
-              Direkt auf deinem Homescreen.
+              Straight to Your Homescreen.
             </span>
           </h1>
 
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-xl mx-auto font-normal">
-            Hochpräzise Terminal-Tools für Krypto-Derivate. Installiere die Rechner als native PWA in Sekundenschnelle auf dein Smartphone. Blitzschnell und offlinefähig.
+            High-precision terminal tools for crypto derivatives. Install the calculators as a native PWA on your smartphone in seconds. Blazing fast and offline-ready.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs font-mono text-slate-400">
@@ -155,13 +155,13 @@ export default function ToolsLandingPage() {
             </div>
             <div className="flex items-center gap-2 bg-term-card/60 px-3 py-1.5 rounded-xl border border-term-border">
               <Cpu className="w-4 h-4 text-brand" />
-              <span>Natives App-Feeling</span>
+              <span>Native App Experience</span>
             </div>
           </div>
 
         </div>
 
-        {/* ================= BENTO TOOL SUITE GRID (DIREKT UNTER HERO) ================= */}
+        {/* ================= BENTO TOOL SUITE GRID ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {TOOLS.map((tool) => {
             const Icon = tool.icon
@@ -226,7 +226,7 @@ export default function ToolsLandingPage() {
                     href={tool.href}
                     className="w-full py-3.5 px-4 rounded-xl bg-brand-muted hover:bg-brand text-brand hover:text-black border border-brand-border hover:border-brand text-xs font-mono font-black transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-black/40 cursor-pointer"
                   >
-                    <span>Terminal öffnen</span>
+                    <span>Launch Terminal</span>
                     <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
                   </Link>
                 </div>
@@ -235,7 +235,7 @@ export default function ToolsLandingPage() {
           })}
         </div>
 
-        {/* ================= PWA INTERACTIVE SIMULATOR (WEITER UNTEN) ================= */}
+        {/* ================= PWA INTERACTIVE SIMULATOR ================= */}
         <div className="relative rounded-3xl p-8 sm:p-12 border border-term-border bg-gradient-to-b from-term-card via-[#080d1a] to-[#05070a] shadow-2xl overflow-hidden">
           
           <div className="absolute top-0 right-1/4 w-96 h-96 bg-brand/10 rounded-full blur-3xl pointer-events-none" />
@@ -250,12 +250,12 @@ export default function ToolsLandingPage() {
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                Wie eine native App. <br />
-                Ohne App Store Umwege.
+                Built Like a Native App. <br />
+                Zero App Store Friction.
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Die Rechner wurden als vollwertige PWA konzipiert. Installiere das Tool mit nur zwei Klicks direkt auf deinem iPhone oder Android-Gerät als eigenständige App ohne Browser-Leisten.
+                Engineered as a full-fledged PWA. Install any calculator directly onto your iPhone or Android home screen in two clicks – standalone, lightning-fast, and completely free of browser chrome.
               </p>
 
               {/* OS SWITCHER TABS */}
@@ -285,30 +285,30 @@ export default function ToolsLandingPage() {
                   <>
                     <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
                       <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">1</span>
-                      <span>Öffne einen beliebigen <strong>RISKIL Rechner</strong> im Safari Browser.</span>
+                      <span>Open any <strong>RISKIL calculator</strong> in Safari.</span>
                     </div>
                     <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
                       <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">2</span>
-                      <span className="flex items-center gap-1.5">Tippe unten auf das <strong>Teilen-Symbol</strong> <Share className="w-3.5 h-3.5 text-brand" />.</span>
+                      <span className="flex items-center gap-1.5">Tap the <strong>Share button</strong> at the bottom <Share className="w-3.5 h-3.5 text-brand" />.</span>
                     </div>
                     <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
                       <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">3</span>
-                      <span className="flex items-center gap-1.5">Wähle <strong>„Zum Home-Bildschirm“</strong> <PlusSquare className="w-3.5 h-3.5 text-brand" />.</span>
+                      <span className="flex items-center gap-1.5">Select <strong>"Add to Home Screen"</strong> <PlusSquare className="w-3.5 h-3.5 text-brand" />.</span>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
                       <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">1</span>
-                      <span>Öffne einen beliebigen <strong>RISKIL Rechner</strong> in Chrome.</span>
+                      <span>Open any <strong>RISKIL calculator</strong> in Chrome.</span>
                     </div>
                     <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
                       <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">2</span>
-                      <span>Tippe oben rechts auf das <strong>Drei-Punkte-Menü</strong>.</span>
+                      <span>Tap the <strong>three-dot menu</strong> in the top right.</span>
                     </div>
                     <div className="flex items-center gap-3 bg-term-bg p-3 rounded-xl border border-term-border">
                       <span className="w-6 h-6 rounded-lg bg-brand/20 text-brand font-bold flex items-center justify-center shrink-0">3</span>
-                      <span>Wähle <strong>„App installieren“</strong> oder „Zum Startbildschirm hinzufügen“.</span>
+                      <span>Select <strong>"Install App"</strong> or "Add to Home screen".</span>
                     </div>
                   </>
                 )}
@@ -348,7 +348,7 @@ export default function ToolsLandingPage() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-term-bg p-2.5 rounded-xl border border-term-border">
-                      <span className="text-[9px] text-slate-500 block">Hebel Sizer</span>
+                      <span className="text-[9px] text-slate-500 block">Leverage Sizer</span>
                       <span className="text-xs font-bold text-brand">22x SAFE</span>
                     </div>
                     <div className="bg-term-bg p-2.5 rounded-xl border border-term-border">
@@ -361,7 +361,7 @@ export default function ToolsLandingPage() {
                     <div className="font-bold text-brand flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> Offline Ready Cache
                     </div>
-                    <p className="text-slate-400 text-[9px]">Lädt augenblicklich ohne Latenz.</p>
+                    <p className="text-slate-400 text-[9px]">Instantly loads without latency.</p>
                   </div>
                 </div>
 
@@ -378,7 +378,7 @@ export default function ToolsLandingPage() {
                     </div>
                     <div className="flex items-center gap-2 text-xs font-mono text-brand font-bold bg-brand-muted/40 p-2.5 rounded-xl border border-brand-border">
                       <PlusSquare className="w-4 h-4 shrink-0" />
-                      <span>Zum Home-Bildschirm</span>
+                      <span>Add to Home Screen</span>
                     </div>
                   </div>
                 ) : (
@@ -386,8 +386,8 @@ export default function ToolsLandingPage() {
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-lg bg-brand text-black flex items-center justify-center font-black">R</div>
                       <div>
-                        <div className="font-bold text-white text-[11px]">App installieren?</div>
-                        <div className="text-[9px] text-slate-400">Auf Startbildschirm ablegen</div>
+                        <div className="font-bold text-white text-[11px]">Install App?</div>
+                        <div className="text-[9px] text-slate-400">Add to home screen</div>
                       </div>
                     </div>
                     <span className="px-3 py-1.5 bg-brand text-black font-black text-[10px] rounded-lg">Install</span>
@@ -406,31 +406,31 @@ export default function ToolsLandingPage() {
           <div className="max-w-xl space-y-2.5">
             <div className="text-xs font-mono font-bold text-brand uppercase tracking-wider flex items-center gap-2">
               <Sliders className="w-3.5 h-3.5" />
-              <span>Der professionelle Workflow</span>
+              <span>The Professional Workflow</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Pre-Trade Klarheit. In drei Zügen.
+              Pre-Trade Clarity. In Three Steps.
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              Die profitabelsten Trader überlassen nichts dem Zufall. Jeder Trade durchläuft vor der Platzierung an der Börse denselben mathematischen Filter.
+              Profitable traders leave nothing to chance. Every position runs through the exact same mathematical filter before hitting the exchange order book.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-2xl bg-term-bg border border-term-border space-y-3 relative group hover:border-brand-border transition duration-200">
               <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">01</span>
-              <h4 className="text-sm font-bold text-white font-mono">1. Entry DCA & Mischkurs</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">Plane Limit-Tranchen im Voraus. Die Engine errechnet deinen volumengewichteten Break-Even-Einstieg inklusive aller anfallenden Maker-Gebühren.</p>
+              <h4 className="text-sm font-bold text-white font-mono">1. Entry DCA & Break-Even</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">Plan limit tranches in advance. The engine computes your volume-weighted break-even entry including all maker fees.</p>
             </div>
             <div className="p-6 rounded-2xl bg-term-bg border border-term-border space-y-3 relative group hover:border-brand-border transition duration-200">
               <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">02</span>
-              <h4 className="text-sm font-bold text-white font-mono">2. Striktes Hebel-Sizing</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">Keine kaufmännischen Rundungen: Der Hebel wird zwingend mit Math.floor abgerundet, damit du im Stop-Loss-Fall keinen Cent mehr verlierst.</p>
+              <h4 className="text-sm font-bold text-white font-mono">2. Strict Leverage Sizing</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">No commercial round-ups: Leverage is strictly rounded down using Math.floor to ensure you never lose a cent beyond your target risk.</p>
             </div>
             <div className="p-6 rounded-2xl bg-term-bg border border-term-border space-y-3 relative group hover:border-brand-border transition duration-200">
               <span className="w-8 h-8 rounded-xl bg-brand-muted border border-brand-border text-brand font-mono font-black text-xs flex items-center justify-center">03</span>
               <h4 className="text-sm font-bold text-white font-mono">3. Dynamic Scale-Out</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">Stufe deine Take-Profits prozentual von der verbleibenden Restposition ab, ermittle dein finales CRV und exportiere deine fertige Trade-Card als PNG.</p>
+              <p className="text-xs text-slate-400 leading-relaxed">Scale take-profits proportionally off the remaining position size, determine your final CRV, and export your trade card as a high-res PNG.</p>
             </div>
           </div>
         </div>
@@ -446,12 +446,12 @@ export default function ToolsLandingPage() {
                 <span>RISKIL Live-Journaling • 100% Read-Only API</span>
               </div>
               <h3 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-snug">
-                Setup geplant. <br />
-                Hältst du dich im Live-Markt an deinen Plan?
+                Setup Planned. <br />
+                Do You Stick to Your Plan Live?
               </h3>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Die meisten Konten platzen durch verschobene Stops und emotionales Eingreifen während der Trade läuft.
-                <strong> RISKIL</strong> verbindet sich über eine <strong>100% sichere Read-Only API (garantiert ohne Handels- oder Ausführungsrechte)</strong> mit deiner Börse, trackt deine geschlossenen Positionen vollautomatisch und deckt Regelbrüche in deinem Journal schonungslos auf.
+                Most accounts blow up due to shifting stops and emotional meddling mid-trade.
+                <strong> RISKIL</strong> connects via a <strong>100% secure Read-Only API (guaranteed zero trading or execution rights)</strong> to your exchange, automatically tracks closed positions, and ruthlessly exposes rule breaks in your journal.
               </p>
             </div>
 
@@ -462,7 +462,7 @@ export default function ToolsLandingPage() {
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
               >
-                <span>Early Access sichern</span>
+                <span>Secure Early Access</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
             </div>

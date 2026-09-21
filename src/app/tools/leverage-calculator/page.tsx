@@ -97,7 +97,7 @@ export default function FreeLeverageCalculator() {
   const [allowedMarginLossUsd, setAllowedMarginLossUsd] = useState<string>('')
 
   const isLong = direction === 'LONG'
-  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / EINFACH'
+  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -113,7 +113,7 @@ export default function FreeLeverageCalculator() {
   }, [])
 
   const fetchLivePrice = async (symbol: string) => {
-    if (symbol === 'CUSTOM / EINFACH') {
+    if (symbol === 'CUSTOM / MANUAL') {
       setCurrentPrice(null)
       setPriceChange24h(null)
       return
@@ -136,7 +136,7 @@ export default function FreeLeverageCalculator() {
 
   useEffect(() => {
     fetchLivePrice(selectedAsset.symbol)
-    if (selectedAsset.symbol === 'CUSTOM / EINFACH') return
+    if (selectedAsset.symbol === 'CUSTOM / MANUAL') return
     const interval = setInterval(() => {
       fetchLivePrice(selectedAsset.symbol)
     }, 3000)
@@ -319,7 +319,7 @@ export default function FreeLeverageCalculator() {
         link.click()
       }
     } catch (err) {
-      console.error('Fehler beim Exportieren der Trade-Karte:', err)
+      console.error('Error exporting trade card:', err)
     } finally {
       setIsExporting(false)
     }
@@ -332,15 +332,15 @@ export default function FreeLeverageCalculator() {
       <div className="text-center space-y-4 pt-10 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
           <Zap className="w-3.5 h-3.5" />
-          Krypto Perps Position & Leverage Tool
+          Crypto Perps Position & Leverage Tool
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Hebel & Positionsgröße <br className="hidden sm:inline" /> exakt berechnen.
+          Calculate Leverage & Size <br className="hidden sm:inline" /> with Absolute Precision.
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
-          Berechne deinen idealen Hebel, Mischkurse über mehrere Tranchen und exportiere deine fertige Setup-Karte direkt als Bild.
+          Compute your optimal leverage, blended entries across multiple tranches, and instantly export your execution setup as an image card.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
@@ -349,7 +349,7 @@ export default function FreeLeverageCalculator() {
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Ohne Registrierung
+            <ShieldCheck className="w-4 h-4 text-emerald-400" /> No Registration Required
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1.5">
@@ -383,7 +383,7 @@ export default function FreeLeverageCalculator() {
                     <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <input
                       type="text"
-                      placeholder="Asset suchen..."
+                      placeholder="Search asset..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-transparent text-xs text-white placeholder-slate-500 outline-none font-mono"
@@ -395,22 +395,22 @@ export default function FreeLeverageCalculator() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedAsset({ symbol: 'CUSTOM / EINFACH', name: 'Manuelle Eingabe', iconColor: 'bg-slate-400' })
+                        setSelectedAsset({ symbol: 'CUSTOM / MANUAL', name: 'Manual Input', iconColor: 'bg-slate-400' })
                         setIsAssetDropdownOpen(false)
                         setSearchQuery('')
                       }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
-                        selectedAsset.symbol === 'CUSTOM / EINFACH' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
+                        selectedAsset.symbol === 'CUSTOM / MANUAL' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <Calculator className="w-3.5 h-3.5 text-brand" />
                         <div className="text-left">
-                          <div className="font-bold">Manuelle Eingabe</div>
-                          <div className="text-[10px] text-slate-500 font-mono">Ohne API</div>
+                          <div className="font-bold">Manual Input</div>
+                          <div className="text-[10px] text-slate-500 font-mono">Without API</div>
                         </div>
                       </div>
-                      {selectedAsset.symbol === 'CUSTOM / EINFACH' && <Check className="w-3.5 h-3.5 text-brand" />}
+                      {selectedAsset.symbol === 'CUSTOM / MANUAL' && <Check className="w-3.5 h-3.5 text-brand" />}
                     </button>
 
                     {filteredAssets.map((asset) => {
@@ -453,7 +453,7 @@ export default function FreeLeverageCalculator() {
               </span>
               <span className="text-slate-500 font-medium">Index:</span>
               <span className="font-bold text-white">
-                {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manuell'}
+                {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manual'}
               </span>
               {priceChange24h !== null && !isCustomAsset && (
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priceChange24h >= 0 ? 'text-[#089981] bg-[#089981]/10' : 'text-[#F23645] bg-[#F23645]/10'}`}>
@@ -463,7 +463,7 @@ export default function FreeLeverageCalculator() {
             </div>
           </div>
 
-          {/* BÖRSE & DIRECTION */}
+          {/* EXCHANGE & DIRECTION */}
           <div className="flex flex-wrap items-center justify-end gap-3">
             <div className="relative inline-block" ref={exchangeDropdownRef}>
               <button
@@ -526,7 +526,7 @@ export default function FreeLeverageCalculator() {
                       }}
                       className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Settings className="w-3 h-3" /> Eigene Fees einstellen...
+                      <Settings className="w-3 h-3" /> Set custom fees...
                     </button>
                   </div>
                 </div>
@@ -557,12 +557,12 @@ export default function FreeLeverageCalculator() {
 
         </div>
 
-        {/* ENTRY TRANCHEN */}
+        {/* ENTRY TRANCHES */}
         <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold text-slate-400">
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-brand" />
-              <span>EINSTIEGS-TRANCHEN (DCA)</span>
+              <span>ENTRY TRANCHES (DCA)</span>
             </div>
             {currentPrice && (
               <button
@@ -570,7 +570,7 @@ export default function FreeLeverageCalculator() {
                 onClick={handleUseCurrentPrice}
                 className="text-[11px] font-mono text-brand hover:underline transition cursor-pointer text-left sm:text-right"
               >
-                Live-Kurs (${currentPrice.toFixed(2)}) als Entry 1 übernehmen
+                Use live price (${currentPrice.toFixed(2)}) as Entry 1
               </button>
             )}
           </div>
@@ -598,7 +598,7 @@ export default function FreeLeverageCalculator() {
                   <div className="sm:col-span-3 relative">
                     <input
                       type="number"
-                      placeholder="Preis"
+                      placeholder="Price"
                       value={tranche.price}
                       onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
                       className="w-full min-h-[42px] bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
@@ -609,7 +609,7 @@ export default function FreeLeverageCalculator() {
                   <div className="sm:col-span-3 relative">
                     <input
                       type="number"
-                      placeholder="Margenanforderung"
+                      placeholder="Margin required"
                       value={tranche.margin}
                       onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
                       className="w-full min-h-[42px] bg-term-card border border-term-border focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-600 outline-none transition"
@@ -660,17 +660,17 @@ export default function FreeLeverageCalculator() {
             className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer"
           >
             <Plus className="w-4 h-4 text-brand" />
-            <span>Weitere Tranche hinzufügen (Kostenlos unbegrenzt)</span>
+            <span>Add another tranche (Free & unlimited)</span>
           </button>
         </div>
 
-        {/* STOP LOSS & RISIKO */}
+        {/* STOP LOSS & RISK */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl shadow-xl">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="text-xs font-semibold text-[#F23645] flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#F23645]" />
-                Stop Loss Preis
+                Stop Loss Price
               </label>
               <div className="flex gap-1">
                 {[1, 2, 5].map(pct => (
@@ -689,7 +689,7 @@ export default function FreeLeverageCalculator() {
             <div className="relative">
               <input
                 type="number"
-                placeholder="Stop Loss Preis"
+                placeholder="Stop loss price"
                 value={stopLoss}
                 onChange={(e) => setStopLoss(e.target.value)}
                 className="w-full min-h-[44px] bg-term-bg border border-[#F23645]/40 focus:border-[#F23645] rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
@@ -698,27 +698,27 @@ export default function FreeLeverageCalculator() {
             </div>
 
             <span className="text-[10px] text-slate-500 font-mono block">
-              SL-Distanz zum Mischkurs: <span className="text-slate-300 font-bold">{rawSlDistancePercent > 0 ? `${rawSlDistancePercent.toFixed(2)}%` : '-'}</span>
+              SL distance to avg entry: <span className="text-slate-300 font-bold">{rawSlDistancePercent > 0 ? `${rawSlDistancePercent.toFixed(2)}%` : '-'}</span>
             </span>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-semibold text-slate-300">Max. Verlust-Toleranz</label>
+              <label className="text-xs font-semibold text-slate-300">Max. Loss Tolerance</label>
               <div className="flex bg-term-bg p-0.5 rounded-lg border border-term-border text-[10px] font-mono">
                 <button
                   type="button"
                   onClick={() => setRiskMode('PERCENT')}
                   className={`px-2.5 py-1 rounded-md transition cursor-pointer ${riskMode === 'PERCENT' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
                 >
-                  % von Marge
+                  % of Margin
                 </button>
                 <button
                   type="button"
                   onClick={() => setRiskMode('USD')}
                   className={`px-2.5 py-1 rounded-md transition cursor-pointer ${riskMode === 'USD' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
                 >
-                  $ Betrag
+                  $ Amount
                 </button>
               </div>
             </div>
@@ -727,7 +727,7 @@ export default function FreeLeverageCalculator() {
               <div className="relative">
                 <input
                   type="number"
-                  placeholder="Max. Loss in %"
+                  placeholder="Max loss in %"
                   value={allowedMarginLossPercent}
                   onChange={(e) => handlePercentChange(e.target.value)}
                   className="w-full min-h-[44px] bg-term-bg border border-term-border focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
@@ -738,7 +738,7 @@ export default function FreeLeverageCalculator() {
               <div className="relative">
                 <input
                   type="number"
-                  placeholder="Max. Loss in $"
+                  placeholder="Max loss in $"
                   value={allowedMarginLossUsd}
                   onChange={(e) => handleUsdChange(e.target.value)}
                   className="w-full min-h-[44px] bg-term-bg border border-term-border focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition"
@@ -749,8 +749,8 @@ export default function FreeLeverageCalculator() {
 
             <span className="text-[10px] text-slate-500 font-mono block">
               {riskMode === 'PERCENT'
-                ? (totalMargin > 0 && numPercent > 0 ? `≈ $${maxLossUsd.toFixed(2)} Verlust bei Auslösung` : '-')
-                : (totalMargin > 0 && numUsd > 0 ? `≈ ${((numUsd / totalMargin) * 100).toFixed(1)}% deiner Marge` : '-')}
+                ? (totalMargin > 0 && numPercent > 0 ? `≈ $${maxLossUsd.toFixed(2)} loss on trigger` : '-')
+                : (totalMargin > 0 && numUsd > 0 ? `≈ ${((numUsd / totalMargin) * 100).toFixed(1)}% of your margin` : '-')}
             </span>
           </div>
         </div>
@@ -758,7 +758,7 @@ export default function FreeLeverageCalculator() {
         {numStopLoss > 0 && avgEntryPrice > 0 && !isValidSetup && (
           <div className="flex items-center gap-2.5 text-xs text-[#F23645] bg-[#F23645]/10 border border-[#F23645]/30 p-3.5 sm:p-4 rounded-2xl shadow-lg">
             <ShieldAlert className="w-5 h-5 shrink-0" />
-            <span>Ungültiges Setup: Stop Loss muss bei {isLong ? 'Long UNTER' : 'Short ÜBER'} dem Mischkurs (${avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}) liegen.</span>
+            <span>Invalid setup: Stop Loss must be {isLong ? 'BELOW' : 'ABOVE'} the average entry price (${avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}).</span>
           </div>
         )}
 
@@ -770,10 +770,10 @@ export default function FreeLeverageCalculator() {
             <div className="space-y-0.5">
               <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
                 <FileImage className="w-4 h-4 text-brand" />
-                <span>Trade-Setup für dein Smartphone sichern</span>
+                <span>Save Trade Setup to Your Device</span>
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Exportiert alle Einstiegslevel, SL und Positionsgrößen als gestochen scharfes PNG.
+                Exports all entry levels, SL, and position sizing into a high-res PNG image card.
               </p>
             </div>
 
@@ -790,10 +790,10 @@ export default function FreeLeverageCalculator() {
               <Download className="w-4 h-4" />
               <span>
                 {isExporting 
-                  ? 'Generiere Bild...' 
+                  ? 'Generating Image...' 
                   : isValidSetup 
-                    ? 'Setup-Karte herunterladen (.PNG)' 
-                    : 'Setup unvollständig'}
+                    ? 'Download Setup Card (.PNG)' 
+                    : 'Setup Incomplete'}
               </span>
             </button>
           </div>
@@ -820,7 +820,7 @@ export default function FreeLeverageCalculator() {
                   </span>
                 </div>
                 <p className="text-[11px] font-mono text-slate-500">
-                  Börse: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Gebühren: <span className="text-slate-400">{takerRate}% Taker</span>
+                  Exchange: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Fees: <span className="text-slate-400">{takerRate}% Taker</span>
                 </p>
               </div>
 
@@ -835,14 +835,14 @@ export default function FreeLeverageCalculator() {
             {/* KEY EXECUTION NUMBERS (4 CARDS) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
               <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Mischkurs (Avg Entry)</span>
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Avg. Entry Price</span>
                 <p className="text-base sm:text-lg font-mono font-bold text-white truncate">
                   {avgEntryPrice > 0 ? `$${avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                 </p>
               </div>
 
               <div className="bg-term-bg border border-brand-border/60 p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-mono text-brand font-medium uppercase">Optimaler Hebel</span>
+                <span className="text-[10px] font-mono text-brand font-medium uppercase">Optimal Leverage</span>
                 <p className="text-base sm:text-lg font-mono font-extrabold text-brand truncate">
                   {isValidSetup && calculatedLeverage > 0 ? `${calculatedLeverage}x` : '-'}
                 </p>
@@ -856,19 +856,19 @@ export default function FreeLeverageCalculator() {
               </div>
 
               <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Max. Verlust (Risk)</span>
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Max. Risk Amount</span>
                 <p className="text-base sm:text-lg font-mono font-bold text-[#F23645] truncate">
                   {maxLossUsd > 0 ? `-$${maxLossUsd.toFixed(2)}` : '-'}
                 </p>
               </div>
             </div>
 
-            {/* DETAIL SUMMARY: TRANCHEN & SIZING */}
+            {/* DETAIL SUMMARY: TRANCHES & SIZING */}
             <div className="bg-term-bg border border-term-border rounded-xl p-3.5 space-y-3 font-mono text-xs">
               <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between border-b border-term-border/60 pb-2">
-                <span>Einstiegs-Struktur ({validTranches.length} Tranchen aktiv)</span>
+                <span>Entry Structure ({validTranches.length} active tranches)</span>
                 <span className="text-slate-400 font-normal">
-                  Gesamt-Marge: <strong className="text-white">${totalMargin.toFixed(2)}</strong>
+                  Total Margin: <strong className="text-white">${totalMargin.toFixed(2)}</strong>
                 </span>
               </div>
 
@@ -881,32 +881,32 @@ export default function FreeLeverageCalculator() {
                         Tranche #{i + 1} ({t.orderType})
                       </span>
                       <span className="text-slate-200">
-                        ${parseFloat(t.price).toLocaleString('en-US', { minimumFractionDigits: 2 })} • <strong>${parseFloat(t.margin).toFixed(2)}</strong> Marge
+                        ${parseFloat(t.price).toLocaleString('en-US', { minimumFractionDigits: 2 })} • <strong>${parseFloat(t.margin).toFixed(2)}</strong> Margin
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-[11px] text-slate-600 italic">Noch keine Tranchen eingetragen.</p>
+                  <p className="text-[11px] text-slate-600 italic">No tranches added yet.</p>
                 )}
               </div>
 
               <div className="pt-2 border-t border-term-border/60 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
                 <div>
-                  <span className="text-slate-500 block">Positionswert:</span>
+                  <span className="text-slate-500 block">Position Size:</span>
                   <span className="text-white font-bold">
                     {isValidSetup && totalPositionSizeUsd > 0 ? `$${totalPositionSizeUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block">SL-Distanz:</span>
+                  <span className="text-slate-500 block">SL Distance:</span>
                   <span className="text-slate-300 font-bold">
                     {rawSlDistancePercent > 0 ? `${rawSlDistancePercent.toFixed(2)}%` : '-'}
                   </span>
                 </div>
 
                 <div className="col-span-2 sm:col-span-1">
-                  <span className="text-slate-500 block">Börsengebühren:</span>
+                  <span className="text-slate-500 block">Est. Exchange Fees:</span>
                   <span className="text-amber-400 font-bold">
                     {isValidSetup && estimatedFeesUsd > 0 ? `≈ -$${estimatedFeesUsd.toFixed(2)}` : '-'}
                   </span>
@@ -917,7 +917,7 @@ export default function FreeLeverageCalculator() {
             {/* FOOTER WATERMARK / BRANDING */}
             <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-term-border/50">
               <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" /> Geplant für <strong>RISKIL Live-Journaling</strong>
+                <ShieldCheck className="w-3 h-3 text-emerald-400" /> Designed for <strong>RISKIL Live-Journaling</strong>
               </span>
               <span className="text-slate-500 font-semibold">riskil.app</span>
             </div>
@@ -933,24 +933,24 @@ export default function FreeLeverageCalculator() {
                 Closed Beta
               </span>
               <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                Setup geplant. Hältst du dich im Live-Markt an deine Regeln?
+                Setup Planned. Do You Stick to Your Rules Live?
               </h4>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Die meisten Konten platzen durch verschobene Stops und emotionales Overleveraging. 
-              <strong> RISKIL</strong> liest deine Live-Positionen über eine <strong>100% sichere Read-Only API (ohne Handelsrechte)</strong> automatisch aus, gleicht sie mit deinem Plan ab und deckt Regelbrüche in deinem Journal auf.
+              Most trading accounts blow up due to shifting stops and emotional overleveraging. 
+              <strong> RISKIL</strong> tracks your live positions via a <strong>100% secure Read-Only API (zero execution rights)</strong>, matches them against your plan, and uncovers rule violations in your journal.
             </p>
           </div>
 
           <a
-  href="https://riskil.app"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
->
-  <span>Early Access sichern</span>
-  <ArrowRight className="w-4 h-4" />
-</a>
+            href="https://riskil.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
+          >
+            <span>Secure Early Access</span>
+            <ArrowRight className="w-4 h-4" />
+          </a>
         </div>
 
       </div>
@@ -960,7 +960,7 @@ export default function FreeLeverageCalculator() {
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-term-border pb-3">
-              <span className="text-xs font-mono font-bold text-white">Trade-Karte bereit</span>
+              <span className="text-xs font-mono font-bold text-white">Trade Card Ready</span>
               <button
                 type="button"
                 onClick={() => setPreviewImage(null)}
@@ -972,7 +972,7 @@ export default function FreeLeverageCalculator() {
 
             <div className="space-y-2 text-center">
               <p className="text-[11px] font-mono text-emerald-400">
-                Halte das Bild gedrückt, um es in deiner Galerie zu speichern.
+                Long-press the image to save it to your camera roll.
               </p>
               <div className="rounded-xl overflow-hidden border border-term-border bg-black">
                 <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
@@ -984,7 +984,7 @@ export default function FreeLeverageCalculator() {
               onClick={() => setPreviewImage(null)}
               className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer"
             >
-              Fertig / Schließen
+              Done / Close
             </button>
           </div>
         </div>
@@ -997,7 +997,7 @@ export default function FreeLeverageCalculator() {
             <div className="flex items-center justify-between border-b border-term-border pb-3">
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-brand" />
-                <h3 className="text-sm font-bold text-white font-mono">Börsengebühren anpassen</h3>
+                <h3 className="text-sm font-bold text-white font-mono">Customize Exchange Fees</h3>
               </div>
               <button
                 type="button"
@@ -1010,7 +1010,7 @@ export default function FreeLeverageCalculator() {
 
             <form onSubmit={handleSaveCustomFees} className="space-y-4">
               <p className="text-xs text-slate-400">
-                Gib die Maker- und Taker-Gebühren deiner Börse bzw. deines VIP-Levels in Prozent ein:
+                Enter your exchange or VIP tier maker and taker fee percentages:
               </p>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1053,13 +1053,13 @@ export default function FreeLeverageCalculator() {
                   onClick={() => setIsCustomFeeModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer"
                 >
-                  Speichern & Anwenden
+                  Save & Apply
                 </button>
               </div>
             </form>
