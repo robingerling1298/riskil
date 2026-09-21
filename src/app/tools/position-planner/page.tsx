@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toPng } from 'html-to-image'
@@ -87,7 +87,7 @@ const POPULAR_ASSETS: AssetOption[] = [
   { symbol: 'AVAXUSDT', name: 'Avalanche', iconColor: 'bg-red-500' },
 ]
 
-export default function FreeFullPositionPlanner() {
+function FreeFullPositionPlannerInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -114,18 +114,15 @@ export default function FreeFullPositionPlanner() {
 
   const [direction, setDirection] = useState<'LONG' | 'SHORT'>('LONG')
 
-  // --- ENTRY TRANCHES ---
   const [tranches, setTranches] = useState<EntryTranche[]>([
     { id: '1', price: '', margin: '', orderType: 'LIMIT' },
   ])
 
-  // --- RISK / SL ---
   const [stopLoss, setStopLoss] = useState<string>('')
   const [riskMode, setRiskMode] = useState<'PERCENT' | 'USD'>('PERCENT')
   const [allowedMarginLossPercent, setAllowedMarginLossPercent] = useState<string>('')
   const [allowedMarginLossUsd, setAllowedMarginLossUsd] = useState<string>('')
 
-  // --- TAKE PROFIT STAGES ---
   const [tpStages, setTpStages] = useState<TpStage[]>([
     { id: '1', mode: 'ROE', roePercent: '', targetPrice: '', closePercent: '' },
   ])
@@ -133,7 +130,6 @@ export default function FreeFullPositionPlanner() {
   const isLong = direction === 'LONG'
   const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
 
-  // URL State einlesen beim Laden
   useEffect(() => {
     const assetParam = searchParams.get('asset')
     if (assetParam) {
@@ -172,7 +168,6 @@ export default function FreeFullPositionPlanner() {
     }
   }, [])
 
-  // URL State live aktualisieren
   const updateShareUrl = () => {
     const params = new URLSearchParams()
     params.set('asset', selectedAsset.symbol)
@@ -238,7 +233,6 @@ export default function FreeFullPositionPlanner() {
     return () => clearInterval(interval)
   }, [selectedAsset])
 
-  // --- TRANCHE HANDLERS ---
   const handleAddTranche = () => {
     setTranches(prev => [...prev, { id: Date.now().toString(), price: '', margin: '', orderType: 'LIMIT' }])
   }
@@ -258,7 +252,6 @@ export default function FreeFullPositionPlanner() {
     }
   }
 
-  // --- TP HANDLERS ---
   const handleAddTpStage = () => {
     setTpStages(prev => [...prev, { id: Date.now().toString(), mode: 'ROE', roePercent: '', targetPrice: '', closePercent: '' }])
   }
@@ -276,7 +269,6 @@ export default function FreeFullPositionPlanner() {
     setTpStages(prev => prev.map(s => s.id === id ? { ...s, mode: 'ROE', roePercent: value } : s))
   }
 
-  // --- CALCULATION ENGINE ---
   const validTranches = tranches.filter(t => (parseFloat(t.price) || 0) > 0 && (parseFloat(t.margin) || 0) > 0)
   const activeMargin = validTranches.reduce((sum, t) => sum + parseFloat(t.margin), 0)
   const avgEntryPrice = activeMargin > 0
@@ -526,8 +518,6 @@ export default function FreeFullPositionPlanner() {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 text-slate-100 font-sans pb-20">
-      
-      {/* ================= HERO SECTION (OHNE IRGENDWELCHE BUTTONS) ================= */}
       <div className="text-center space-y-4 pt-10 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
           <Scale className="w-3.5 h-3.5" />
@@ -543,21 +533,14 @@ export default function FreeFullPositionPlanner() {
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Client-Side
-          </span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Client-Side</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Engine
-          </span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Engine</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Full Setup Export
-          </span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Full Setup Export</span>
         </div>
       </div>
 
-      {/* ================= HEADER CONTROLS ================= */}
       <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 shadow-xl">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative inline-block" ref={assetDropdownRef}>
@@ -640,9 +623,7 @@ export default function FreeFullPositionPlanner() {
 
           <div className="flex items-center gap-2.5 bg-term-bg border border-term-border px-3.5 py-2.5 rounded-xl font-mono text-xs shadow-inner">
             <span className="relative flex h-2 w-2 items-center justify-center">
-              {!isCustomAsset && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              )}
+              {!isCustomAsset && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
               <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isCustomAsset ? 'bg-slate-500' : 'bg-emerald-500'}`}></span>
             </span>
             <span className="text-slate-500 font-medium">Index:</span>
@@ -665,12 +646,8 @@ export default function FreeFullPositionPlanner() {
               className="flex items-center gap-2 bg-term-bg hover:bg-term-hover border border-term-border text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-mono transition cursor-pointer shadow-sm"
             >
               {renderExchangeIcon(selectedExchangeId)}
-              <span className="font-bold text-white">
-                {selectedExchangeId === 'custom' ? 'Custom Fees' : currentExchangeConfig.name}
-              </span>
-              <span className="text-[11px] text-slate-500 font-mono">
-                ({takerRate}%)
-              </span>
+              <span className="font-bold text-white">{selectedExchangeId === 'custom' ? 'Custom Fees' : currentExchangeConfig.name}</span>
+              <span className="text-[11px] text-slate-500 font-mono">({takerRate}%)</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
             </button>
 
@@ -749,7 +726,6 @@ export default function FreeFullPositionPlanner() {
         </div>
       </div>
 
-      {/* ================= STEP 1: ENTRY TRANCHES (DCA) ================= */}
       <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold text-slate-400">
           <div className="flex items-center gap-2">
@@ -864,7 +840,6 @@ export default function FreeFullPositionPlanner() {
         </div>
       </div>
 
-      {/* ================= STEP 2: RISK & STOP LOSS ================= */}
       <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
           <span className="w-5 h-5 rounded-full bg-[#F23645]/20 text-[#F23645] flex items-center justify-center font-mono font-bold text-[11px]">2</span>
@@ -956,7 +931,6 @@ export default function FreeFullPositionPlanner() {
         )}
       </div>
 
-      {/* ================= STEP 3: TAKE PROFIT LADDER ================= */}
       <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
@@ -1146,7 +1120,6 @@ export default function FreeFullPositionPlanner() {
         </button>
       </div>
 
-      {/* ================= STEP 4: CHART & PROGRESSION ================= */}
       <div className="bg-term-card border border-term-border rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
         <div className="flex items-center justify-between border-b border-term-border pb-3">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
@@ -1186,52 +1159,39 @@ export default function FreeFullPositionPlanner() {
         </div>
       </div>
 
-      {/* ================= TRADE EXECUTION CARD (EXPORTABLE) ================= */}
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="space-y-0.5">
             <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
               <FileImage className="w-4 h-4 text-brand" />
-              <span>Share Setup & Save Trade Card</span>
+              <span>Export Full Plan as Trade Card</span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono">
-              Directly share the rendered PNG via Web Share API or copy the permalink.
+              Includes all tranches, computed leverage, stop loss, and the TP ladder in a single image.
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={handleCopyShareLink}
-              className="min-h-[40px] px-3.5 py-2 rounded-xl bg-term-bg hover:bg-term-hover border border-term-border text-xs font-mono font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              <Copy className="w-3.5 h-3.5 text-brand" />
-              <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDownloadTradeCard}
-              disabled={isExporting || !isValidSetup}
-              className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
-                isValidSetup
-                  ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
-                  : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              <Share2 className="w-4 h-4" />
-              <span>
-                {isExporting 
-                  ? 'Generating...' 
-                  : isValidSetup 
-                    ? 'Share / Export (.PNG)' 
-                    : 'Incomplete'}
-              </span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleDownloadTradeCard}
+            disabled={isExporting || !isValidSetup}
+            className={`min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2.5 shadow-lg shrink-0 cursor-pointer ${
+              isValidSetup
+                ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
+                : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            <span>
+              {isExporting 
+                ? 'Generating Image...' 
+                : isValidSetup 
+                  ? 'Download Full Plan Card (.PNG)' 
+                  : 'Parameters Incomplete'}
+            </span>
+          </button>
         </div>
 
-        {/* IMAGE CONTAINER */}
         <div
           ref={cardRef}
           className="bg-term-card border border-brand-border/80 rounded-2xl p-4 sm:p-6 space-y-5 shadow-2xl relative overflow-hidden"
@@ -1245,7 +1205,7 @@ export default function FreeFullPositionPlanner() {
                 </span>
                 <span
                   className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-black ${
-                    isLong ? 'bg-[#089981]/20 text-[#089981] border border-[#089981]/40' : 'bg-[#F23645]/20 text-[#F23645] border border-[#F23645]/40'
+                    direction === 'LONG' ? 'bg-[#089981]/20 text-[#089981] border border-[#089981]/40' : 'bg-[#F23645]/20 text-[#F23645] border border-[#F23645]/40'
                   }`}
                 >
                   {direction} {calculatedLeverage > 0 ? `${calculatedLeverage}x` : ''}
@@ -1263,7 +1223,6 @@ export default function FreeFullPositionPlanner() {
             </div>
           </div>
 
-          {/* 4 CORE KPI CARDS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
             <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
               <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Avg. Entry Price</span>
@@ -1297,7 +1256,6 @@ export default function FreeFullPositionPlanner() {
             </div>
           </div>
 
-          {/* TWO COLUMN MATRIX: ENTRIES VS EXITS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono text-xs">
             <div className="bg-term-card border border-term-border rounded-xl p-3.5 space-y-2">
               <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block border-b border-term-border/60 pb-1.5">
@@ -1334,26 +1292,18 @@ export default function FreeFullPositionPlanner() {
             </div>
           </div>
 
-          {/* FOOTER WATERMARK */}
           <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-term-border/50">
-            <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" /> Free Calculator → <strong>riskil.app/tools</strong>
-            </span>
+            <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-400" /> Free Calculator → <strong>riskil.app/tools</strong></span>
             <span className="text-slate-500 font-semibold">riskil.app</span>
           </div>
         </div>
       </div>
 
-      {/* ================= RISKIL CLOSED BETA CTA BANNER ================= */}
       <div className="mt-8 p-5 sm:p-6 bg-gradient-to-r from-term-card via-term-bg to-brand-muted/15 border border-brand-border rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-2xl">
         <div className="space-y-1.5 max-w-xl">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-brand/20 border border-brand/40 text-brand text-[10px] font-mono font-bold uppercase">
-              Closed Beta
-            </span>
-            <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">
-              Setup Planned. Do You Stick to Your Plan Live?
-            </h4>
+            <span className="px-2 py-0.5 rounded bg-brand/20 border border-brand/40 text-brand text-[10px] font-mono font-bold uppercase">Closed Beta</span>
+            <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">Setup Planned. Do You Stick to Your Plan Live?</h4>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
             No more manual journaling: <strong>RISKIL</strong> automatically reads your trades from your exchange via a <strong>100% secure Read-Only API (zero trading rights)</strong> and detects immediately if you shifted your stop or ignored your TPs.
@@ -1371,42 +1321,30 @@ export default function FreeFullPositionPlanner() {
         </a>
       </div>
 
-      {/* ================= MOBILE IMAGE PREVIEW MODAL ================= */}
       {previewImage && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-term-border pb-3">
               <span className="text-xs font-mono font-bold text-white">Trade Card Ready</span>
-              <button
-                type="button"
-                onClick={() => setPreviewImage(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
-              >
+              <button type="button" onClick={() => setPreviewImage(null)} className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-2 text-center">
-              <p className="text-[11px] font-mono text-emerald-400">
-                Long-press the image to save it to your camera roll.
-              </p>
+              <p className="text-[11px] font-mono text-emerald-400">Long-press the image to save it to your camera roll.</p>
               <div className="rounded-xl overflow-hidden border border-term-border bg-black">
                 <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setPreviewImage(null)}
-              className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer"
-            >
+            <button type="button" onClick={() => setPreviewImage(null)} className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer">
               Done / Close
             </button>
           </div>
         </div>
       )}
 
-      {/* ================= MODAL: CUSTOM FEES POPUP ================= */}
       {isCustomFeeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative">
@@ -1415,19 +1353,13 @@ export default function FreeFullPositionPlanner() {
                 <Settings className="w-4 h-4 text-brand" />
                 <h3 className="text-sm font-bold text-white font-mono">Customize Exchange Fees</h3>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsCustomFeeModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-term-bg transition cursor-pointer"
-              >
+              <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-term-bg transition cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveCustomFees} className="space-y-4">
-              <p className="text-xs text-slate-400">
-                Enter your exchange or VIP tier maker and taker fee percentages:
-              </p>
+              <p className="text-xs text-slate-400">Enter your exchange or VIP tier maker and taker fee percentages:</p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -1464,17 +1396,10 @@ export default function FreeFullPositionPlanner() {
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCustomFeeModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer"
-                >
+                <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer"
-                >
+                <button type="submit" className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer">
                   Save & Apply
                 </button>
               </div>
@@ -1482,7 +1407,14 @@ export default function FreeFullPositionPlanner() {
           </div>
         </div>
       )}
-
     </div>
+  )
+}
+
+export default function FreeFullPositionPlanner() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0d14] flex items-center justify-center text-slate-400 font-mono text-xs">Loading position planner...</div>}>
+      <FreeFullPositionPlannerInner />
+    </Suspense>
   )
 }

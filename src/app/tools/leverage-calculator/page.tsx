@@ -1,6 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -68,7 +67,7 @@ const POPULAR_ASSETS: AssetOption[] = [
   { symbol: 'AVAXUSDT', name: 'Avalanche', iconColor: 'bg-red-500' },
 ]
 
-export default function FreeLeverageCalculator() {
+function FreeLeverageCalculatorInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -89,7 +88,6 @@ export default function FreeLeverageCalculator() {
   const [isExporting, setIsExporting] = useState<boolean>(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [copySuccess, setCopySuccess] = useState<boolean>(false)
-  const [shareSuccess, setShareSuccess] = useState<boolean>(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   const assetDropdownRef = useRef<HTMLDivElement>(null)
@@ -109,7 +107,6 @@ export default function FreeLeverageCalculator() {
   const isLong = direction === 'LONG'
   const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
 
-  // URL State nur beim initialen Laden einlesen
   useEffect(() => {
     const assetParam = searchParams.get('asset')
     if (assetParam) {
@@ -136,7 +133,6 @@ export default function FreeLeverageCalculator() {
     }
   }, [])
 
-  // Permalink in URL spiegeln (ohne Tranchen-Reset auszulösen)
   const updateShareUrl = () => {
     const params = new URLSearchParams()
     params.set('asset', selectedAsset.symbol)
@@ -356,8 +352,7 @@ export default function FreeLeverageCalculator() {
     setIsCustomFeeModalOpen(false)
   }
 
-  // Natives Web Share / Bild Export
-  const handleNativeShare = async () => {
+  const handleDownloadTradeCard = async () => {
     if (!cardRef.current) return
     setIsExporting(true)
     try {
@@ -367,28 +362,35 @@ export default function FreeLeverageCalculator() {
         backgroundColor: '#0a0d14'
       })
 
-      const blob = await (await fetch(dataUrl)).blob()
-      const file = new File([blob], `RISKIL_${selectedAsset.symbol}_${direction}.png`, { type: 'image/png' })
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `${selectedAsset.symbol} ${direction} Setup`,
-          text: `Planned via RISKIL Free Leverage Sizer (${calculatedLeverage}x)`
-        })
-      } else {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-        if (isMobile) {
-          setPreviewImage(dataUrl)
-        } else {
-          const link = document.createElement('a')
-          link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Setup.png`
-          link.href = dataUrl
-          link.click()
+      if (navigator.canShare && navigator.share) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob()
+          const file = new File([blob], `RISKIL_${selectedAsset.symbol}_${direction}.png`, { type: 'image/png' })
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `${selectedAsset.symbol} ${direction} Setup`,
+              text: `Planned via RISKIL Free Leverage Sizer (${calculatedLeverage}x)`
+            })
+            setIsExporting(false)
+            return
+          }
+        } catch (shareErr) {
+          // Fallback
         }
       }
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        setPreviewImage(dataUrl)
+      } else {
+        const link = document.createElement('a')
+        link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Setup.png`
+        link.href = dataUrl
+        link.click()
+      }
     } catch (err) {
-      console.error('Error sharing trade card:', err)
+      console.error('Error exporting trade card:', err)
     } finally {
       setIsExporting(false)
     }
@@ -840,7 +842,7 @@ export default function FreeLeverageCalculator() {
         {/* ================= TRADE PLAN CARD (EXPORTABLE) ================= */}
         <div className="space-y-4 pt-2">
           
-          {/* ACTION BAR: SHARE & DOWNLOAD BUTTONS (DIREKT BEI DEN ERGEBNISSEN) */}
+          {/* ACTION BAR: SHARE & DOWNLOAD BUTTONS */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
             <div className="space-y-0.5">
               <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
@@ -864,7 +866,7 @@ export default function FreeLeverageCalculator() {
 
               <button
                 type="button"
-                onClick={handleNativeShare}
+                onClick={handleDownloadTradeCard}
                 disabled={isExporting || !isValidSetup}
                 className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
                   isValidSetup
@@ -1154,5 +1156,13 @@ export default function FreeLeverageCalculator() {
       )}
 
     </div>
+  )
+}
+
+export default function FreeLeverageCalculator() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0d14] flex items-center justify-center text-slate-400 font-mono text-xs">Loading calculator...</div>}>
+      <FreeLeverageCalculatorInner />
+    </Suspense>
   )
 }
