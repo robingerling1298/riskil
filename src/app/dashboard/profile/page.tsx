@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { useGlobalTags } from '@/context/CustomTagsContext'
+import TagManagerModal from '@/components/TagManagerModal'
 import { 
   User, 
   Mail, 
@@ -21,11 +23,16 @@ import {
   Send,
   CreditCard,
   RefreshCw,
-  Unlink
+  Unlink,
+  Tag,
+  Plus,
+  RotateCcw,
+  Flame
 } from 'lucide-react'
 
-const AVATARS = [
-  'https://api.dicebear.com/7.x/bottts/svg?seed=DegenTrader',
+// Legendäre, direkt generierte Pixel- & Degen-Avatare im einheitlichen Stil
+const LEGENDARY_AVATARS = [
+  'https://api.dicebear.com/7.x/bottts/svg?seed=DegenBot1',
   'https://api.dicebear.com/7.x/bottts/svg?seed=LiquidationKing',
   'https://api.dicebear.com/7.x/bottts/svg?seed=GoblinMode',
   'https://api.dicebear.com/7.x/bottts/svg?seed=FomoDemon',
@@ -34,7 +41,7 @@ const AVATARS = [
   'https://api.dicebear.com/7.x/bottts/svg?seed=MoonBoi',
   'https://api.dicebear.com/7.x/bottts/svg?seed=PaperHands',
   'https://api.dicebear.com/7.x/bottts/svg?seed=DiamondChad',
-  'https://api.dicebear.com/7.x/bottts/svg?seed=BearMarketDepression',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=BearMarket',
   'https://api.dicebear.com/7.x/bottts/svg?seed=Leverage100x',
   'https://api.dicebear.com/7.x/bottts/svg?seed=WhaleWatcher'
 ]
@@ -61,15 +68,7 @@ const EXCHANGES = [
       <svg className="w-10 h-4 fill-current" viewBox="0 0 157.4 44.2">
         <g transform="translate(-62.058587,-90.445746)">
           <g transform="matrix(0.39972707,0,0,0.34817986,61.931647,90.445746)">
-            <path d="M 115.822,0 H 2.94268 C 2.24645,0 1.57875,0.297103 1.08644,0.825953 0.594137,1.3548 0.317566,2.07208 0.317566,2.81999 V 124.079 c 0,0.748 0.276571,1.466 0.768874,1.995 0.49231,0.528 1.16001,0.825 1.85624,0.825 H 115.822 c 0.697,0 1.364,-0.297 1.857,-0.825 0.492,-0.529 0.769,-1.247 0.769,-1.995 V 2.81999 c 0,-0.74791 -0.277,-1.46519 -0.769,-1.994037 C 117.186,0.297103 116.519,0 115.822,0 Z M 79.0709,81.7797 c 0,0.7479 -0.2766,1.4651 -0.7689,1.994 -0.4923,0.5288 -1.16,0.8259 -1.8562,0.8259 H 42.3193 c -0.6962,0 -1.3639,-0.2971 -1.8562,-0.8259 -0.4923,-0.5289 -0.7689,-1.2461 -0.7689,-1.994 V 45.1198 c 0,-0.7479 0.2766,-1.4652 0.7689,-1.994 0.4923,-0.5289 1.16,-0.826 1.8562,-0.826 h 34.1265 c 0.6962,0 1.3639,0.2971 1.8562,0.826 0.4923,0.5288 0.7689,1.2461 0.7689,1.994 z" />
-            <path d="m 352.131,42.305 h -34.127 c -1.449,0 -2.625,1.2625 -2.625,2.82 v 36.6598 c 0,1.5574 1.176,2.82 2.625,2.82 h 34.127 c 1.45,0 2.625,-1.2626 2.625,-2.82 V 45.125 c 0,-1.5575 -1.175,-2.82 -2.625,-2.82 z" />
-            <path d="m 312.763,0.00204468 h -34.126 c -1.45,0 -2.625,1.26255532 -2.625,2.81998532 V 39.4819 c 0,1.5574 1.175,2.82 2.625,2.82 h 34.126 c 1.45,0 2.626,-1.2626 2.626,-2.82 V 2.82203 c 0,-1.55743 -1.176,-2.81998532 -2.626,-2.81998532 z" />
-            <path d="m 391.529,0.00204468 h -34.127 c -1.449,0 -2.625,1.26255532 -2.625,2.81998532 V 39.4819 c 0,1.5574 1.176,2.82 2.625,2.82 h 34.127 c 1.45,0 2.625,-1.2626 2.625,-2.82 V 2.82203 c 0,-1.55743 -1.175,-2.81998532 -2.625,-2.81998532 z" />
-            <path d="m 312.763,84.6038 h -34.126 c -1.45,0 -2.625,1.2625 -2.625,2.8199 v 36.6603 c 0,1.557 1.175,2.82 2.625,2.82 h 34.126 c 1.45,0 2.626,-1.263 2.626,-2.82 V 87.4237 c 0,-1.5574 -1.176,-2.8199 -2.626,-2.8199 z" />
-            <path d="m 391.529,84.6038 h -34.127 c -1.449,0 -2.625,1.2625 -2.625,2.8199 v 36.6603 c 0,1.557 1.176,2.82 2.625,2.82 h 34.127 c 1.45,0 2.625,-1.263 2.625,-2.82 V 87.4237 c 0,-1.5574 -1.175,-2.8199 -2.625,-2.8199 z" />
-            <path d="m 253.651,0.00204468 h -34.126 c -1.45,0 -2.626,1.26255532 -2.626,2.81998532 V 39.4819 c 0,1.5574 1.176,2.82 2.626,2.82 h 34.126 c 1.45,0 2.625,-1.2626 2.625,-2.82 V 2.82203 c 0,-1.55743 -1.175,-2.81998532 -2.625,-2.81998532 z" />
-            <path d="m 253.651,84.6038 h -34.126 c -1.45,0 -2.626,1.2625 -2.626,2.8199 v 36.6603 c 0,1.557 1.176,2.82 2.626,2.82 h 34.126 c 1.45,0 2.625,-1.263 2.625,-2.82 V 87.4237 c 0,-1.5574 -1.175,-2.8199 -2.625,-2.8199 z" />
-            <path d="m 216.888,45.0881 c 0,-0.7479 -0.277,-1.4652 -0.769,-1.994 -0.492,-0.5289 -1.16,-0.826 -1.856,-0.826 H 177.511 V 2.81999 c 0,-0.74791 -0.277,-1.46519 -0.769,-1.994037 C 176.25,0.297103 175.582,0 174.886,0 H 140.76 c -0.697,0 -1.364,0.297103 -1.857,0.825953 -0.492,0.528847 -0.769,1.246127 -0.769,1.994037 V 124.016 c 0,0.748 0.277,1.465 0.769,1.994 0.493,0.529 1.16,0.826 1.857,0.826 h 34.126 c 0.696,0 1.364,-0.297 1.856,-0.826 0.492,-0.529 0.769,-1.246 0.769,-1.994 V 84.5679 h 36.752 c 0.696,0 1.364,-0.2971 1.856,-0.8259 0.492,-0.5289 0.769,-1.2462 0.769,-1.9941 z" />
+            <path d="M 115.822,0 H 2.94268 C 2.24645,0 1.57875,0.297103 1.08644,0.825953 0.594137,1.3548 0.317566,2.07208 0.317566,2.81999 V 124.079 c 0,0.748 0.276571,1.466 0.768874,1.995 0.49231,0.528 1.16001,0.825 1.85624,0.825 H 115.822 c 0.697,0 1.364,-0.297 1.857,-0.825 0.492,-0.529 0.769,-1.247 0.769,-1.995 V 2.81999 c 0,-0.74791 -0.277,-1.46519 -0.769,-1.994037 C 117.186,0.297103 116.519,0 115.822,0 Z" />
           </g>
         </g>
       </svg>
@@ -83,10 +82,6 @@ const EXCHANGES = [
     logo: (
       <svg className="w-10 h-4" viewBox="0 0 87 34" fill="none">
         <path d="M62.0083 25.3572V3H66.5022V25.3572H62.0083Z" fill="#F7A600"/>
-        <path d="M9.63407 31.9983H0V9.64111H9.24666C13.7406 9.64111 16.3591 12.0903 16.3591 15.9214C16.3591 18.4013 14.6774 20.0039 13.5134 20.5375C14.9028 21.1652 16.6813 22.5779 16.6813 25.5624C16.6813 29.7373 13.7406 31.9983 9.63407 31.9983ZM8.89096 13.5355H4.4939V18.6852H8.89096C10.7981 18.6852 11.8652 17.6488 11.8652 16.1095C11.8652 14.5719 10.7981 13.5355 8.89096 13.5355ZM9.18151 22.6104H4.4939V28.1056H9.18151C11.2189 28.1056 12.1874 26.8503 12.1874 25.3418C12.1874 23.835 11.2171 22.6104 9.18151 22.6104Z" fill="currentColor"/>
-        <path d="M30.3882 22.8293V31.9983H25.926V22.8293L19.0073 9.64111H23.8886L28.1888 18.6527L32.4239 9.64111H37.3052L30.3882 22.8293Z" fill="currentColor"/>
-        <path d="M50.0457 31.9983H40.4116V9.64111H49.6583C54.1522 9.64111 56.7707 12.0903 56.7707 15.9214C56.7707 18.4013 55.089 20.0039 53.925 20.5375C55.3144 21.1652 57.093 22.5779 57.093 25.5624C57.093 29.7373 54.1522 31.9983 50.0457 31.9983ZM49.3026 13.5355H44.9055V18.6852H49.3026C51.2097 18.6852 52.2768 17.6488 52.2768 16.1095C52.2768 14.5719 51.2097 13.5355 49.3026 13.5355ZM49.5931 22.6104H44.9055V28.1056H49.5931C51.6305 28.1056 52.599 26.8503 52.599 25.3418C52.599 23.835 51.6305 22.6104 49.5931 22.6104Z" fill="currentColor"/>
-        <path d="M80.986 13.5355V32H76.4921V13.5355H70.4785V9.64111H86.9996V13.5355H80.986Z" fill="currentColor"/>
       </svg>
     ) 
   },
@@ -97,19 +92,29 @@ const EXCHANGES = [
     bg: 'rgba(240, 185, 11, 0.08)',
     logo: (
       <svg className="w-5 h-5 fill-current" viewBox="0 0 50 50">
-        <path d="M11.3,25l-5.6,5.6L0,25l5.7-5.7L11.3,25z M25,11.3l9.7,9.7l5.7-5.7L25,0L9.7,15.3l5.7,5.7L25,11.3z M44.3,19.3L38.7,25l5.7,5.7L50,25L44.3,19.3z M25,38.7L15.3,29l-5.7,5.7L25,50l15.3-15.3L34.7,29L25,38.7z M25,30.6l5.7-5.7L25,19.3L19.3,25L25,30.6L25,30.6z"/>
+        <path d="M11.3,25l-5.6,5.6L0,25l5.7-5.7L11.3,25z"/>
       </svg>
     ) 
   }
 ]
 
 export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'exchanges' | 'security'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'exchanges' | 'security' | 'tags'>('profile')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   
+  // Global Tags Context
+  const { customTags, updateTags, resetToDefaults } = useGlobalTags()
+  const [tagCategoryTab, setTagCategoryTab] = useState<'confluences' | 'setup_classes' | 'mental_states' | 'error_tags'>('confluences')
+  const [newTagInput, setNewTagInput] = useState('')
+  const [localTagsState, setLocalTagsState] = useState(customTags)
+
+  useEffect(() => {
+    setLocalTagsState(customTags)
+  }, [customTags])
+
   // Modals & States
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -161,8 +166,7 @@ export default function ProfilePage() {
           if (savedAvatar) {
             setAvatarUrl(savedAvatar)
           } else {
-            const charCodeSum = user.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-            setAvatarUrl(AVATARS[charCodeSum % AVATARS.length])
+            setAvatarUrl(LEGENDARY_AVATARS[0])
           }
 
           const { data: settings } = await supabase
@@ -228,7 +232,6 @@ export default function ProfilePage() {
     }
   }
 
-  // 💥 BÖRSE TRENNEN (DISCONNECT)
   const handleDisconnect = async () => {
     if (!confirm(`Möchtest du die Verbindung zu ${selectedExchange.toUpperCase()} wirklich trennen? Dein Journal bleibt vollständig erhalten.`)) {
       return
@@ -259,7 +262,6 @@ export default function ProfilePage() {
     }
   }
 
-  // Save Settings
   const handleSaveAll = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     setSaving(true)
@@ -462,6 +464,17 @@ export default function ProfilePage() {
           >
             <Key size={15} /> Börsen & APIs
             {isConnected && <span className="w-2 h-2 rounded-full bg-[#00E676]" />}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tags')}
+            className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'tags'
+                ? 'border-[#00E676] text-[#00E676] bg-[#00E676]/5'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+          >
+            <Tag size={15} /> Trading Tags & Setups
           </button>
 
           <button
@@ -689,7 +702,6 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                  {/* 💥 BÖRSE TRENNEN BUTTON */}
                   {Boolean(apiKey || apiStatus?.connected) && (
                     <button
                       type="button"
@@ -719,6 +731,150 @@ export default function ProfilePage() {
                 <span>
                   <strong>Sicherheits-Hinweis:</strong> Erstelle Key mit <strong>Futures Read & Trade</strong> Rechten. Aktiviere <strong>niemals Auszahlungen (Withdrawals)</strong>!
                 </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: TAGS & SETUPS MANAGEMENT */}
+        {activeTab === 'tags' && (
+          <div className="space-y-6">
+            <div className="bg-[#0D111A] border border-[#1A202C] rounded-2xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1A202C]">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Tag size={16} className="text-[#00E676]" /> Globale Trading Tags & Setups
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Verwalte hier zentral deine Setup-Klassen, Mindsets, Konfluenz-Faktoren und Fehlertags für die gesamte App.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (confirm('Möchtest du wirklich alle Tags auf die Werkseinstellungen zurücksetzen?')) {
+                      await resetToDefaults()
+                      setSuccessMsg('Tags erfolgreich auf Standard zurückgesetzt.')
+                      setTimeout(() => setSuccessMsg(null), 3000)
+                    }
+                  }}
+                  className="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <RotateCcw size={14} />
+                  <span>Standard wiederherstellen</span>
+                </button>
+              </div>
+
+              {/* KATEGORIE-SUB-TABS */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-[#07090E] border border-[#1A202C] rounded-xl text-xs font-mono">
+                {[
+                  { key: 'confluences', label: 'Konfluenzen' },
+                  { key: 'setup_classes', label: 'Setups' },
+                  { key: 'mental_states', label: 'Mindset' },
+                  { key: 'error_tags', label: 'Fehler' }
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setTagCategoryTab(tab.key as any)}
+                    className={`py-2 px-3 rounded-lg font-bold transition cursor-pointer text-center truncate ${
+                      tagCategoryTab === tab.key
+                        ? 'bg-[#1A202C] text-[#00E676] shadow-md border border-slate-700'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* NEUEN TAG HINZUFÜGEN */}
+              <div className="flex items-center gap-2 pt-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={`Neuen Tag zu ${tagCategoryTab} hinzufügen...`}
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const trimmed = newTagInput.trim().replace(/^#/, '')
+                        if (!trimmed) return
+                        const currentList = localTagsState[tagCategoryTab] || []
+                        if (currentList.includes(trimmed)) {
+                          setNewTagInput('')
+                          return
+                        }
+                        const updated = {
+                          ...localTagsState,
+                          [tagCategoryTab]: [...currentList, trimmed]
+                        }
+                        setLocalTagsState(updated)
+                        updateTags(updated)
+                        setNewTagInput('')
+                      }
+                    }}
+                    className="w-full bg-[#07090E] border border-[#1A202C] focus:border-[#00E676] rounded-xl py-2.5 px-3.5 text-xs text-white placeholder-slate-600 outline-none font-mono transition"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = newTagInput.trim().replace(/^#/, '')
+                    if (!trimmed) return
+                    const currentList = localTagsState[tagCategoryTab] || []
+                    if (currentList.includes(trimmed)) {
+                      setNewTagInput('')
+                      return
+                    }
+                    const updated = {
+                      ...localTagsState,
+                      [tagCategoryTab]: [...currentList, trimmed]
+                    }
+                    setLocalTagsState(updated)
+                    updateTags(updated)
+                    setNewTagInput('')
+                  }}
+                  className="px-4 py-2.5 bg-[#00E676] hover:bg-[#00C853] text-black font-bold text-xs rounded-xl transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-md"
+                >
+                  <Plus size={14} />
+                  <span>Hinzufügen</span>
+                </button>
+              </div>
+
+              {/* LISTE DER TAGS */}
+              <div className="space-y-2 pt-2">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block font-bold">
+                  Aktive Tags in dieser Kategorie ({localTagsState[tagCategoryTab]?.length || 0})
+                </span>
+                <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto pr-1">
+                  {(localTagsState[tagCategoryTab] || []).map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1.5 bg-[#07090E] border border-[#1A202C] rounded-xl text-xs font-mono text-slate-200 flex items-center gap-2 group hover:border-slate-700"
+                    >
+                      <span>#{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedList = localTagsState[tagCategoryTab].filter((t: string) => t !== tag)
+                          const updated = {
+                            ...localTagsState,
+                            [tagCategoryTab]: updatedList
+                          }
+                          setLocalTagsState(updated)
+                          updateTags(updated)
+                        }}
+                        className="text-slate-500 hover:text-[#F23645] transition cursor-pointer"
+                        title="Tag entfernen"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -843,22 +999,24 @@ export default function ProfilePage() {
 
       </div>
 
-      {/* AVATAR PICKER MODAL */}
+      {/* AVATAR PICKER MODAL (IM GLEICHEN STIL WIE DIE ROBOTER, ABER ALS DEGEN PIXEL-ART) */}
       {isAvatarModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#0D111A] border border-[#1A202C] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-[#1A202C] pb-3">
-              <h3 className="text-sm font-bold text-white">Wähle deinen Avatar</h3>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Flame size={16} className="text-amber-400" /> Wähle deinen Degen Avatar
+              </h3>
               <button 
                 onClick={() => setIsAvatarModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg bg-[#07090E] border border-[#1A202C]"
+                className="text-slate-400 hover:text-white p-1 rounded-lg bg-[#07090E] border border-[#1A202C] cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-80 overflow-y-auto p-1">
-              {AVATARS.map((url, idx) => (
+              {LEGENDARY_AVATARS.map((url, idx) => (
                 <button
                   key={idx}
                   type="button"
@@ -867,13 +1025,13 @@ export default function ProfilePage() {
                     setIsAvatarModalOpen(false)
                     markDirty()
                   }}
-                  className={`p-1.5 rounded-xl bg-[#07090E] border-2 transition-all cursor-pointer hover:scale-105 ${
+                  className={`p-1.5 rounded-xl bg-[#07090E] border-2 transition-all cursor-pointer hover:scale-105 aspect-square ${
                     avatarUrl === url 
                       ? 'border-[#00E676] bg-[#00E676]/10 shadow-lg shadow-[#00E676]/20' 
                       : 'border-[#1A202C] opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={url} alt={`Avatar ${idx}`} className="w-full h-full rounded-lg" />
+                  <img src={url} alt={`Avatar ${idx}`} className="w-full h-full rounded-lg bg-[#141824]" />
                 </button>
               ))}
             </div>
@@ -891,7 +1049,7 @@ export default function ProfilePage() {
               </h3>
               <button 
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg bg-[#07090E] border border-[#1A202C]"
+                className="text-slate-400 grid place-items-center hover:text-white p-1 rounded-lg bg-[#07090E] border border-[#1A202C]"
               >
                 <X size={16} />
               </button>
@@ -922,6 +1080,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 disabled={deleteConfirmation !== 'LÖSCHEN' || deletingAccount}
+                key="delete-account-btn"
                 onClick={handleDeleteAccount}
                 className="px-4 py-2 bg-[#F23645] hover:bg-[#d92231] text-white font-bold rounded-xl text-xs transition disabled:opacity-40 cursor-pointer flex items-center gap-2"
               >

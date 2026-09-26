@@ -1,614 +1,1544 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { 
-  ShieldAlert, 
-  Target, 
-  Percent, 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
-  Zap, 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  AlertTriangle,
-  Scale
+import React, { useState, useEffect, useRef, Suspense, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { toPng } from 'html-to-image'
+import {
+  Plus,
+  Trash2,
+  ArrowUpRight,
+  ArrowDownRight,
+  ShieldAlert,
+  ChevronDown,
+  Search,
+  Check,
+  Calculator,
+  Settings,
+  ArrowRight,
+  Sliders,
+  X,
+  ShieldCheck,
+  FileImage,
+  TrendingUp,
+  Scale,
+  Share2,
+  Copy,
+  BookmarkCheck,
+  Tag
 } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts'
+import { useJournalStore } from '@/lib/supabase/useJournalStore'
+import { createPlannedSetup } from '@/lib/supabase/plannedSetups'
 
-// Types
-export interface TakeProfitTarget {
+interface EntryTranche {
   id: string
-  price: number
-  percentage: number // Portion of position size to exit (e.g. 50%)
+  price: string
+  margin: string
+  orderType: 'LIMIT' | 'MARKET'
 }
 
-export interface FullTradeSetup {
-  pair: string
-  direction: 'LONG' | 'SHORT'
-  accountBalance: number
-  riskPercentage: number
-  riskAmount: number
-  entryPrice: number
-  stopLoss: number
-  leverage: number
-  marginType: 'ISOLATED' | 'CROSS'
-  makerFeeRate: number
-  takerFeeRate: number
-  
-  // Calculated Output Properties
-  positionSizeCoins: number
-  positionSizeUSD: number
-  requiredMargin: number
-  liquidationPrice: number
-  distToLiqPct: number
-  isStopLossUnsafe: boolean
-  
-  priceDistanceSLPct: number
-  riskRewardRatio: number
-  breakEvenPrice: number
-  totalGrossProfitUSD: number
-  totalNetProfitUSD: number
-  totalFeesUSD: number
-  takeProfits: TakeProfitTarget[]
+interface TpStage {
+  id: string
+  mode: 'ROE' | 'PRICE'
+  roePercent: string
+  targetPrice: string
+  closePercent: string
 }
 
-interface FullPositionCalculatorProps {
-  onLogTrade?: (setup: any) => void
+interface AssetOption {
+  symbol: string
+  name: string
+  iconColor: string
 }
 
-export default function FullPositionCalculator({ onLogTrade }: FullPositionCalculatorProps) {
-  // --- Basic Inputs ---
-  const [pair, setPair] = useState('BTC/USDT')
+interface ExchangePreset {
+  id: string
+  name: string
+  makerFee: number
+  takerFee: number
+}
+
+const EXCHANGES: ExchangePreset[] = [
+  { id: 'hyperliquid', name: 'Hyperliquid (VIP0)', makerFee: 0.01, takerFee: 0.035 },
+  { id: 'bitget', name: 'Bitget (VIP0)', makerFee: 0.02, takerFee: 0.06 },
+  { id: 'bybit', name: 'Bybit (VIP0)', makerFee: 0.02, takerFee: 0.055 },
+  { id: 'binance', name: 'Binance (VIP0)', makerFee: 0.02, takerFee: 0.05 },
+  { id: 'okx', name: 'OKX (VIP0)', makerFee: 0.02, takerFee: 0.05 },
+  { id: 'custom', name: 'Custom Fees', makerFee: 0.02, takerFee: 0.06 }
+]
+
+const POPULAR_ASSETS: AssetOption[] = [
+  { symbol: 'BTCUSDT', name: 'Bitcoin', iconColor: 'bg-amber-500' },
+  { symbol: 'ETHUSDT', name: 'Ethereum', iconColor: 'bg-indigo-500' },
+  { symbol: 'SOLUSDT', name: 'Solana', iconColor: 'bg-purple-500' },
+  { symbol: 'HYPEUSDT', name: 'Hyperliquid', iconColor: 'bg-emerald-400' },
+  { symbol: 'XRPUSDT', name: 'Ripple', iconColor: 'bg-blue-400' },
+  { symbol: 'BNBUSDT', name: 'Binance Coin', iconColor: 'bg-yellow-500' },
+  { symbol: 'DOGEUSDT', name: 'Dogecoin', iconColor: 'bg-yellow-600' },
+  { symbol: 'AVAXUSDT', name: 'Avalanche', iconColor: 'bg-red-500' },
+]
+
+function FreeFullPositionPlannerInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const addPlannedSetup = useJournalStore((state) => state.addPlannedSetup)
+
+  const isInitializedRef = useRef<boolean>(false)
+
+  const [setupName, setSetupName] = useState<string>('')
+  const [selectedExchangeId, setSelectedExchangeId] = useState<string>('hyperliquid')
+  const [customFees, setCustomFees] = useState<{ maker: number; taker: number }>({ maker: 0.02, taker: 0.06 })
+  const [isCustomFeeModalOpen, setIsCustomFeeModalOpen] = useState<boolean>(false)
+  const [tempMakerFee, setTempMakerFee] = useState<string>('0.02')
+  const [tempTakerFee, setTempTakerFee] = useState<string>('0.06')
+
+  const [selectedAsset, setSelectedAsset] = useState<AssetOption>(POPULAR_ASSETS[0])
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null)
+  const [priceChange24h, setPriceChange24h] = useState<number | null>(null)
+
+  const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState<boolean>(false)
+  const [isExchangeDropdownOpen, setIsExchangeDropdownOpen] = useState<boolean>(false)
+  const [searchQuery, setSearchQuery] = useState<string>('')
+
+  const [isExporting, setIsExporting] = useState<boolean>(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [copySuccess, setCopySuccess] = useState<boolean>(false)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null)
+
+  const cardRef = useRef<HTMLDivElement>(null)
+  const assetDropdownRef = useRef<HTMLDivElement>(null)
+  const exchangeDropdownRef = useRef<HTMLDivElement>(null)
+
   const [direction, setDirection] = useState<'LONG' | 'SHORT'>('LONG')
-  const [accountBalance, setAccountBalance] = useState<number>(10000)
-  const [riskPercentage, setRiskPercentage] = useState<number>(1)
-  const [entryPrice, setEntryPrice] = useState<number>(65000)
-  const [stopLoss, setStopLoss] = useState<number>(63500)
-  const [leverage, setLeverage] = useState<number>(10)
-  const [marginType, setMarginType] = useState<'ISOLATED' | 'CROSS'>('ISOLATED')
 
-  // --- Fees Settings ---
-  const [makerFee, setMakerFee] = useState<number>(0.02) // 0.02%
-  const [takerFee, setTakerFee] = useState<number>(0.05) // 0.05%
-
-  // --- Multi-TP Targets ---
-  const [takeProfits, setTakeProfits] = useState<TakeProfitTarget[]>([
-    { id: '1', price: 68000, percentage: 50 },
-    { id: '2', price: 71000, percentage: 50 },
+  const [tranches, setTranches] = useState<EntryTranche[]>([
+    { id: '1', price: '', margin: '', orderType: 'LIMIT' },
   ])
 
-  // --- Quick Presets ---
-  const handleApplyPreset = (type: 'CONSERVATIVE' | 'RUNNER' | 'SCALED') => {
-    if (!entryPrice || entryPrice <= 0) return
-    const isLong = direction === 'LONG'
-    const delta = isLong ? entryPrice * 0.03 : -entryPrice * 0.03
+  const [stopLoss, setStopLoss] = useState<string>('')
+  const [riskMode, setRiskMode] = useState<'PERCENT' | 'USD'>('PERCENT')
+  const [allowedMarginLossPercent, setAllowedMarginLossPercent] = useState<string>('')
+  const [allowedMarginLossUsd, setAllowedMarginLossUsd] = useState<string>('')
 
-    if (type === 'CONSERVATIVE') {
-      setTakeProfits([
-        { id: '1', price: Math.round(entryPrice + delta * 1), percentage: 60 },
-        { id: '2', price: Math.round(entryPrice + delta * 2), percentage: 40 },
-      ])
-    } else if (type === 'RUNNER') {
-      setTakeProfits([
-        { id: '1', price: Math.round(entryPrice + delta * 1), percentage: 40 },
-        { id: '2', price: Math.round(entryPrice + delta * 2), percentage: 30 },
-        { id: '3', price: Math.round(entryPrice + delta * 3.5), percentage: 30 },
-      ])
-    } else if (type === 'SCALED') {
-      setTakeProfits([
-        { id: '1', price: Math.round(entryPrice + delta * 0.8), percentage: 25 },
-        { id: '2', price: Math.round(entryPrice + delta * 1.5), percentage: 25 },
-        { id: '3', price: Math.round(entryPrice + delta * 2.5), percentage: 25 },
-        { id: '4', price: Math.round(entryPrice + delta * 3.8), percentage: 25 },
-      ])
+  const [tpStages, setTpStages] = useState<TpStage[]>([
+    { id: '1', mode: 'ROE', roePercent: '', targetPrice: '', closePercent: '' },
+  ])
+
+  const isLong = direction === 'LONG'
+  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
+
+  useEffect(() => {
+    if (isInitializedRef.current) return
+
+    const nameParam = searchParams.get('name')
+    if (nameParam) setSetupName(nameParam)
+
+    const assetParam = searchParams.get('asset')
+    if (assetParam) {
+      const found = POPULAR_ASSETS.find(a => a.symbol === assetParam)
+      if (found) setSelectedAsset(found)
+    }
+    const dirParam = searchParams.get('dir')
+    if (dirParam === 'LONG' || dirParam === 'SHORT') setDirection(dirParam)
+
+    const slParam = searchParams.get('sl')
+    if (slParam) setStopLoss(slParam)
+
+    const riskParam = searchParams.get('risk')
+    if (riskParam) setAllowedMarginLossPercent(riskParam)
+
+    const p1 = searchParams.get('p1')
+    const m1 = searchParams.get('m1')
+    if (p1 || m1) {
+      setTranches(prev => prev.map((t, idx) => idx === 0 ? {
+        ...t,
+        price: p1 || t.price,
+        margin: m1 || t.margin
+      } : t))
+    }
+
+    const tp1Roe = searchParams.get('tp1_roe')
+    const tp1Close = searchParams.get('tp1_close')
+    if (tp1Roe || tp1Close) {
+      setTpStages([{
+        id: '1',
+        mode: 'ROE',
+        roePercent: tp1Roe || '',
+        targetPrice: '',
+        closePercent: tp1Close || ''
+      }])
+    }
+
+    isInitializedRef.current = true
+  }, [])
+
+  useEffect(() => {
+    if (!isInitializedRef.current) return
+
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams()
+      if (setupName) params.set('name', setupName)
+      params.set('asset', selectedAsset.symbol)
+      params.set('dir', direction)
+      if (stopLoss) params.set('sl', stopLoss)
+      if (allowedMarginLossPercent) params.set('risk', allowedMarginLossPercent)
+      if (tranches[0]?.price) params.set('p1', tranches[0].price)
+      if (tranches[0]?.margin) params.set('m1', tranches[0].margin)
+      if (tpStages[0]?.roePercent) params.set('tp1_roe', tpStages[0].roePercent)
+      if (tpStages[0]?.closePercent) params.set('tp1_close', tpStages[0].closePercent)
+
+      const query = params.toString()
+      const newUrl = query ? `?${query}` : window.location.pathname
+      window.history.replaceState(null, '', newUrl)
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [setupName, selectedAsset, direction, stopLoss, allowedMarginLossPercent, tranches, tpStages])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assetDropdownRef.current && !assetDropdownRef.current.contains(event.target as Node)) {
+        setIsAssetDropdownOpen(false)
+      }
+      if (exchangeDropdownRef.current && !exchangeDropdownRef.current.contains(event.target as Node)) {
+        setIsExchangeDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const fetchLivePrice = async (symbol: string) => {
+    if (symbol === 'CUSTOM / MANUAL') {
+      setCurrentPrice(null)
+      setPriceChange24h(null)
+      return
+    }
+
+    try {
+      const res = await fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`)
+      const data = await res.json()
+      if (data.result?.list?.[0]) {
+        const item = data.result.list[0]
+        setCurrentPrice(parseFloat(item.lastPrice))
+        if (item.price24hPcnt) {
+          setPriceChange24h(parseFloat(item.price24hPcnt) * 100)
+        }
+      }
+    } catch {
+      // Fallback
     }
   }
 
-  // --- Calculations Engine ---
-  const calculations = useMemo(() => {
-    const riskUSD = (accountBalance * riskPercentage) / 100
-    const isLong = direction === 'LONG'
+  useEffect(() => {
+    fetchLivePrice(selectedAsset.symbol)
+    if (selectedAsset.symbol === 'CUSTOM / MANUAL') return
+    const interval = setInterval(() => {
+      fetchLivePrice(selectedAsset.symbol)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [selectedAsset.symbol])
 
-    // Distance to Stop Loss
-    const priceDiffSL = Math.abs(entryPrice - stopLoss)
-    const priceDiffSLPct = entryPrice > 0 ? (priceDiffSL / entryPrice) * 100 : 0
+  const handleAddTranche = () => {
+    setTranches(prev => [...prev, { id: Date.now().toString(), price: '', margin: '', orderType: 'LIMIT' }])
+  }
 
-    // Position Sizing
-    let positionSizeCoins = 0
-    let positionSizeUSD = 0
-    if (priceDiffSLPct > 0) {
-      positionSizeUSD = riskUSD / (priceDiffSLPct / 100)
-      positionSizeCoins = positionSizeUSD / entryPrice
+  const handleRemoveTranche = (id: string) => {
+    if (tranches.length <= 1) return
+    setTranches(prev => prev.filter(t => t.id !== id))
+  }
+
+  const handleTrancheChange = (id: string, field: keyof EntryTranche, value: string) => {
+    setTranches(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t))
+  }
+
+  const handleUseCurrentPrice = () => {
+    if (currentPrice) {
+      setTranches(prev => prev.map((t, idx) => idx === 0 ? { ...t, price: currentPrice.toString() } : t))
     }
+  }
 
-    const requiredMargin = leverage > 0 ? positionSizeUSD / leverage : 0
+  const handleAddTpStage = () => {
+    setTpStages(prev => [...prev, { id: Date.now().toString(), mode: 'ROE', roePercent: '', targetPrice: '', closePercent: '' }])
+  }
 
-    // Estimated Liquidation Price (Approx. accounting for MMR ~0.5%)
-    const mmr = 0.005
-    let liqPrice = 0
-    if (isLong) {
-      liqPrice = entryPrice * (1 - 1 / leverage + mmr)
-    } else {
-      liqPrice = entryPrice * (1 + 1 / leverage - mmr)
-    }
-    if (liqPrice < 0) liqPrice = 0
+  const handleRemoveTpStage = (id: string) => {
+    if (tpStages.length <= 1) return
+    setTpStages(prev => prev.filter(s => s.id !== id))
+  }
 
-    const distToLiqPct = entryPrice > 0 ? (Math.abs(entryPrice - liqPrice) / entryPrice) * 100 : 0
+  const handleTpStageChange = (id: string, field: keyof TpStage, value: string) => {
+    setTpStages(prev => prev.map(s => s.id === id ? (field === 'mode' ? { ...s, mode: value as 'ROE' | 'PRICE' } : { ...s, [field]: value }) : s))
+  }
 
-    // Check if Stop Loss is hit AFTER Liquidation (Danger!)
-    const isStopLossUnsafe = isLong ? stopLoss <= liqPrice : stopLoss >= liqPrice
+  const handleRoeSliderChange = (id: string, value: string) => {
+    setTpStages(prev => prev.map(s => s.id === id ? { ...s, mode: 'ROE', roePercent: value } : s))
+  }
 
-    // Fees Calculation
-    const entryFeeUSD = positionSizeUSD * (takerFee / 100)
+  const validTranches = tranches.filter(t => (parseFloat(t.price) || 0) > 0 && (parseFloat(t.margin) || 0) > 0)
+  const activeMargin = validTranches.reduce((sum, t) => sum + parseFloat(t.margin), 0)
+  const avgEntryPrice = activeMargin > 0
+    ? validTranches.reduce((sum, t) => sum + (parseFloat(t.price) * parseFloat(t.margin)), 0) / activeMargin
+    : 0
 
-    // Multi-TP Calculations
-    let totalGrossProfitUSD = 0
-    let exitFeesUSD = 0
-    let totalExitWeightPct = 0
+  const totalMargin = tranches.reduce((sum, t) => sum + (parseFloat(t.margin) || 0), 0)
 
-    const tpResults = takeProfits.map((tp) => {
-      const exitSizeUSD = positionSizeUSD * (tp.percentage / 100)
-      const exitSizeCoins = positionSizeCoins * (tp.percentage / 100)
-      const priceChangePct = isLong
-        ? (tp.price - entryPrice) / entryPrice
-        : (entryPrice - tp.price) / entryPrice
+  const currentExchangeConfig = EXCHANGES.find(e => e.id === selectedExchangeId) || EXCHANGES[0]
+  const makerRate = selectedExchangeId === 'custom' ? customFees.maker : currentExchangeConfig.makerFee
+  const takerRate = selectedExchangeId === 'custom' ? customFees.taker : currentExchangeConfig.takerFee
 
-      const grossProfitUSD = exitSizeUSD * priceChangePct
-      const feeUSD = exitSizeUSD * (makerFee / 100)
+  const blendedEntryFeeRatePct = activeMargin > 0
+    ? validTranches.reduce((sum, t) => sum + (parseFloat(t.margin) * (t.orderType === 'LIMIT' ? makerRate : takerRate)), 0) / activeMargin
+    : makerRate
 
-      totalGrossProfitUSD += grossProfitUSD
-      exitFeesUSD += feeUSD
-      totalExitWeightPct += tp.percentage
+  const slFeeRatePct = takerRate
+  const totalFeeRateRoundtripPct = blendedEntryFeeRatePct + slFeeRatePct
 
-      const rrRatioTP = priceDiffSLPct > 0 ? (priceChangePct * 100) / priceDiffSLPct : 0
+  const numStopLoss = parseFloat(stopLoss) || 0
+  const numPercent = parseFloat(allowedMarginLossPercent) || 0
+  const numUsd = parseFloat(allowedMarginLossUsd) || 0
 
-      return {
-        ...tp,
-        grossProfitUSD,
-        netProfitUSD: grossProfitUSD - feeUSD,
-        rrRatio: rrRatioTP,
+  const handlePercentChange = (valStr: string) => {
+    setAllowedMarginLossPercent(valStr)
+    const val = parseFloat(valStr)
+    if (!isNaN(val) && totalMargin > 0) setAllowedMarginLossUsd(((totalMargin * val) / 100).toString())
+    else if (valStr === '') setAllowedMarginLossUsd('')
+  }
+
+  const handleUsdChange = (valStr: string) => {
+    setAllowedMarginLossUsd(valStr)
+    const val = parseFloat(valStr)
+    if (!isNaN(val) && totalMargin > 0) setAllowedMarginLossPercent(((val / totalMargin) * 100).toString())
+    else if (valStr === '') setAllowedMarginLossPercent('')
+  }
+
+  const effectiveLossPercent = riskMode === 'PERCENT' ? numPercent : (totalMargin > 0 ? (numUsd / totalMargin) * 100 : 0)
+
+  const isValidSetup = avgEntryPrice > 0 && totalMargin > 0 && numStopLoss > 0 && (
+    isLong ? numStopLoss < avgEntryPrice : numStopLoss > avgEntryPrice
+  )
+
+  const priceDiffAbs = Math.abs(avgEntryPrice - numStopLoss)
+  const rawSlDistancePercent = avgEntryPrice > 0 ? (priceDiffAbs / avgEntryPrice) * 100 : 0
+  const totalRiskPctWithFees = rawSlDistancePercent + totalFeeRateRoundtripPct
+
+  const rawLeverage = (isValidSetup && totalRiskPctWithFees > 0 && effectiveLossPercent > 0)
+    ? effectiveLossPercent / totalRiskPctWithFees
+    : 0
+
+  const calculatedLeverage = Math.floor(rawLeverage)
+
+  const maxLossUsd = riskMode === 'PERCENT' ? (totalMargin * numPercent) / 100 : numUsd
+  const totalPositionSizeUsd = totalMargin * calculatedLeverage
+  const estimatedEntryFeesUsd = totalPositionSizeUsd * (blendedEntryFeeRatePct / 100)
+
+  let runningRemainingMargin = totalMargin
+  let totalGrossProfit = 0
+  let totalExitFeesUSD = 0
+
+  const calculatedStages = tpStages.map((stage) => {
+    const rawRoe = parseFloat(stage.roePercent) || 0
+    const rawPrice = parseFloat(stage.targetPrice) || 0
+    const hasInput = stage.mode === 'ROE' ? rawRoe > 0 : rawPrice > 0
+
+    let targetPrice = 0
+    let roePercent = 0
+
+    if (hasInput && avgEntryPrice > 0 && calculatedLeverage > 0) {
+      if (stage.mode === 'ROE') {
+        roePercent = rawRoe
+        const priceChangePct = (roePercent / calculatedLeverage) / 100
+        targetPrice = isLong ? avgEntryPrice * (1 + priceChangePct) : avgEntryPrice * (1 - priceChangePct)
+      } else {
+        targetPrice = rawPrice
+        const priceDiff = isLong ? (targetPrice - avgEntryPrice) : (avgEntryPrice - targetPrice)
+        roePercent = (priceDiff / avgEntryPrice) * calculatedLeverage * 100
       }
-    })
+    }
 
-    const totalFeesUSD = entryFeeUSD + exitFeesUSD
-    const totalNetProfitUSD = totalGrossProfitUSD - totalFeesUSD
+    const isDirectionValid = targetPrice > 0 && (isLong ? targetPrice > avgEntryPrice : targetPrice < avgEntryPrice)
+    const closePctOfRemaining = Math.min(100, Math.max(0, parseFloat(stage.closePercent) || 0)) / 100
+    const trancheMargin = runningRemainingMargin * closePctOfRemaining
+    const trancheProfit = trancheMargin * (roePercent / 100)
 
-    // Blended Risk/Reward Ratio
-    const blendedRR = riskUSD > 0 ? totalNetProfitUSD / riskUSD : 0
+    const trancheVolumeUSD = trancheMargin * calculatedLeverage
+    const trancheUnits = avgEntryPrice > 0 ? trancheVolumeUSD / avgEntryPrice : 0
+    const trancheExitVolumeUSD = trancheUnits * targetPrice
+    const trancheExitFee = trancheExitVolumeUSD * (makerRate / 100)
 
-    // Break-Even Price Calculation (Including Fees)
-    const roundtripFeePct = (takerFee + makerFee) / 100
-    const breakEvenPrice = isLong
-      ? entryPrice * (1 + roundtripFeePct)
-      : entryPrice * (1 - roundtripFeePct)
+    if (hasInput && isDirectionValid && trancheMargin > 0 && calculatedLeverage > 0) {
+      totalGrossProfit += trancheProfit
+      totalExitFeesUSD += trancheExitFee
+      runningRemainingMargin = Math.max(0, runningRemainingMargin - trancheMargin)
+    }
+
+    const remainingMarginPct = totalMargin > 0 ? (runningRemainingMargin / totalMargin) * 100 : 0
 
     return {
-      riskUSD,
-      priceDiffSLPct,
-      positionSizeUSD,
-      positionSizeCoins,
-      requiredMargin,
-      liqPrice,
-      distToLiqPct,
-      isStopLossUnsafe,
-      entryFeeUSD,
-      totalFeesUSD,
-      totalGrossProfitUSD,
-      totalNetProfitUSD,
-      blendedRR,
-      breakEvenPrice,
-      totalExitWeightPct,
-      tpResults,
+      ...stage,
+      hasInput,
+      calculatedTargetPrice: targetPrice,
+      calculatedRoe: roePercent,
+      isDirectionValid,
+      trancheMargin,
+      trancheProfit,
+      trancheExitFee,
+      netTrancheProfit: hasInput && isDirectionValid ? (trancheProfit - trancheExitFee) : 0,
+      remainingMargin: runningRemainingMargin,
+      remainingMarginPct,
     }
-  }, [
-    accountBalance,
-    riskPercentage,
-    entryPrice,
-    stopLoss,
-    leverage,
-    direction,
-    takeProfits,
-    makerFee,
-    takerFee,
-  ])
+  })
 
-  // --- Handlers for TP Table ---
-  const handleAddTP = () => {
-    const nextId = (takeProfits.length + 1).toString()
-    const lastPrice = takeProfits.length > 0 ? takeProfits[takeProfits.length - 1].price : entryPrice
-    const step = direction === 'LONG' ? entryPrice * 0.02 : -entryPrice * 0.02
-    setTakeProfits([...takeProfits, { id: nextId, price: Math.round(lastPrice + step), percentage: 0 }])
+  const totalFeesUSD = estimatedEntryFeesUsd + totalExitFeesUSD
+  const totalNetProfitUSD = totalGrossProfit - totalFeesUSD
+  const totalNetRoe = totalMargin > 0 ? (totalNetProfitUSD / totalMargin) * 100 : 0
+
+  const calculatedCrv = maxLossUsd > 0 && totalNetProfitUSD > 0
+    ? (totalNetProfitUSD / maxLossUsd).toFixed(2)
+    : null
+
+  let accumProfit = 0
+  const chartData = [
+    { name: 'Avg Entry', price: avgEntryPrice, gewinn: 0, restPosition: 100 },
+    ...calculatedStages
+      .filter(s => s.hasInput && s.isDirectionValid)
+      .map((s, idx) => {
+        accumProfit += s.netTrancheProfit
+        return {
+          name: `TP #${idx + 1}`,
+          price: s.calculatedTargetPrice,
+          gewinn: parseFloat(accumProfit.toFixed(2)),
+          restPosition: parseFloat(s.remainingMarginPct.toFixed(1)),
+        }
+      }),
+  ]
+
+  const filteredAssets = POPULAR_ASSETS.filter(a =>
+    a.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const renderExchangeIcon = (id: string) => {
+    switch (id) {
+      case 'hyperliquid':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#10B981" fillOpacity="0.2" />
+            <path d="M12 4L19 12L12 20L5 12L12 4Z" fill="#10B981" />
+          </svg>
+        )
+      case 'bitget':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#03AAC1" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+        )
+      case 'bybit':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#F7A600" fillOpacity="0.15" />
+            <path d="M7 7H12C13.6569 7 15 8.34315 15 10C15 10.9 14.5 11.7 13.8 12.2C14.8 12.7 15.5 13.7 15.5 15C15.5 16.6569 14.1569 18 12.5 18H7V7ZM9.5 9.2V11.3H11.8C12.4 11.3 12.9 10.8 12.9 10.25C12.9 9.7 12.4 9.2 11.8 9.2H9.5ZM9.5 13.5V15.8H12.3C12.95 15.8 13.45 15.3 13.45 14.65C13.45 14 12.95 13.5 12.3 13.5H9.5Z" fill="#F7A600" />
+          </svg>
+        )
+      case 'binance':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#F0B90B" fillOpacity="0.15" />
+            <path d="M12 7L14.5 9.5L12 12L9.5 9.5L12 7ZM16.5 11.5L19 14L16.5 16.5L14 14L16.5 11.5ZM7.5 11.5L10 14L7.5 16.5L5 14L7.5 11.5ZM12 16L14.5 18.5L12 21L9.5 18.5L12 16ZM12 13.2L13.8 15L12 16.8L10.2 15L12 13.2Z" fill="#F0B90B" />
+          </svg>
+        )
+      case 'okx':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="white" fillOpacity="0.15" />
+            <rect x="6.5" y="6.5" width="4" height="4" fill="white" />
+            <rect x="13.5" y="6.5" width="4" height="4" fill="white" />
+            <rect x="10" y="10" width="4" height="4" fill="white" />
+            <rect x="6.5" y="13.5" width="4" height="4" fill="white" />
+            <rect x="13.5" y="13.5" width="4" height="4" fill="white" />
+          </svg>
+        )
+      default:
+        return <Sliders className="w-3.5 h-3.5 text-brand shrink-0" />
+    }
   }
 
-  const handleRemoveTP = (id: string) => {
-    setTakeProfits(takeProfits.filter((tp) => tp.id !== id))
+  const handleSaveCustomFees = (e: React.FormEvent) => {
+    e.preventDefault()
+    const m = parseFloat(tempMakerFee) || 0.02
+    const t = parseFloat(tempTakerFee) || 0.06
+    setCustomFees({ maker: m, taker: t })
+    setSelectedExchangeId('custom')
+    setIsCustomFeeModalOpen(false)
   }
 
-  const handleUpdateTP = (id: string, field: 'price' | 'percentage', value: number) => {
-    setTakeProfits(
-      takeProfits.map((tp) => (tp.id === id ? { ...tp, [field]: value } : tp))
-    )
-  }
-
-  const handleLogClick = () => {
-    if (onLogTrade) {
-      onLogTrade({
-        pair,
-        direction,
-        entryPrice,
-        stopLoss,
-        leverage,
-        margin: calculations.requiredMargin,
-        positionSizeUSD: calculations.positionSizeUSD,
-        riskAmount: calculations.riskUSD,
-        riskPercentage,
-        riskRewardRatio: calculations.blendedRR,
-        takeProfits: takeProfits.map((tp) => ({
-          targetPrice: tp.price,
-          percentage: tp.percentage,
-        })),
+  const handleDownloadTradeCard = async () => {
+    if (!cardRef.current) return
+    setIsExporting(true)
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2.5,
+        backgroundColor: '#0a0d14'
       })
+
+      if (navigator.canShare && navigator.share) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob()
+          const file = new File([blob], `RISKIL_${selectedAsset.symbol}_${direction}_FullPlan.png`, { type: 'image/png' })
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `${setupName || selectedAsset.symbol} ${direction} Setup`,
+              text: `Planned via RISKIL Full Position Matrix`
+            })
+            setIsExporting(false)
+            return
+          }
+        } catch {
+          // Fallback
+        }
+      }
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        setPreviewImage(dataUrl)
+      } else {
+        const link = document.createElement('a')
+        link.download = `RISKIL_${setupName ? setupName.replace(/\s+/g, '_') + '_' : ''}${selectedAsset.symbol}_${direction}_FullPlan.png`
+        link.href = dataUrl
+        link.click()
+      }
+    } catch (err) {
+      console.error('Error exporting full plan card:', err)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleCopyShareLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopySuccess(true)
+    setTimeout(() => setCopySuccess(false), 2000)
+  }
+
+  // Erzeuge einen Snapshot der aktuellen Parameter zur Erkennung von Änderungen
+  const currentSnapshot = useMemo(() => {
+    return JSON.stringify({
+      name: setupName.trim(),
+      asset: selectedAsset.symbol,
+      direction,
+      stopLoss,
+      allowedMarginLossPercent,
+      allowedMarginLossUsd,
+      riskMode,
+      tranches: tranches.map(t => ({ p: t.price, m: t.margin, o: t.orderType })),
+      tps: tpStages.map(s => ({ r: s.roePercent, p: s.targetPrice, c: s.closePercent, m: s.mode }))
+    })
+  }, [setupName, selectedAsset.symbol, direction, stopLoss, allowedMarginLossPercent, allowedMarginLossUsd, riskMode, tranches, tpStages])
+
+  const isAlreadySaved = lastSavedSnapshot === currentSnapshot
+
+  const handleSaveSetupToPipeline = async () => {
+    if (!isValidSetup || isSaving || isAlreadySaved) return
+
+    setIsSaving(true)
+
+    const payload = {
+      name: setupName.trim() || undefined,
+      pair: selectedAsset.symbol === 'CUSTOM / MANUAL' ? 'BTC/USDT' : selectedAsset.symbol,
+      direction,
+      avgEntryPrice: Number(avgEntryPrice.toFixed(2)),
+      leverage: calculatedLeverage > 0 ? calculatedLeverage : 1,
+      totalMargin: Number(totalMargin.toFixed(2)),
+      stopLoss: numStopLoss > 0 ? Number(numStopLoss.toFixed(2)) : undefined,
+      maxLossUsd: maxLossUsd > 0 ? Number(maxLossUsd.toFixed(2)) : undefined,
+      crv: calculatedCrv,
+      takeProfits: calculatedStages
+        .filter(s => s.hasInput && s.isDirectionValid && s.calculatedTargetPrice > 0)
+        .map(s => ({
+          targetPrice: Number(s.calculatedTargetPrice.toFixed(2)),
+          roePercent: Number(s.calculatedRoe.toFixed(1)),
+          closePercent: Number(s.closePercent || 0),
+        })),
+      tranches: validTranches.map(t => ({
+        price: Number(t.price),
+        margin: Number(t.margin),
+        orderType: t.orderType,
+      })),
+      status: 'PENDING' as const,
+    }
+
+    try {
+      const { data, error } = await createPlannedSetup(payload)
+
+      if (error || !data) {
+        addPlannedSetup(payload)
+      } else {
+        useJournalStore.setState((state) => ({
+          plannedSetups: [
+            data,
+            ...state.plannedSetups.filter((p) => p.id !== data.id),
+          ],
+        }))
+      }
+
+      setLastSavedSnapshot(currentSnapshot)
+    } catch (err) {
+      console.error('Fehler beim Speichern in Supabase:', err)
+    } finally {
+      setIsSaving(false)
     }
   }
 
   return (
-    <div className="space-y-6 text-slate-100 font-sans">
-      {/* HEADER PRESETS & STRATEGY SELECTION */}
-      <div className="bg-term-bg border border-term-border rounded-2xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {/* DIRECTION TOGGLE */}
-          <div className="bg-term-card p-1 rounded-xl border border-term-border flex items-center">
-            <button
-              onClick={() => setDirection('LONG')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                direction === 'LONG'
-                  ? 'bg-[#089981] text-white shadow-lg shadow-[#089981]/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <TrendingUp size={16} /> LONG
-            </button>
-            <button
-              onClick={() => setDirection('SHORT')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                direction === 'SHORT'
-                  ? 'bg-[#F23645] text-white shadow-lg shadow-[#F23645]/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <TrendingDown size={16} /> SHORT
-            </button>
-          </div>
-
-          {/* PAIR INPUT */}
-          <div className="relative">
-            <input
-              type="text"
-              value={pair}
-              onChange={(e) => setPair(e.target.value.toUpperCase())}
-              className="bg-term-card border border-term-border focus:border-brand rounded-xl px-3.5 py-2 text-xs font-bold text-white w-32 focus:outline-none"
-              placeholder="z.B. BTC/USDT"
-            />
-          </div>
+    <div className="w-full max-w-4xl mx-auto space-y-8 text-slate-100 font-sans pb-20">
+      {/* ================= HERO SECTION (FULL SUITE) ================= */}
+      <div className="text-center space-y-4 pt-4 pb-2 max-w-2xl mx-auto">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
+          <Scale className="w-3.5 h-3.5" />
+          Pro Suite • Full Position Pipeline
         </div>
 
-        {/* QUICK TP STRATEGY PRESETS */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider hidden sm:inline">
-            TP-Presets:
-          </span>
-          <button
-            onClick={() => handleApplyPreset('CONSERVATIVE')}
-            className="px-3 py-1.5 rounded-lg bg-term-card hover:bg-term-hover border border-term-border text-[11px] font-semibold text-slate-300 transition"
-          >
-            Konservativ (60/40)
-          </button>
-          <button
-            onClick={() => handleApplyPreset('RUNNER')}
-            className="px-3 py-1.5 rounded-lg bg-term-card hover:bg-term-hover border border-term-border text-[11px] font-semibold text-slate-300 transition"
-          >
-            Runner (40/30/30)
-          </button>
-          <button
-            onClick={() => handleApplyPreset('SCALED')}
-            className="px-3 py-1.5 rounded-lg bg-term-card hover:bg-term-hover border border-term-border text-[11px] font-semibold text-slate-300 transition"
-          >
-            4-Step Scale
-          </button>
+        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          Full Position & Exit Planner. <br className="hidden sm:inline" /> From Entry to Scale-Out.
+        </h1>
+
+        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
+          Synchronize your DCA entries, stop loss risk tolerances, and multi-tier exits into a unified risk management setup.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Engine</span>
+          <span className="text-slate-700">•</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Dynamic Fee Subtraction</span>
+          <span className="text-slate-700">•</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Pipeline Ready</span>
         </div>
       </div>
 
-      {/* MAIN GRID: INPUTS vs ANALYTICS */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT COLUMN: PARAMETER INPUTS (5 Cols) */}
-        <div className="lg:col-span-5 space-y-5">
-          <div className="bg-term-bg border border-term-border rounded-2xl p-5 space-y-4 shadow-xl">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <Zap size={15} className="text-brand" /> Trade-Parameter
-            </h3>
+      {/* ================= SETUP NAME & PAIR CONTROLS ================= */}
+      <div className="space-y-3">
+        <div className="bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 shadow-xl">
+          <Tag className="w-4 h-4 text-brand shrink-0 ml-1" />
+          <input
+            type="text"
+            placeholder="Setup Name / Scenario (e.g. Breakout Retest H4, Range Low Grab)..."
+            value={setupName}
+            onChange={(e) => setSetupName(e.target.value)}
+            className="w-full bg-transparent text-sm sm:text-base font-mono font-bold text-white placeholder-slate-500 outline-none"
+          />
+        </div>
 
-            {/* Account Balance & Risk % */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Kontogröße ($)</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={accountBalance}
-                    onChange={(e) => setAccountBalance(Number(e.target.value))}
-                    className="w-full bg-term-card border border-term-border rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-brand"
-                  />
-                  <DollarSign size={13} className="absolute right-3 top-2.5 text-slate-500" />
-                </div>
-              </div>
+        <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 shadow-xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative inline-block" ref={assetDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsAssetDropdownOpen(prev => !prev)}
+                className="flex items-center gap-2.5 bg-term-bg hover:bg-term-hover border border-term-border text-white px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer"
+              >
+                <div className={`w-2.5 h-2.5 rounded-full ${selectedAsset.iconColor}`} />
+                <span className="font-bold text-xs tracking-wider">{selectedAsset.symbol}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isAssetDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Risiko (%)</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={riskPercentage}
-                    onChange={(e) => setRiskPercentage(Number(e.target.value))}
-                    className="w-full bg-term-card border border-term-border rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-brand"
-                  />
-                  <Percent size={13} className="absolute right-3 top-2.5 text-slate-500" />
+              {isAssetDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-term-bg border border-term-border rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div className="p-2.5 border-b border-term-border flex items-center gap-2 bg-term-card">
+                    <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Search asset..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-transparent text-xs text-white placeholder-slate-500 outline-none font-mono"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="max-h-56 overflow-y-auto p-1.5 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAsset({ symbol: 'CUSTOM / MANUAL', name: 'Manual Input', iconColor: 'bg-slate-400' })
+                        setIsAssetDropdownOpen(false)
+                        setSearchQuery('')
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
+                        selectedAsset.symbol === 'CUSTOM / MANUAL' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Calculator className="w-3.5 h-3.5 text-brand" />
+                        <div className="text-left">
+                          <div className="font-bold">Manual Input</div>
+                          <div className="text-[10px] text-slate-500 font-mono">Without API</div>
+                        </div>
+                      </div>
+                      {selectedAsset.symbol === 'CUSTOM / MANUAL' && <Check className="w-3.5 h-3.5 text-brand" />}
+                    </button>
+
+                    {filteredAssets.map((asset) => {
+                      const isSelected = asset.symbol === selectedAsset.symbol
+                      return (
+                        <button
+                          key={asset.symbol}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAsset(asset)
+                            setIsAssetDropdownOpen(false)
+                            setSearchQuery('')
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
+                            isSelected ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover hover:text-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-2 h-2 rounded-full ${asset.iconColor}`} />
+                            <div className="text-left">
+                              <div className="font-bold">{asset.symbol}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{asset.name}</div>
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-brand" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Entry Price & Stop Loss */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Entry Preis ($)</label>
-                <input
-                  type="number"
-                  value={entryPrice}
-                  onChange={(e) => setEntryPrice(Number(e.target.value))}
-                  className="w-full bg-term-card border border-term-border rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-brand"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Stop-Loss ($)</label>
-                <input
-                  type="number"
-                  value={stopLoss}
-                  onChange={(e) => setStopLoss(Number(e.target.value))}
-                  className="w-full bg-term-card border border-term-border rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-[#F23645]"
-                />
-              </div>
-            </div>
-
-            {/* Leverage Slider */}
-            <div className="space-y-2 pt-2 border-t border-term-border">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-medium">Hebelwirkungsklassifizierung</span>
-                <span className="font-bold text-brand">{leverage}x</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="125"
-                value={leverage}
-                onChange={(e) => setLeverage(Number(e.target.value))}
-                className="w-full accent-[#00E676] cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                <span>1x</span>
-                <span>25x</span>
-                <span>50x</span>
-                <span>100x</span>
-                <span>125x</span>
-              </div>
-            </div>
-
-            {/* Margin Type & Fees Accordion */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Margin Modus</label>
-                <select
-                  value={marginType}
-                  onChange={(e: any) => setMarginType(e.target.value)}
-                  className="w-full bg-term-card border border-term-border rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none"
-                >
-                  <option value="ISOLATED">Isolated</option>
-                  <option value="CROSS">Cross</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Gebühren (Taker / Maker %)</label>
-                <div className="flex gap-1">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={takerFee}
-                    onChange={(e) => setTakerFee(Number(e.target.value))}
-                    className="w-1/2 bg-term-card border border-term-border rounded-xl px-2 py-2 text-xs text-center text-slate-300"
-                    placeholder="Taker"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={makerFee}
-                    onChange={(e) => setMakerFee(Number(e.target.value))}
-                    className="w-1/2 bg-term-card border border-term-border rounded-xl px-2 py-2 text-xs text-center text-slate-300"
-                    placeholder="Maker"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center gap-2.5 bg-term-bg border border-term-border px-3.5 py-2.5 rounded-xl font-mono text-xs shadow-inner">
+              <span className="relative flex h-2 w-2 items-center justify-center">
+                {!isCustomAsset && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isCustomAsset ? 'bg-slate-500' : 'bg-emerald-500'}`}></span>
+              </span>
+              <span className="text-slate-500 font-medium">Index:</span>
+              <span className="font-bold text-white">
+                {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manual'}
+              </span>
+              {priceChange24h !== null && !isCustomAsset && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priceChange24h >= 0 ? 'text-[#089981] bg-[#089981]/10' : 'text-[#F23645] bg-[#F23645]/10'}`}>
+                  {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
+                </span>
+              )}
             </div>
           </div>
 
-          {/* DANGER WARNING CARD IF SL IS BELOW/ABOVE LIQUIDATION */}
-          {calculations.isStopLossUnsafe && (
-            <div className="bg-[#2A1015] border border-[#F23645]/40 rounded-2xl p-4 flex items-start gap-3 text-[#F23645]">
-              <AlertTriangle size={20} className="shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-xs font-bold">Liquidations-Gefahr!</h4>
-                <p className="text-[11px] text-slate-300 mt-0.5">
-                  Dein Stop-Loss liegt außerhalb deines Liquidationspreises (${calculations.liqPrice.toFixed(1)}). 
-                  Senke den Hebel oder passe den Stop-Loss an!
-                </p>
-              </div>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="relative inline-block" ref={exchangeDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsExchangeDropdownOpen(prev => !prev)}
+                className="flex items-center gap-2 bg-term-bg hover:bg-term-hover border border-term-border text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-mono transition cursor-pointer shadow-sm"
+              >
+                {renderExchangeIcon(selectedExchangeId)}
+                <span className="font-bold text-white">{selectedExchangeId === 'custom' ? 'Custom Fees' : currentExchangeConfig.name}</span>
+                <span className="text-[11px] text-slate-500 font-mono">({takerRate}%)</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+              </button>
+
+              {isExchangeDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-60 bg-term-bg border border-term-border rounded-2xl shadow-2xl z-50 p-1.5 space-y-1">
+                  {EXCHANGES.map(ex => {
+                    const isSelected = selectedExchangeId === ex.id
+                    return (
+                      <button
+                        key={ex.id}
+                        type="button"
+                        onClick={() => {
+                          if (ex.id === 'custom') {
+                            setTempMakerFee(customFees.maker.toString())
+                            setTempTakerFee(customFees.taker.toString())
+                            setIsCustomFeeModalOpen(true)
+                          } else {
+                            setSelectedExchangeId(ex.id)
+                          }
+                          setIsExchangeDropdownOpen(false)
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-mono transition cursor-pointer ${
+                          isSelected ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {renderExchangeIcon(ex.id)}
+                          <span className="font-semibold">{ex.name}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                          <span>{ex.id === 'custom' ? `${customFees.taker}%` : `${ex.takerFee}%`}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-brand" />}
+                        </div>
+                      </button>
+                    )
+                  })}
+
+                  <div className="pt-1 border-t border-term-border">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempMakerFee(customFees.maker.toString())
+                        setTempTakerFee(customFees.taker.toString())
+                        setIsCustomFeeModalOpen(true)
+                        setIsExchangeDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Settings className="w-3 h-3" /> Set custom fees...
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
+            <div className="grid grid-cols-2 gap-1 p-1 bg-term-bg border border-term-border rounded-xl">
+              <button
+                type="button"
+                onClick={() => setDirection('LONG')}
+                className={`min-h-[38px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  isLong ? 'bg-[#089981] text-white shadow-[0_0_12px_rgba(8,153,129,0.4)]' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <ArrowUpRight className="w-4 h-4" /> LONG
+              </button>
+              <button
+                type="button"
+                onClick={() => setDirection('SHORT')}
+                className={`min-h-[38px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  !isLong ? 'bg-[#F23645] text-white shadow-[0_0_12px_rgba(242,54,69,0.4)]' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <ArrowDownRight className="w-4 h-4" /> SHORT
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold text-slate-400">
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-brand/20 text-brand flex items-center justify-center font-mono font-bold text-[11px]">1</span>
+            <span className="font-mono text-white uppercase tracking-wider">ENTRY TRANCHES (DCA)</span>
+          </div>
+          {currentPrice && (
+            <button
+              type="button"
+              onClick={handleUseCurrentPrice}
+              className="text-[11px] font-mono text-brand hover:underline transition cursor-pointer text-left sm:text-right"
+            >
+              Use live price (${currentPrice.toFixed(2)}) as Entry 1
+            </button>
           )}
         </div>
 
-        {/* RIGHT COLUMN: METRICS & TP BUILDER (7 Cols) */}
-        <div className="lg:col-span-7 space-y-5">
-          {/* TOP METRIC CARDS */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-term-bg border border-term-border rounded-2xl p-3.5 space-y-1">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Positionsgröße</span>
-              <p className="text-sm font-bold text-white">${calculations.positionSizeUSD.toLocaleString('de-DE', { maximumFractionDigits: 0 })}</p>
-              <p className="text-[10px] text-slate-400 font-mono">{calculations.positionSizeCoins.toFixed(4)} Units</p>
-            </div>
-
-            <div className="bg-term-bg border border-term-border rounded-2xl p-3.5 space-y-1">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Benötigte Marge</span>
-              <p className="text-sm font-bold text-brand">${calculations.requiredMargin.toLocaleString('de-DE', { maximumFractionDigits: 1 })}</p>
-              <p className="text-[10px] text-slate-400 font-mono">{leverage}x Effective</p>
-            </div>
-
-            <div className="bg-term-bg border border-term-border rounded-2xl p-3.5 space-y-1">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Maximales Risiko</span>
-              <p className="text-sm font-bold text-[#F23645]">-${calculations.riskUSD.toFixed(1)}</p>
-              <p className="text-[10px] text-slate-400 font-mono">-{calculations.priceDiffSLPct.toFixed(2)}% Distance</p>
-            </div>
-
-            <div className="bg-term-bg border border-term-border rounded-2xl p-3.5 space-y-1">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Blended R:R</span>
-              <p className={`text-sm font-bold ${calculations.blendedRR >= 2 ? 'text-[#089981]' : calculations.blendedRR >= 1 ? 'text-amber-400' : 'text-[#F23645]'}`}>
-                1 : {calculations.blendedRR.toFixed(2)}
-              </p>
-              <p className="text-[10px] text-slate-400 font-mono">Net Profit vs Risk</p>
-            </div>
-          </div>
-
-          {/* LIQUIDATION & BREAK-EVEN ANALYSIS BANNER */}
-          <div className="bg-term-bg border border-term-border rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-term-card text-amber-400 border border-term-border">
-                <ShieldAlert size={18} />
+        <div className="space-y-3">
+          {tranches.map((tranche, idx) => (
+            <div key={tranche.id} className="bg-[#090d16] border border-slate-800 p-3.5 rounded-xl space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 items-center hover:border-slate-700 transition">
+              <div className="flex items-center justify-between sm:col-span-2 text-xs font-mono font-bold text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-brand" />
+                  Entry #{idx + 1}
+                </div>
+                {tranches.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTranche(tranche.id)}
+                    className="sm:hidden p-1.5 text-slate-500 hover:text-[#F23645] hover:bg-[#F23645]/10 rounded-lg transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              <div>
-                <span className="text-[10px] text-slate-500 uppercase font-semibold">Est. Liquidation Price</span>
-                <p className="text-xs font-bold text-amber-400">${calculations.liqPrice.toFixed(1)}</p>
-                <p className="text-[10px] text-slate-400">{calculations.distToLiqPct.toFixed(2)}% vom Entry entfernt</p>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-term-card text-slate-300 border border-term-border">
-                <Scale size={18} />
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-500 uppercase font-semibold">Break-Even (Inkl. Fees)</span>
-                <p className="text-xs font-bold text-white">${calculations.breakEvenPrice.toFixed(1)}</p>
-                <p className="text-[10px] text-slate-400">Gebühren gesamt: ~${calculations.totalFeesUSD.toFixed(2)}</p>
-              </div>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-2.5 sm:contents">
+                <div className="sm:col-span-3 relative">
+                  <input
+                    type="number"
+                    placeholder="Price"
+                    value={tranche.price}
+                    onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
+                    className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-500 outline-none transition shadow-inner"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+                </div>
 
-          {/* MULTI-TP TARGETS BUILDER */}
-          <div className="bg-term-bg border border-term-border rounded-2xl p-5 space-y-4 shadow-xl">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                <Target size={15} className="text-[#089981]" /> Take-Profit Targets
-              </h3>
-              <div className="flex items-center gap-3">
-                <span className={`text-[11px] font-mono ${calculations.totalExitWeightPct === 100 ? 'text-[#089981]' : 'text-amber-400'}`}>
-                  Export Split: {calculations.totalExitWeightPct}% / 100%
-                </span>
+                <div className="sm:col-span-3 relative">
+                  <input
+                    type="number"
+                    placeholder="Margin required"
+                    value={tranche.margin}
+                    onChange={(e) => handleTrancheChange(tranche.id, 'margin', e.target.value)}
+                    className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-bold text-white placeholder-slate-500 outline-none transition shadow-inner"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+                </div>
+              </div>
+
+              <div className="sm:col-span-3 flex p-1 bg-[#05070c] border border-slate-800 rounded-xl">
                 <button
-                  onClick={handleAddTP}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand hover:bg-brand-hover text-black font-extrabold text-[11px] transition"
+                  type="button"
+                  onClick={() => handleTrancheChange(tranche.id, 'orderType', 'LIMIT')}
+                  className={`flex-1 min-h-[34px] text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center ${
+                    tranche.orderType === 'LIMIT' ? 'bg-brand text-black' : 'text-slate-400 hover:text-white'
+                  }`}
                 >
-                  <Plus size={13} strokeWidth={3} /> TP
+                  Limit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTrancheChange(tranche.id, 'orderType', 'MARKET')}
+                  className={`flex-1 min-h-[34px] text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center ${
+                    tranche.orderType === 'MARKET' ? 'bg-brand text-black' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Market
+                </button>
+              </div>
+
+              <div className="hidden sm:flex sm:col-span-1 justify-end">
+                {tranches.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTranche(tranche.id)}
+                    className="p-2 text-slate-500 hover:text-[#F23645] hover:bg-[#F23645]/10 rounded-lg transition cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleAddTranche}
+            className="py-2.5 px-4 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-sm cursor-pointer font-mono"
+          >
+            <Plus className="w-4 h-4 text-brand" />
+            <span>Add Tranche</span>
+          </button>
+
+          <div className="flex items-center gap-4 text-xs font-mono bg-term-bg p-2.5 rounded-xl border border-term-border">
+            <span className="text-slate-400">Avg Entry: <strong className="text-white">${avgEntryPrice > 0 ? avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</strong></span>
+            <span className="text-slate-500">•</span>
+            <span className="text-slate-400">Total Margin: <strong className="text-brand">${totalMargin > 0 ? totalMargin.toFixed(2) : '-'}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+          <span className="w-5 h-5 rounded-full bg-[#F23645]/20 text-[#F23645] flex items-center justify-center font-mono font-bold text-[11px]">2</span>
+          <span className="font-mono text-white uppercase tracking-wider">RISK & STOP LOSS SIZING</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-[#F23645] flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#F23645]" />
+              Stop Loss Price
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                placeholder="Stop loss price"
+                value={stopLoss}
+                onChange={(e) => setStopLoss(e.target.value)}
+                className="w-full min-h-[44px] bg-[#0d1424] border border-[#F23645]/40 focus:border-[#F23645] rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-500 outline-none transition"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono block">
+              Distance to avg entry: <strong className="text-slate-300">{rawSlDistancePercent > 0 ? `${rawSlDistancePercent.toFixed(2)}%` : '-'}</strong>
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-semibold text-slate-300 font-mono">Max. Loss Tolerance</label>
+              <div className="flex bg-[#05070c] p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
+                <button
+                  type="button"
+                  onClick={() => setRiskMode('PERCENT')}
+                  className={`px-2 py-0.5 rounded transition cursor-pointer ${riskMode === 'PERCENT' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
+                >
+                  % Margin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRiskMode('USD')}
+                  className={`px-2 py-0.5 rounded transition cursor-pointer ${riskMode === 'USD' ? 'bg-brand text-black font-extrabold' : 'text-slate-400 hover:text-white'}`}
+                >
+                  $ Amount
                 </button>
               </div>
             </div>
 
-            {/* TP LIST TABLE */}
-            <div className="space-y-2">
-              {takeProfits.map((tp, idx) => {
-                const result = calculations.tpResults[idx]
-                return (
-                  <div
-                    key={tp.id}
-                    className="bg-term-card border border-term-border rounded-xl p-3 grid grid-cols-12 gap-2 items-center text-xs"
-                  >
-                    <span className="col-span-1 font-bold text-slate-500">#{idx + 1}</span>
+            {riskMode === 'PERCENT' ? (
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder="Max loss in % of margin"
+                  value={allowedMarginLossPercent}
+                  onChange={(e) => handlePercentChange(e.target.value)}
+                  className="w-full min-h-[44px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-500 outline-none transition"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder="Max loss in $"
+                  value={allowedMarginLossUsd}
+                  onChange={(e) => handleUsdChange(e.target.value)}
+                  className="w-full min-h-[44px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2.5 px-3 pr-8 text-sm font-mono font-bold text-white placeholder-slate-500 outline-none transition"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+              </div>
+            )}
 
-                    {/* Price Input */}
-                    <div className="col-span-4">
-                      <input
-                        type="number"
-                        value={tp.price}
-                        onChange={(e) => handleUpdateTP(tp.id, 'price', Number(e.target.value))}
-                        className="w-full bg-term-bg border border-term-border rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#089981]"
-                        placeholder="Zielpreis"
-                      />
-                    </div>
-
-                    {/* % Exit Input */}
-                    <div className="col-span-3 relative">
-                      <input
-                        type="number"
-                        value={tp.percentage}
-                        onChange={(e) => handleUpdateTP(tp.id, 'percentage', Number(e.target.value))}
-                        className="w-full bg-term-bg border border-term-border rounded-lg px-2.5 py-1.5 text-xs text-white pr-6 focus:outline-none focus:border-[#089981]"
-                        placeholder="%"
-                      />
-                      <span className="absolute right-2 top-1.5 text-slate-500 text-[10px]">%</span>
-                    </div>
-
-                    {/* Net Gain & R:R output */}
-                    <div className="col-span-3 text-right">
-                      <span className="block font-bold text-[#089981]">
-                        +${result?.netProfitUSD.toFixed(1) || '0.0'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        R:R 1:{result?.rrRatio.toFixed(1) || '0.0'}
-                      </span>
-                    </div>
-
-                    {/* Delete button */}
-                    <div className="col-span-1 text-right">
-                      <button
-                        onClick={() => handleRemoveTP(tp.id)}
-                        className="p-1 text-slate-500 hover:text-[#F23645] transition"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* TOTAL NET PROFIT SUMMARY */}
-            <div className="pt-3 border-t border-term-border flex justify-between items-center text-xs">
-              <span className="text-slate-400">Erwarteter Netto-Gewinn (nach Gebühren):</span>
-              <span className="text-base font-extrabold text-[#089981]">
-                +${calculations.totalNetProfitUSD.toFixed(2)} (
-                {accountBalance > 0 ? ((calculations.totalNetProfitUSD / accountBalance) * 100).toFixed(2) : 0}%)
+            <div className="flex justify-between items-center text-[10px] font-mono">
+              <span className="text-slate-500">
+                Risk: <strong className="text-[#F23645]">{maxLossUsd > 0 ? `-$${maxLossUsd.toFixed(2)}` : '-'}</strong>
+              </span>
+              <span className="text-brand font-bold">
+                Optimal Leverage: {isValidSetup && calculatedLeverage > 0 ? `${calculatedLeverage}x` : '-'}
               </span>
             </div>
           </div>
+        </div>
 
-          {/* ACTION BUTTON: LOG TO JOURNAL */}
-          <button
-            onClick={handleLogClick}
-            className="w-full py-3.5 rounded-2xl bg-brand hover:bg-brand-hover text-black font-extrabold text-xs tracking-wide shadow-xl shadow-brand-border flex items-center justify-center gap-2 transition-all transform active:scale-[0.99]"
-          >
-            <CheckCircle2 size={16} strokeWidth={2.5} /> Vollständiges Setup ins Journal eintragen
-          </button>
+        {numStopLoss > 0 && avgEntryPrice > 0 && !isValidSetup && (
+          <div className="flex items-center gap-2.5 text-xs text-[#F23645] bg-[#F23645]/10 border border-[#F23645]/30 p-3.5 rounded-xl">
+            <ShieldAlert className="w-5 h-5 shrink-0" />
+            <span>Invalid stop loss: SL must be {isLong ? 'BELOW' : 'ABOVE'} average entry price (${avgEntryPrice.toFixed(2)}).</span>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+            <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono font-bold text-[11px]">3</span>
+            <span className="font-mono text-white uppercase tracking-wider">TAKE-PROFIT EXITS ({tpStages.length} tiers)</span>
+          </div>
+          <span className="text-[11px] font-mono text-slate-500">
+            Computed automatically based on avg entry and leverage ({calculatedLeverage > 0 ? `${calculatedLeverage}x` : 'leverage pending'})
+          </span>
+        </div>
+
+        <div className="space-y-4">
+          {calculatedStages.map((stage, idx) => {
+            if (!stage) return null
+            const currentRoeVal = stage.mode === 'ROE' ? String(stage.roePercent) : String(Math.round(stage.calculatedRoe))
+            const currentCloseVal = String(stage.closePercent)
+
+            return (
+              <div
+                key={stage.id}
+                className="p-4 sm:p-5 bg-[#090d16] border border-slate-800 rounded-2xl space-y-4 shadow-xl hover:border-slate-700 transition"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pb-3 border-b border-slate-800/80">
+                  <div className="md:col-span-4 flex items-center gap-2">
+                    <span className="text-xs font-mono font-black px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 rounded-lg shrink-0">
+                      TP #{idx + 1}
+                    </span>
+
+                    <div className="flex bg-[#05070c] p-1 border border-slate-800 rounded-xl text-xs font-mono flex-1">
+                      <button
+                        type="button"
+                        onClick={() => handleTpStageChange(stage.id, 'mode', 'ROE')}
+                        className={`flex-1 py-1 rounded-lg transition cursor-pointer font-bold ${
+                          stage.mode === 'ROE' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        % RoE
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTpStageChange(stage.id, 'mode', 'PRICE')}
+                        className={`flex-1 py-1 rounded-lg transition cursor-pointer font-bold ${
+                          stage.mode === 'PRICE' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        $ Price
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-4 relative">
+                    <input
+                      type="number"
+                      placeholder={stage.mode === 'ROE' ? 'Target RoE in %' : 'Target price in $'}
+                      value={(stage.mode === 'ROE' ? stage.roePercent : stage.targetPrice) || ''}
+                      onChange={(e) => handleTpStageChange(stage.id, stage.mode === 'ROE' ? 'roePercent' : 'targetPrice', e.target.value)}
+                      className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-extrabold text-white placeholder-slate-500 outline-none transition shadow-inner"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold text-slate-400">
+                      {stage.mode === 'ROE' ? '%' : '$'}
+                    </span>
+                  </div>
+
+                  <div className="md:col-span-4 flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        placeholder="Close in %"
+                        value={stage.closePercent || ''}
+                        onChange={(e) => handleTpStageChange(stage.id, 'closePercent', e.target.value)}
+                        className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-emerald-400 rounded-xl py-2 px-3 pr-7 text-xs font-mono font-extrabold text-white text-right placeholder-slate-500 outline-none transition shadow-inner"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold text-emerald-400">%</span>
+                    </div>
+
+                    {tpStages.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTpStage(stage.id)}
+                        className="p-2 text-slate-500 hover:text-[#F23645] hover:bg-[#F23645]/10 rounded-xl transition cursor-pointer shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
+                    <div className="flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-slate-400 font-medium">RoE Quick Select {stage.mode === 'PRICE' && stage.calculatedRoe !== 0 && `(${stage.calculatedRoe.toFixed(1)}%)`}</span>
+                      <div className="flex gap-1">
+                        {['10', '25', '50', '100'].map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => handleRoeSliderChange(stage.id, val)}
+                            className={`px-2 py-0.5 rounded text-[9px] font-bold transition cursor-pointer ${
+                              currentRoeVal === val ? 'bg-brand text-black font-extrabold shadow-sm' : 'bg-[#0d131f] border border-slate-800 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {val}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="200"
+                      value={stage.mode === 'ROE' ? parseFloat(stage.roePercent) || 0 : Math.max(0, stage.calculatedRoe)}
+                      onChange={(e) => handleRoeSliderChange(stage.id, e.target.value)}
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
+                    <div className="flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-slate-400 font-medium">Close Position %</span>
+                      <div className="flex gap-1">
+                        {['25', '50', '75', '100'].map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => handleTpStageChange(stage.id, 'closePercent', val)}
+                            className={`px-2 py-0.5 rounded text-[9px] font-bold transition cursor-pointer ${
+                              currentCloseVal === val ? 'bg-emerald-400 text-black font-extrabold shadow-sm' : 'bg-[#0d131f] border border-slate-800 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {val}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={parseFloat(stage.closePercent) || 0}
+                      onChange={(e) => handleTpStageChange(stage.id, 'closePercent', e.target.value)}
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                  <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-500 block text-[10px]">Target Price</span>
+                    <span className="font-bold text-white">
+                      {stage.calculatedTargetPrice > 0 ? `$${stage.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                    </span>
+                  </div>
+
+                  <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-500 block text-[10px]">Net Profit</span>
+                    <span className={`font-bold ${stage.hasInput && stage.isDirectionValid ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      {stage.hasInput && stage.isDirectionValid ? `+$${stage.netTrancheProfit.toFixed(2)}` : '-'}
+                    </span>
+                  </div>
+
+                  <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-500 block text-[10px]">Released Margin</span>
+                    <span className="font-bold text-brand">
+                      {stage.hasInput && stage.isDirectionValid ? `$${stage.trancheMargin.toFixed(2)}` : '-'}
+                    </span>
+                  </div>
+
+                  <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-slate-500 block text-[10px]">Remaining Position</span>
+                    <span className="font-bold text-slate-300">
+                      {stage.hasInput && stage.isDirectionValid ? `${stage.remainingMarginPct.toFixed(1)}%` : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleAddTpStage}
+          className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer font-mono"
+        >
+          <Plus className="w-4 h-4 text-brand" />
+          <span>Add Take-Profit Tier</span>
+        </button>
+      </div>
+
+      <div className="bg-term-card border border-term-border rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-term-border pb-3">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span>Yield & Risk Progression</span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-500">Green: Cumulative Net Profit • Blue: Open Margin</span>
+        </div>
+
+        <div className="h-60 w-full pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="fullPlannerProfitGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#089981" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#089981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f293d" vertical={false} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} fontStretch="condensed" />
+              <YAxis yAxisId="left" stroke="#089981" fontSize={11} tickLine={false} tickFormatter={(v) => `$${v}`} />
+              <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#0a0d14',
+                  borderColor: '#222f49',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontSize: '11px',
+                  fontFamily: 'monospace'
+                }}
+              />
+              <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#fullPlannerProfitGrad)" name="Net Profit ($)" />
+              <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Open Position (%)" />
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
       </div>
+
+      {/* ================= ACTION BAR: COPY LINK, SHARE & SAVE TO PIPELINE ================= */}
+      <div className="space-y-4 pt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
+          <div className="space-y-0.5">
+            <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
+              <FileImage className="w-4 h-4 text-brand" />
+              <span>Share Setup & Pipeline Sync</span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-mono">
+              Save your setup to the planned pipeline, copy the link, or export the PNG trade card.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={handleSaveSetupToPipeline}
+              disabled={!isValidSetup || isSaving || isAlreadySaved}
+              className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
+                isAlreadySaved
+                  ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 cursor-default'
+                  : isValidSetup && !isSaving
+                    ? 'bg-[#2962FF] hover:bg-[#1E50E6] text-white shadow-[#2962FF]/20 active:scale-95'
+                    : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              {isAlreadySaved ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Saved to Pipeline</span>
+                </>
+              ) : isSaving ? (
+                <span>Saving...</span>
+              ) : (
+                <>
+                  <BookmarkCheck className="w-3.5 h-3.5" />
+                  <span>Save to Pipeline</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopyShareLink}
+              className="min-h-[40px] px-3.5 py-2 rounded-xl bg-term-bg hover:bg-term-hover border border-term-border text-xs font-mono font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Copy className="w-3.5 h-3.5 text-brand" />
+              <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadTradeCard}
+              disabled={isExporting || !isValidSetup}
+              className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
+                isValidSetup
+                  ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
+                  : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              <Share2 className="w-4 h-4" />
+              <span>
+                {isExporting 
+                  ? 'Generating...' 
+                  : isValidSetup 
+                    ? 'Share / Export (.PNG)' 
+                    : 'Incomplete'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* ================= TRADE CARD (EXPORTABLE) ================= */}
+        <div
+          ref={cardRef}
+          className="bg-term-card border border-brand-border/80 rounded-2xl p-4 sm:p-6 space-y-5 shadow-2xl relative overflow-hidden"
+        >
+          <div className="flex justify-between items-start border-b border-term-border/80 pb-4">
+            <div className="space-y-1">
+              {setupName && (
+                <div className="text-xs font-mono font-bold text-brand flex items-center gap-1.5 uppercase tracking-wider">
+                  <Tag className="w-3 h-3 text-brand" />
+                  <span>{setupName}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2.5">
+                <div className={`w-3 h-3 rounded-full ${selectedAsset.iconColor}`} />
+                <span className="text-lg sm:text-xl font-extrabold font-mono text-white tracking-wider">
+                  {selectedAsset.symbol}
+                </span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-black ${
+                    direction === 'LONG' ? 'bg-[#089981]/20 text-[#089981] border border-[#089981]/40' : 'bg-[#F23645]/20 text-[#F23645] border border-[#F23645]/40'
+                  }`}
+                >
+                  {direction} {calculatedLeverage > 0 ? `${calculatedLeverage}x` : ''}
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-slate-500">
+                Exchange: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Total Notional: <span className="text-slate-400">${totalPositionSizeUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </p>
+            </div>
+
+            <div className="text-right">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-700/60 font-mono text-[10px] text-brand font-bold">
+                <span>TRADE PLAN MATRIX</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+            <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
+              <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Avg. Entry Price</span>
+              <p className="text-base sm:text-lg font-mono font-bold text-white truncate">
+                {avgEntryPrice > 0 ? `$${avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+              </p>
+            </div>
+
+            <div className="bg-term-bg border border-[#F23645]/40 p-3 rounded-xl space-y-1">
+              <span className="text-[10px] font-mono text-[#F23645] font-medium uppercase">Stop Loss (Max Risk)</span>
+              <p className="text-base sm:text-lg font-mono font-bold text-[#F23645] truncate">
+                {numStopLoss > 0 ? `$${numStopLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+              </p>
+              <p className="text-[10px] font-mono text-slate-500">Loss: -${maxLossUsd.toFixed(2)}</p>
+            </div>
+
+            <div className="bg-term-bg border border-emerald-500/40 p-3 rounded-xl space-y-1">
+              <span className="text-[10px] font-mono text-emerald-400 font-medium uppercase">Total Net Profit</span>
+              <p className="text-base sm:text-lg font-mono font-bold text-emerald-400 truncate">
+                {totalNetProfitUSD > 0 ? `+$${totalNetProfitUSD.toFixed(2)}` : '-'}
+              </p>
+              <p className="text-[10px] font-mono text-slate-500">RoE: +{totalNetRoe.toFixed(1)}%</p>
+            </div>
+
+            <div className="bg-term-bg border border-brand-border/60 p-3 rounded-xl space-y-1">
+              <span className="text-[10px] font-mono text-brand font-medium uppercase">Risk / Reward (CRV)</span>
+              <p className="text-base sm:text-lg font-mono font-extrabold text-brand truncate">
+                {calculatedCrv ? `1 : ${calculatedCrv}` : '-'}
+              </p>
+              <p className="text-[10px] font-mono text-slate-500">Fees: -${totalFeesUSD.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono text-xs">
+            <div className="bg-term-card border border-term-border rounded-xl p-3.5 space-y-2">
+              <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block border-b border-term-border/60 pb-1.5">
+                Entries ({validTranches.length} tranches)
+              </span>
+              <div className="space-y-1">
+                {validTranches.map((t, i) => (
+                  <div key={t.id} className="flex justify-between text-[11px] text-slate-400">
+                    <span>Tranche #{i + 1} ({t.orderType})</span>
+                    <span className="text-white">${parseFloat(t.price).toLocaleString('en-US')} • <strong>${parseFloat(t.margin).toFixed(2)}</strong></span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-term-card border border-term-border rounded-xl p-3.5 space-y-2">
+              <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block border-b border-term-border/60 pb-1.5">
+                Exits ({calculatedStages.filter(s => s.hasInput && s.isDirectionValid).length} tiers)
+              </span>
+              <div className="space-y-1">
+                {calculatedStages.filter(s => s.hasInput && s.isDirectionValid).length > 0 ? (
+                  calculatedStages
+                    .filter(s => s.hasInput && s.isDirectionValid)
+                    .map((s, i) => (
+                      <div key={s.id} className="flex justify-between text-[11px] text-slate-400">
+                        <span>TP #{i + 1} (${s.calculatedTargetPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })})</span>
+                        <span className="text-emerald-400">+{s.calculatedRoe.toFixed(1)}% ({s.closePercent || 0}%)</span>
+                      </div>
+                    ))
+                ) : (
+                  <span className="text-[11px] text-slate-600 italic">No valid TPs defined yet.</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-term-border/50">
+            <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-400" /> Free Calculator → <strong>riskil.app/tools</strong></span>
+            <span className="text-slate-500 font-semibold">riskil.app</span>
+          </div>
+        </div>
+      </div>
+
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-term-border pb-3">
+              <span className="text-xs font-mono font-bold text-white">Trade Card Ready</span>
+              <button type="button" onClick={() => setPreviewImage(null)} className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-center">
+              <p className="text-[11px] font-mono text-emerald-400">Long-press the image to save it to your camera roll.</p>
+              <div className="rounded-xl overflow-hidden border border-term-border bg-black">
+                <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
+              </div>
+            </div>
+
+            <button type="button" onClick={() => setPreviewImage(null)} className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer">
+              Done / Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isCustomFeeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-term-border pb-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4 text-brand" />
+                <h3 className="text-sm font-bold text-white font-mono">Customize Exchange Fees</h3>
+              </div>
+              <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-term-bg transition cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomFees} className="space-y-4">
+              <p className="text-xs text-slate-400">Enter your exchange or VIP tier maker and taker fee percentages:</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-slate-400">Maker Fee (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={tempMakerFee}
+                      onChange={(e) => setTempMakerFee(e.target.value)}
+                      className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2 px-3 text-xs font-mono font-bold text-white outline-none"
+                      placeholder="0.02"
+                      required
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-slate-400">Taker Fee (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={tempTakerFee}
+                      onChange={(e) => setTempTakerFee(e.target.value)}
+                      className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2 px-3 text-xs font-mono font-bold text-white outline-none"
+                      placeholder="0.06"
+                      required
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer">
+                  Save & Apply
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+export default function FullPositionCalculator() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0d14] flex items-center justify-center text-slate-400 font-mono text-xs">Loading position planner...</div>}>
+      <FreeFullPositionPlannerInner />
+    </Suspense>
   )
 }

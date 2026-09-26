@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/context/AuthContext'
 import { UserPreferencesProvider } from '@/context/UserPreferencesContext'
+import { CustomTagsProvider } from '@/context/CustomTagsContext'
 import { ThemeProvider } from 'next-themes'
 
 const inter = Inter({
@@ -58,7 +59,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
             <UserPreferencesProvider>
-              {children}
+              <CustomTagsProvider>
+                {children}
+              </CustomTagsProvider>
             </UserPreferencesProvider>
           </AuthProvider>
         </ThemeProvider>

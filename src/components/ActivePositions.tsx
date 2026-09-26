@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Zap, BrainCircuit, Activity, Lock, X, ShieldAlert, CheckCircle2, Layers, SlidersHorizontal, AlertTriangle, Target } from 'lucide-react'
-
-const SETUP_CLASSES = ['Setup A: Perfekt', 'Setup B: Suboptimal', 'Setup C: Impulsiv / FOMO']
-const MENTAL_STATES = ['Fokus', 'FOMO', 'Müde', 'Frustriert (Revenge)', 'Gelangweilt', 'Überzeugt']
-const CONFLUENCES = ['Orderblock', 'Fibonacci', 'Imbalance', 'CVD-Divergenz', 'Liq-Cluster', 'Trendlinienbruch', 'Support/Resistance']
+import { Zap, BrainCircuit, Activity, Lock, X, ShieldAlert, CheckCircle2, Layers, SlidersHorizontal, AlertTriangle, Target, Settings2 } from 'lucide-react'
+import TagManagerModal from '@/components/TagManagerModal'
+import { useGlobalTags } from '@/context/CustomTagsContext'
 
 interface ActivePositionsProps {
   positions: any[]
@@ -22,7 +20,10 @@ export default function ActivePositions({
   initialPreTrades = {},
   historicalTrades = [] 
 }: ActivePositionsProps) {
-  
+  // Globaler Tag Context statt lokalem State
+  const { customTags, updateTags, resetToDefaults } = useGlobalTags()
+  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false)
+
   const [activeTags, setActiveTags] = useState<Record<string, string[]>>(initialActiveTags)
   const [preTradeData, setPreTradeData] = useState<Record<string, { energy: number, conviction: number, locked: boolean, initialSize?: number, preNotes?: string }>>(initialPreTrades)
   
@@ -214,9 +215,20 @@ export default function ActivePositions({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 px-0.5">
-        <Activity className="w-3.5 h-3.5 text-[#089981]" /> Live Positions & Eröffnungsanalyse
-      </h3>
+      <div className="flex items-center justify-between px-0.5">
+        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <Activity className="w-3.5 h-3.5 text-[#089981]" /> Live Positions & Eröffnungsanalyse
+        </h3>
+
+        <button
+          type="button"
+          onClick={() => setIsTagManagerOpen(true)}
+          className="px-2.5 py-1 bg-[#121622] hover:bg-[#161B26] border border-[#1E2536] hover:border-brand rounded-xl text-xs font-mono text-brand flex items-center gap-1.5 transition cursor-pointer"
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+          <span>Tags anpassen</span>
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 gap-4">
         {positions.map((pos, idx) => {
@@ -254,8 +266,6 @@ export default function ActivePositions({
               {hasWarning && <div className="absolute top-0 right-0 w-64 h-64 bg-[#089981]/5 rounded-full blur-3xl animate-pulse pointer-events-none" />}
 
               <div className="p-3.5 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 relative z-10 items-stretch">
-                
-                {/* METRICS PANEL */}
                 <div className={`${pData.locked && !showJustLockedBanner ? 'lg:col-span-4' : 'lg:col-span-5'} space-y-3 bg-[#07090E]/80 p-3.5 sm:p-4 rounded-xl border border-[#161A23] flex flex-col justify-between transition-all duration-300`}>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -301,14 +311,13 @@ export default function ActivePositions({
 
                   {selected.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {selected.filter(t => !SETUP_CLASSES.includes(t) && !MENTAL_STATES.includes(t)).map((t: string) => (
+                      {selected.filter(t => !customTags.setup_classes.includes(t) && !customTags.mental_states.includes(t)).map((t: string) => (
                         <span key={t} className="px-2 py-0.5 bg-[#121622] border border-[#1E2536] text-[10px] rounded-md text-slate-400 font-mono">#{t}</span>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* ERÖFFNUNGSANALYSE PANEL */}
                 <div className={`${pData.locked && !showJustLockedBanner ? 'lg:col-span-8' : 'lg:col-span-7'} space-y-4 flex flex-col justify-center transition-all duration-300`}>
                   {showJustLockedBanner ? (
                     <div className="flex flex-col items-center justify-center py-8 bg-[#089981]/10 border border-[#089981]/30 rounded-xl space-y-2 relative overflow-hidden animate-in fade-in zoom-in-95 duration-300 h-full p-4 text-center">
@@ -354,20 +363,19 @@ export default function ActivePositions({
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* 1. Setup Klasse */}
                       <div>
                         <p className="text-[10px] text-slate-400 mb-2 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
                           <Target className="w-3.5 h-3.5 text-brand" /> 1. Setup-Klasse
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          {SETUP_CLASSES.map(cls => {
+                          {customTags.setup_classes.map(cls => {
                             const isActive = selected.includes(cls)
-                            const isC = cls.includes('Setup C')
+                            const isC = cls.includes('Setup C') || cls.toLowerCase().includes('fomo') || cls.toLowerCase().includes('impulsiv')
                             return (
                               <button
                                 key={cls}
                                 type="button"
-                                onClick={() => toggleTag(uniqueKey, cls, SETUP_CLASSES)}
+                                onClick={() => toggleTag(uniqueKey, cls, customTags.setup_classes)}
                                 className={`min-h-[42px] px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer text-left flex items-center ${
                                   isActive
                                     ? isC 
@@ -384,20 +392,19 @@ export default function ActivePositions({
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* 2. Mental State */}
                         <div>
                           <p className="text-[10px] text-slate-400 mb-2 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
                             <BrainCircuit className="w-3.5 h-3.5 text-purple-400" /> 2. Mentale Verfassung
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {MENTAL_STATES.map(state => {
+                            {customTags.mental_states.map(state => {
                               const isActive = selected.includes(state)
                               const isToxic = state === 'FOMO' || state.includes('Frustriert') || state === 'Gelangweilt'
                               return (
                                 <button
                                   key={state}
                                   type="button"
-                                  onClick={() => toggleTag(uniqueKey, state, MENTAL_STATES)}
+                                  onClick={() => toggleTag(uniqueKey, state, customTags.mental_states)}
                                   className={`min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer flex items-center ${
                                     isActive
                                       ? isToxic 
@@ -413,13 +420,12 @@ export default function ActivePositions({
                           </div>
                         </div>
 
-                        {/* 3. Confluences */}
                         <div>
                           <p className="text-[10px] text-slate-400 mb-2 font-semibold flex items-center gap-1.5 uppercase tracking-wider">
                             <Layers className="w-3.5 h-3.5 text-amber-400" /> 3. Konfluenz-Faktoren
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {CONFLUENCES.map(tag => {
+                            {customTags.confluences.map(tag => {
                               const isActive = selected.includes(tag)
                               return (
                                 <button
@@ -440,7 +446,6 @@ export default function ActivePositions({
                         </div>
                       </div>
 
-                      {/* 4. Eröffnungsnotiz & Conviction */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-[#161A23]">
                         <div>
                           <label className="text-[10px] text-slate-500 mb-1.5 font-medium flex items-center justify-between uppercase tracking-wider">
@@ -468,7 +473,7 @@ export default function ActivePositions({
                             onChange={(e) => handleSliderUpdate(uniqueKey, 'conviction', Number(e.target.value))}
                             className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#161A23] accent-brand"
                           />
-                          <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                          <div className="flex justify-between text-[10px] font-mono text-slate-500">
                             <span>Zweifel</span><span>Absolut sicher</span>
                           </div>
                         </div>
@@ -478,7 +483,7 @@ export default function ActivePositions({
                         <button
                           type="button"
                           onClick={() => handleLockPreTrade(uniqueKey, absoluteSize)}
-                          disabled={!selected.some(t => SETUP_CLASSES.includes(t)) || !selected.some(t => MENTAL_STATES.includes(t))}
+                          disabled={!selected.some(t => customTags.setup_classes.includes(t)) || !selected.some(t => customTags.mental_states.includes(t))}
                           className="w-full min-h-[46px] py-3 bg-[#089981] hover:bg-[#067a67] disabled:bg-[#161A23] disabled:text-slate-600 text-white font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-[#089981]/20 disabled:shadow-none cursor-pointer active:scale-[0.99]"
                         >
                           <Lock className="w-4 h-4" /> Einstiegsanalyse sichern
@@ -487,7 +492,6 @@ export default function ActivePositions({
                     </div>
                   )}
                 </div>
-
               </div>
 
               {hasWarning && currentWarning && (
@@ -556,6 +560,14 @@ export default function ActivePositions({
           </div>
         </div>
       )}
+
+      <TagManagerModal
+        isOpen={isTagManagerOpen}
+        onClose={() => setIsTagManagerOpen(false)}
+        currentTags={customTags}
+        onSaveTags={updateTags}
+        onResetToDefaults={resetToDefaults}
+      />
     </div>
   )
 }

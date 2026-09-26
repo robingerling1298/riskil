@@ -1,19 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { toPng } from 'html-to-image'
 import {
   Plus,
   Trash2,
   ArrowUpRight,
   ArrowDownRight,
-  Crown,
-  SlidersHorizontal,
-  BarChart3,
-  TrendingUp,
-  PieChart,
-  Zap,
   ChevronDown,
-  PlusCircle,
+  Search,
+  Check,
+  Calculator,
+  Target,
+  Settings,
+  ArrowRight,
+  Sliders,
+  X,
+  Zap,
+  ShieldCheck,
+  FileImage,
+  TrendingUp,
+  Share2,
+  Copy,
+  BookOpen
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -26,13 +36,10 @@ import {
   CartesianGrid,
 } from 'recharts'
 import { TradeData } from '@/components/LogTradeModal'
-import { useAuth } from '@/context/AuthContext'
-import {
-  useUserPreferences,
-  EXCHANGES,
-  ExchangeId,
-} from '@/context/UserPreferencesContext'
-import { supabase } from '@/lib/supabase/client'
+
+export interface TakeProfitPlannerProps {
+  onLogTrade?: (data: TradeData) => void
+}
 
 interface TpStage {
   id: string
@@ -42,11 +49,43 @@ interface TpStage {
   closePercent: string
 }
 
+interface AssetOption {
+  symbol: string
+  name: string
+  iconColor: string
+}
+
+interface ExchangePreset {
+  id: string
+  name: string
+  makerFee: number
+  takerFee: number
+}
+
+const EXCHANGES: ExchangePreset[] = [
+  { id: 'hyperliquid', name: 'Hyperliquid (VIP0)', makerFee: 0.01, takerFee: 0.035 },
+  { id: 'bitget', name: 'Bitget (VIP0)', makerFee: 0.02, takerFee: 0.06 },
+  { id: 'bybit', name: 'Bybit (VIP0)', makerFee: 0.02, takerFee: 0.055 },
+  { id: 'binance', name: 'Binance (VIP0)', makerFee: 0.02, takerFee: 0.05 },
+  { id: 'okx', name: 'OKX (VIP0)', makerFee: 0.02, takerFee: 0.05 },
+  { id: 'custom', name: 'Custom Fees', makerFee: 0.02, takerFee: 0.06 }
+]
+
+const POPULAR_ASSETS: AssetOption[] = [
+  { symbol: 'BTCUSDT', name: 'Bitcoin', iconColor: 'bg-amber-500' },
+  { symbol: 'ETHUSDT', name: 'Ethereum', iconColor: 'bg-indigo-500' },
+  { symbol: 'SOLUSDT', name: 'Solana', iconColor: 'bg-purple-500' },
+  { symbol: 'HYPEUSDT', name: 'Hyperliquid', iconColor: 'bg-emerald-400' },
+  { symbol: 'XRPUSDT', name: 'Ripple', iconColor: 'bg-blue-400' },
+  { symbol: 'BNBUSDT', name: 'Binance Coin', iconColor: 'bg-yellow-500' },
+  { symbol: 'DOGEUSDT', name: 'Dogecoin', iconColor: 'bg-yellow-600' },
+  { symbol: 'AVAXUSDT', name: 'Avalanche', iconColor: 'bg-red-500' },
+]
+
 interface Preset {
   id: string
   label: string
   description: string
-  isPro?: boolean
   stages: Array<{ roePercent: string; closePercent: string }>
 }
 
@@ -72,8 +111,7 @@ const PRESETS: Preset[] = [
   {
     id: 'moonshot',
     label: '🚀 Moonshot Runner',
-    description: '3 Stufen + Rest als Runner',
-    isPro: true,
+    description: '3 Tiers + 40% Runner in Market',
     stages: [
       { roePercent: '25', closePercent: '50' },
       { roePercent: '50', closePercent: '50' },
@@ -82,63 +120,37 @@ const PRESETS: Preset[] = [
   },
 ]
 
-const MAX_FREE_STAGES = 2
+function FreeTakeProfitPlannerInner({ onLogTrade }: TakeProfitPlannerProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-interface TakeProfitPlannerProps {
-  onOpenPaywall?: () => void
-  onLogTrade?: (data: TradeData) => void
-}
+  const [selectedExchangeId, setSelectedExchangeId] = useState<string>('hyperliquid')
+  const [customFees, setCustomFees] = useState<{ maker: number; taker: number }>({ maker: 0.02, taker: 0.06 })
+  const [isCustomFeeModalOpen, setIsCustomFeeModalOpen] = useState<boolean>(false)
+  const [tempMakerFee, setTempMakerFee] = useState<string>('0.02')
+  const [tempTakerFee, setTempTakerFee] = useState<string>('0.06')
 
-export default function TakeProfitPlanner({
-  onOpenPaywall,
-  onLogTrade,
-}: TakeProfitPlannerProps) {
-  const { isPro } = useAuth()
+  const [selectedAsset, setSelectedAsset] = useState<AssetOption>(POPULAR_ASSETS[0])
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null)
+  const [priceChange24h, setPriceChange24h] = useState<number | null>(null)
 
-  // --- Global User Preferences Context ---
-  const { defaultExchange, defaultOrderType, getFeeForType } = useUserPreferences()
+  const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState<boolean>(false)
+  const [isExchangeDropdownOpen, setIsExchangeDropdownOpen] = useState<boolean>(false)
+  const [searchQuery, setSearchQuery] = useState<string>('')
+
+  const [isExporting, setIsExporting] = useState<boolean>(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [copySuccess, setCopySuccess] = useState<boolean>(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const assetDropdownRef = useRef<HTMLDivElement>(null)
+  const exchangeDropdownRef = useRef<HTMLDivElement>(null)
 
   const [positionType, setPositionType] = useState<'LONG' | 'SHORT'>('LONG')
   const [margin, setMargin] = useState<string>('')
   const [leverage, setLeverage] = useState<string>('')
   const [entryPrice, setEntryPrice] = useState<string>('')
+  const [entryOrderType, setEntryOrderType] = useState<'maker' | 'taker'>('maker')
 
-  // --- Advanced Options / Fee States ---
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false)
-  const [selectedExchange, setSelectedExchange] = useState<ExchangeId | 'custom'>(defaultExchange)
-
-  // Direct Supabase Fetch for selected_exchange
-  useEffect(() => {
-    async function loadUserExchange() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        const { data: settings } = await supabase
-          .from('user_settings')
-          .select('selected_exchange')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        if (settings?.selected_exchange) {
-          setSelectedExchange(settings.selected_exchange as ExchangeId)
-        }
-      } catch (err) {
-        console.error('Fehler beim Laden der Börsen-Einstellung aus Supabase:', err)
-      }
-    }
-
-    loadUserExchange()
-  }, [])
-
-  const initialOrderKind = defaultOrderType === 'LIMIT' ? 'maker' : 'taker'
-  const [entryOrderType, setEntryOrderType] = useState<'maker' | 'taker'>(initialOrderKind)
-  const [exitOrderType, setExitOrderType] = useState<'maker' | 'taker'>('maker')
-
-  const [customMakerFee, setCustomMakerFee] = useState<number>(0.02)
-  const [customTakerFee, setCustomTakerFee] = useState<number>(0.06)
-
-  // Standard-Initialisierung: 1. TP auf 10% ROE / 100% Verkauf der Restposition
   const [tpStages, setTpStages] = useState<TpStage[]>([
     {
       id: '1',
@@ -149,17 +161,111 @@ export default function TakeProfitPlanner({
     },
   ])
 
+  const isLong = positionType === 'LONG'
+  const isCustomAsset = selectedAsset.symbol === 'CUSTOM / MANUAL'
+
+  useEffect(() => {
+    const assetParam = searchParams.get('asset')
+    if (assetParam) {
+      const found = POPULAR_ASSETS.find(a => a.symbol === assetParam)
+      if (found) setSelectedAsset(found)
+    }
+    const dirParam = searchParams.get('dir')
+    if (dirParam === 'LONG' || dirParam === 'SHORT') setPositionType(dirParam)
+
+    const marginParam = searchParams.get('m')
+    if (marginParam) setMargin(marginParam)
+
+    const levParam = searchParams.get('lev')
+    if (levParam) setLeverage(levParam)
+
+    const entryParam = searchParams.get('entry')
+    if (entryParam) setEntryPrice(entryParam)
+
+    const tp1Roe = searchParams.get('tp1_roe')
+    const tp1Close = searchParams.get('tp1_close')
+    if (tp1Roe || tp1Close) {
+      setTpStages([{
+        id: '1',
+        mode: 'ROE',
+        roePercent: tp1Roe || '',
+        targetPrice: '',
+        closePercent: tp1Close || ''
+      }])
+    }
+  }, [searchParams])
+
+  const updateShareUrl = () => {
+    const params = new URLSearchParams()
+    params.set('asset', selectedAsset.symbol)
+    params.set('dir', positionType)
+    if (margin) params.set('m', margin)
+    if (leverage) params.set('lev', leverage)
+    if (entryPrice) params.set('entry', entryPrice)
+    if (tpStages[0]?.roePercent) params.set('tp1_roe', tpStages[0].roePercent)
+    if (tpStages[0]?.closePercent) params.set('tp1_close', tpStages[0].closePercent)
+
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateShareUrl()
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [selectedAsset, positionType, margin, leverage, entryPrice, tpStages])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assetDropdownRef.current && !assetDropdownRef.current.contains(event.target as Node)) {
+        setIsAssetDropdownOpen(false)
+      }
+      if (exchangeDropdownRef.current && !exchangeDropdownRef.current.contains(event.target as Node)) {
+        setIsExchangeDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const fetchLivePrice = async (symbol: string) => {
+    if (symbol === 'CUSTOM / MANUAL') {
+      setCurrentPrice(null)
+      setPriceChange24h(null)
+      return
+    }
+
+    try {
+      const res = await fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`)
+      const data = await res.json()
+      if (data.result?.list?.[0]) {
+        const item = data.result.list[0]
+        setCurrentPrice(parseFloat(item.lastPrice))
+        if (item.price24hPcnt) {
+          setPriceChange24h(parseFloat(item.price24hPcnt) * 100)
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  useEffect(() => {
+    fetchLivePrice(selectedAsset.symbol)
+    if (selectedAsset.symbol === 'CUSTOM / MANUAL') return
+    const interval = setInterval(() => {
+      fetchLivePrice(selectedAsset.symbol)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [selectedAsset])
+
+  const handleUseCurrentPrice = () => {
+    if (currentPrice) {
+      setEntryPrice(currentPrice.toString())
+    }
+  }
+
   const handleApplyPreset = (preset: Preset) => {
-    if (preset.isPro && !isPro) {
-      onOpenPaywall?.()
-      return
-    }
-
-    if (!isPro && preset.stages.length > MAX_FREE_STAGES) {
-      onOpenPaywall?.()
-      return
-    }
-
     const newStages: TpStage[] = preset.stages.map((s, idx) => ({
       id: `${Date.now()}-${idx}`,
       mode: 'ROE',
@@ -167,15 +273,10 @@ export default function TakeProfitPlanner({
       targetPrice: '',
       closePercent: s.closePercent,
     }))
-
     setTpStages(newStages)
   }
 
   const handleAddTpStage = () => {
-    if (!isPro && tpStages.length >= MAX_FREE_STAGES) {
-      if (onOpenPaywall) onOpenPaywall()
-      return
-    }
     setTpStages((prev) => [
       ...prev,
       {
@@ -193,11 +294,7 @@ export default function TakeProfitPlanner({
     setTpStages((prev) => prev.filter((stage) => stage.id !== id))
   }
 
-  const handleTpStageChange = (
-    id: string,
-    field: keyof TpStage,
-    value: string
-  ) => {
+  const handleTpStageChange = (id: string, field: keyof TpStage, value: string) => {
     setTpStages((prev) =>
       prev.map((stage) => {
         if (stage.id !== id) return stage
@@ -222,523 +319,595 @@ export default function TakeProfitPlanner({
     )
   }
 
-  // ------------------ CALCULATION ENGINE ------------------
   const parsedMargin = parseFloat(margin) || 0
-  const parsedLeverage = parseFloat(leverage) || 1
+  const parsedLeverage = Math.floor(parseFloat(leverage) || 1)
   const parsedEntry = parseFloat(entryPrice) || 0
   const positionSize = parsedMargin * parsedLeverage
 
-  // Fee Rates ermitteln
-  const currentExchangeConfig =
-    selectedExchange !== 'custom' ? EXCHANGES[selectedExchange] : null
-
-  // Dynamischer Name der ausgewählten Börse für den Header-Badge
-  const displayExchangeName =
-    selectedExchange === 'custom'
-      ? 'Custom / Manuell'
-      : currentExchangeConfig?.name || 'Bitget'
-
-  const makerRate =
-    selectedExchange === 'custom'
-      ? customMakerFee
-      : currentExchangeConfig
-      ? currentExchangeConfig.makerFee
-      : getFeeForType('LIMIT')
-
-  const takerRate =
-    selectedExchange === 'custom'
-      ? customTakerFee
-      : currentExchangeConfig
-      ? currentExchangeConfig.takerFee
-      : getFeeForType('MARKET')
+  const currentExchangeConfig = EXCHANGES.find(e => e.id === selectedExchangeId) || EXCHANGES[0]
+  const makerRate = selectedExchangeId === 'custom' ? customFees.maker : currentExchangeConfig.makerFee
+  const takerRate = selectedExchangeId === 'custom' ? customFees.taker : currentExchangeConfig.takerFee
 
   const entryFeeRate = (entryOrderType === 'maker' ? makerRate : takerRate) / 100
-  const exitFeeRate = (exitOrderType === 'maker' ? makerRate : takerRate) / 100
-
-  // Entry Fee Berechnung
+  const exitFeeRate = makerRate / 100
   const entryFeeUSD = positionSize * entryFeeRate
 
-  const preCalculatedStages = tpStages.map((stage) => {
+  let runningRemainingMargin = parsedMargin
+  let totalGrossProfit = 0
+  let totalExitFeesUSD = 0
+
+  const calculatedStages = tpStages.map((stage) => {
+    const rawRoe = parseFloat(stage.roePercent) || 0
+    const rawPrice = parseFloat(stage.targetPrice) || 0
+    const hasInput = stage.mode === 'ROE' ? rawRoe > 0 : rawPrice > 0
+
     let targetPrice = 0
     let roePercent = 0
 
-    if (stage.mode === 'ROE') {
-      roePercent = parseFloat(stage.roePercent) || 0
-      const priceChangePct = roePercent / parsedLeverage / 100
-      targetPrice =
-        positionType === 'LONG'
-          ? parsedEntry * (1 + priceChangePct)
-          : parsedEntry * (1 - priceChangePct)
-    } else {
-      targetPrice = parseFloat(stage.targetPrice) || 0
-      if (parsedEntry > 0) {
-        const diff =
-          positionType === 'LONG'
-            ? targetPrice - parsedEntry
-            : parsedEntry - targetPrice
-        roePercent = (diff / parsedEntry) * parsedLeverage * 100
+    if (hasInput && parsedEntry > 0 && parsedLeverage > 0) {
+      if (stage.mode === 'ROE') {
+        roePercent = rawRoe
+        const priceChangePct = (roePercent / parsedLeverage) / 100
+        targetPrice = isLong ? parsedEntry * (1 + priceChangePct) : parsedEntry * (1 - priceChangePct)
+      } else {
+        targetPrice = rawPrice
+        const priceDiff = isLong ? (targetPrice - parsedEntry) : (parsedEntry - targetPrice)
+        roePercent = (priceDiff / parsedEntry) * parsedLeverage * 100
       }
     }
 
-    return {
-      ...stage,
-      targetPrice,
-      roePercent,
-    }
-  })
-
-  const sortedStages = [...preCalculatedStages].sort((a, b) => {
-    if (positionType === 'LONG') {
-      return a.targetPrice - b.targetPrice
-    } else {
-      return b.targetPrice - a.targetPrice
-    }
-  })
-
-  let currentRemainingMargin = parsedMargin
-  let totalGrossProfit = 0
-  let totalExitFeesUSD = 0
-  const processedStagesMap = new Map()
-
-  sortedStages.forEach((stage) => {
-    // DYNAMISCHE BERECHNUNG: Schließe X% von der VERBLEIBENDEN Marge
+    const isDirectionValid = targetPrice > 0 && (isLong ? targetPrice > parsedEntry : targetPrice < parsedEntry)
     const closePctOfRemaining = Math.min(100, Math.max(0, parseFloat(stage.closePercent) || 0)) / 100
-    const currentTrancheMargin = currentRemainingMargin * closePctOfRemaining
-    const trancheProfit = currentTrancheMargin * (stage.roePercent / 100)
+    const trancheMargin = runningRemainingMargin * closePctOfRemaining
+    const trancheProfit = trancheMargin * (roePercent / 100)
 
-    // Tranchen-Ausstiegsgebühr
-    const trancheVolumeUSD = currentTrancheMargin * parsedLeverage
+    const trancheVolumeUSD = trancheMargin * parsedLeverage
     const trancheUnits = parsedEntry > 0 ? trancheVolumeUSD / parsedEntry : 0
-    const trancheExitVolumeUSD = trancheUnits * stage.targetPrice
+    const trancheExitVolumeUSD = trancheUnits * targetPrice
     const trancheExitFee = trancheExitVolumeUSD * exitFeeRate
 
-    totalGrossProfit += trancheProfit
-    totalExitFeesUSD += trancheExitFee
-    currentRemainingMargin = Math.max(0, currentRemainingMargin - currentTrancheMargin)
+    if (hasInput && isDirectionValid && trancheMargin > 0 && parsedLeverage > 0) {
+      totalGrossProfit += trancheProfit
+      totalExitFeesUSD += trancheExitFee
+      runningRemainingMargin = Math.max(0, runningRemainingMargin - trancheMargin)
+    }
 
-    const remainingMarginPct =
-      parsedMargin > 0 ? (currentRemainingMargin / parsedMargin) * 100 : 0
-    const totalClosedMarginPct =
-      parsedMargin > 0 ? ((parsedMargin - currentRemainingMargin) / parsedMargin) * 100 : 0
+    const remainingMarginPct = parsedMargin > 0 ? (runningRemainingMargin / parsedMargin) * 100 : 0
 
-    processedStagesMap.set(stage.id, {
+    return {
       ...stage,
-      calculatedTargetPrice: stage.targetPrice,
-      calculatedRoe: stage.roePercent,
-      trancheMargin: currentTrancheMargin,
+      hasInput,
+      calculatedTargetPrice: targetPrice,
+      calculatedRoe: roePercent,
+      isDirectionValid,
+      trancheMargin,
       trancheProfit,
       trancheExitFee,
-      netTrancheProfit: trancheProfit - trancheExitFee,
-      remainingMargin: currentRemainingMargin,
+      netTrancheProfit: hasInput && isDirectionValid ? (trancheProfit - trancheExitFee) : 0,
+      remainingMargin: runningRemainingMargin,
       remainingMarginPct,
-      totalClosedMarginPct,
-    })
+    }
   })
-
-  const calculatedStages = tpStages.map((stage) =>
-    processedStagesMap.get(stage.id)
-  )
 
   const totalFeesUSD = entryFeeUSD + totalExitFeesUSD
   const totalNetProfitUSD = totalGrossProfit - totalFeesUSD
   const totalNetRoe = parsedMargin > 0 ? (totalNetProfitUSD / parsedMargin) * 100 : 0
-  const isMaxReached = !isPro && tpStages.length >= MAX_FREE_STAGES
 
-  // ------------------ CHART DATA GENERATOR ------------------
+  const isValidSetup = parsedMargin > 0 && parsedLeverage > 0 && parsedEntry > 0 && tpStages.some(s => {
+    const rVal = parseFloat(s.roePercent) || 0
+    const pVal = parseFloat(s.targetPrice) || 0
+    return s.mode === 'ROE' ? rVal > 0 : (isLong ? pVal > parsedEntry : pVal > 0 && pVal < parsedEntry)
+  })
+
   let accumProfit = 0
   const chartData = [
     {
-      name: 'Einstieg',
+      name: 'Entry',
       price: parsedEntry,
       gewinn: 0,
       restPosition: 100,
     },
-    ...calculatedStages.map((s, idx) => {
-      accumProfit += s?.netTrancheProfit || 0
-      return {
-        name: `TP #${idx + 1}`,
-        price: s?.calculatedTargetPrice || 0,
-        gewinn: parseFloat(accumProfit.toFixed(2)),
-        restPosition: parseFloat((s?.remainingMarginPct || 0).toFixed(1)),
-      }
-    }),
+    ...calculatedStages
+      .filter(s => s.hasInput && s.isDirectionValid)
+      .map((s, idx) => {
+        accumProfit += s.netTrancheProfit
+        return {
+          name: `TP #${idx + 1}`,
+          price: s.calculatedTargetPrice,
+          gewinn: parseFloat(accumProfit.toFixed(2)),
+          restPosition: parseFloat(s.remainingMarginPct.toFixed(1)),
+        }
+      }),
   ]
 
-  // First TP for Journal Log
-  const firstTpPrice = calculatedStages[0]?.calculatedTargetPrice
+  const filteredAssets = POPULAR_ASSETS.filter(a =>
+    a.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const renderExchangeIcon = (id: string) => {
+    switch (id) {
+      case 'hyperliquid':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#10B981" fillOpacity="0.2" />
+            <path d="M12 4L19 12L12 20L5 12L12 4Z" fill="#10B981" />
+          </svg>
+        )
+      case 'bitget':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#03AAC1" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+        )
+      case 'bybit':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#F7A600" fillOpacity="0.15" />
+            <path d="M7 7H12C13.6569 7 15 8.34315 15 10C15 10.9 14.5 11.7 13.8 12.2C14.8 12.7 15.5 13.7 15.5 15C15.5 16.6569 14.1569 18 12.5 18H7V7ZM9.5 9.2V11.3H11.8C12.4 11.3 12.9 10.8 12.9 10.25C12.9 9.7 12.4 9.2 11.8 9.2H9.5ZM9.5 13.5V15.8H12.3C12.95 15.8 13.45 15.3 13.45 14.65C13.45 14 12.95 13.5 12.3 13.5H9.5Z" fill="#F7A600" />
+          </svg>
+        )
+      case 'binance':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#F0B90B" fillOpacity="0.15" />
+            <path d="M12 7L14.5 9.5L12 12L9.5 9.5L12 7ZM16.5 11.5L19 14L16.5 16.5L14 14L16.5 11.5ZM7.5 11.5L10 14L7.5 16.5L5 14L7.5 11.5ZM12 16L14.5 18.5L12 21L9.5 18.5L12 16ZM12 13.2L13.8 15L12 16.8L10.2 15L12 13.2Z" fill="#F0B90B" />
+          </svg>
+        )
+      case 'okx':
+        return (
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="white" fillOpacity="0.15" />
+            <rect x="6.5" y="6.5" width="4" height="4" fill="white" />
+            <rect x="13.5" y="6.5" width="4" height="4" fill="white" />
+            <rect x="10" y="10" width="4" height="4" fill="white" />
+            <rect x="6.5" y="13.5" width="4" height="4" fill="white" />
+            <rect x="13.5" y="13.5" width="4" height="4" fill="white" />
+          </svg>
+        )
+      default:
+        return <Sliders className="w-3.5 h-3.5 text-brand shrink-0" />
+    }
+  }
+
+  const handleSaveCustomFees = (e: React.FormEvent) => {
+    e.preventDefault()
+    const m = parseFloat(tempMakerFee) || 0.02
+    const t = parseFloat(tempTakerFee) || 0.06
+    setCustomFees({ maker: m, taker: t })
+    setSelectedExchangeId('custom')
+    setIsCustomFeeModalOpen(false)
+  }
+
+  const handleDownloadTradeCard = async () => {
+    if (!cardRef.current) return
+    setIsExporting(true)
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2.5,
+        backgroundColor: '#0a0d14'
+      })
+
+      if (navigator.canShare && navigator.share) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob()
+          const file = new File([blob], `RISKIL_${selectedAsset.symbol}_${positionType}_TP.png`, { type: 'image/png' })
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `${selectedAsset.symbol} ${positionType} Take-Profit Plan`,
+              text: `Planned via RISKIL Free TP Planner`
+            })
+            setIsExporting(false)
+            return
+          }
+        } catch {
+          // Fallback
+        }
+      }
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        setPreviewImage(dataUrl)
+      } else {
+        const link = document.createElement('a')
+        link.download = `RISKIL_${selectedAsset.symbol}_${positionType}_TP_Plan.png`
+        link.href = dataUrl
+        link.click()
+      }
+    } catch (err) {
+      console.error('Error exporting TP card:', err)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleCopyShareLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopySuccess(true)
+    setTimeout(() => setCopySuccess(false), 2000)
+  }
+
+  const handleTriggerLogTrade = () => {
+    if (!onLogTrade) return
+
+    const tps = calculatedStages
+      .filter(s => s.hasInput && s.isDirectionValid && s.calculatedTargetPrice > 0)
+      .map(s => Number(s.calculatedTargetPrice.toFixed(2)))
+
+    const data: TradeData = {
+      pair: selectedAsset.symbol === 'CUSTOM / MANUAL' ? 'BTC/USDT' : selectedAsset.symbol,
+      direction: positionType,
+      entryPrice: parsedEntry > 0 ? Number(parsedEntry.toFixed(2)) : 0,
+      leverage: parsedLeverage > 0 ? parsedLeverage : 1,
+      margin: parsedMargin > 0 ? Number(parsedMargin.toFixed(2)) : 0,
+      takeProfits: tps.length > 0 ? tps : undefined,
+      takeProfit: tps.length > 0 ? tps[0] : undefined,
+    }
+
+    onLogTrade(data)
+  }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto p-2 sm:p-4 text-slate-200 font-sans tracking-normal">
-
-      {/* 1. POSITION PARAMETER CARD */}
-      <div className="relative p-6 bg-term-card border border-term-border rounded-3xl shadow-xl space-y-6">
-        
-        {/* KOPFZEILE MIT LOGO UND GROSSEM RECHTSBÜNDIGEM BÖRSEN-BADGE */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-term-border">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-brand/15 text-brand rounded-xl">
-              <SlidersHorizontal className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
-              1. Position Parameter
-            </h3>
-          </div>
-
-          {/* Vergrößertes, rechtsbündiges Börsen-Badge */}
-          <div className="flex items-center gap-2.5 bg-term-bg px-4 py-2 rounded-xl border border-term-border shadow-sm ml-auto">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                selectedExchange === 'custom'
-                  ? 'bg-amber-400'
-                  : currentExchangeConfig?.logoColor || 'bg-brand'
-              }`}
-            />
-            <span className="text-sm font-bold font-mono text-white">
-              {displayExchangeName}
-            </span>
-            <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-brand/10 text-brand font-semibold border border-brand/20">
-              {entryOrderType === 'maker'
-                ? `Maker (${makerRate}%)`
-                : `Taker (${takerRate}%)`}
-            </span>
-          </div>
+    <div className="w-full max-w-4xl mx-auto space-y-8 text-slate-100 font-sans pb-20">
+      {/* ================= HERO SECTION (PRO SUITE) ================= */}
+      <div className="text-center space-y-4 pt-4 pb-2 max-w-2xl mx-auto">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
+          <Target className="w-3.5 h-3.5" />
+          Pro Suite • Take-Profit & Scale-Out Matrix
         </div>
 
-        {/* LONG / SHORT ORDER-TYP SWITCH (ANALOG ZU MARKET/LIMIT) */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-400">Positions-Richtung</label>
-          <div className="grid grid-cols-2 bg-term-bg p-1 border border-term-border rounded-2xl text-xs gap-1">
-            <button
-              type="button"
-              onClick={() => setPositionType('LONG')}
-              className={`py-2 rounded-xl font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-2 ${
-                positionType === 'LONG'
-                  ? 'bg-[#089981] text-white font-bold shadow-[0_0_12px_rgba(8,153,129,0.4)]'
-                  : 'text-slate-400 hover:text-white hover:bg-term-card/40'
-              }`}
-            >
-              <ArrowUpRight className="w-4 h-4" />
-              <span>LONG</span>
-            </button>
+        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          Plan Profits & Tiered Exits <br className="hidden sm:inline" /> with Precision.
+        </h1>
 
-            <button
-              type="button"
-              onClick={() => setPositionType('SHORT')}
-              className={`py-2 rounded-xl font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-2 ${
-                positionType === 'SHORT'
-                  ? 'bg-[#F23645] text-white font-bold shadow-[0_0_12px_rgba(242,54,69,0.4)]'
-                  : 'text-slate-400 hover:text-white hover:bg-term-card/40'
-              }`}
-            >
-              <ArrowDownRight className="w-4 h-4" />
-              <span>SHORT</span>
-            </button>
-          </div>
-        </div>
+        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
+          Scale out partial profits systematically, factor in exchange maker fees dynamically, and synchronize exit tiers directly into your journal.
+        </p>
 
-        {/* ORDER-TYP SWITCH IN VOLLER BREITE ÜBER DEN INPUTS */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-400">Order-Typ Einstieg</label>
-          <div className="grid grid-cols-2 bg-term-bg p-1 border border-term-border rounded-2xl text-xs gap-1">
-            <button
-              type="button"
-              onClick={() => setEntryOrderType('maker')}
-              className={`py-2 rounded-xl font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-2 ${
-                entryOrderType === 'maker'
-                  ? 'bg-brand text-black font-bold shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-term-card/40'
-              }`}
-            >
-              <span>Limit Order</span>
-              <span className="text-[10px] font-normal opacity-80">(Maker Fee: {makerRate}%)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setEntryOrderType('taker')}
-              className={`py-2 rounded-xl font-semibold transition-all cursor-pointer text-center flex items-center justify-center gap-2 ${
-                entryOrderType === 'taker'
-                  ? 'bg-brand text-black font-bold shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-term-card/40'
-              }`}
-            >
-              <span>Market Order</span>
-              <span className="text-[10px] font-normal opacity-80">(Taker Fee: {takerRate}%)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* INPUT-GRID FÜR MARGE, HEBEL & EINSTIEGSKURS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-400">Marge ($)</label>
-            <div className="flex items-center bg-term-bg border border-term-border focus-within:border-brand focus-within:ring-1 focus-within:ring-brand rounded-xl px-3.5 py-2.5 transition">
-              <input
-                type="number"
-                value={margin || ''}
-                onChange={(e) => setMargin(e.target.value)}
-                placeholder="200"
-                className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-600"
-              />
-              <span className="text-xs font-bold text-brand ml-1.5">$</span>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-400">Hebel (x)</label>
-            <div className="flex items-center bg-term-bg border border-term-border focus-within:border-brand focus-within:ring-1 focus-within:ring-brand rounded-xl px-3.5 py-2.5 transition">
-              <input
-                type="number"
-                value={leverage || ''}
-                onChange={(e) => setLeverage(e.target.value)}
-                placeholder="10"
-                className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-600"
-              />
-              <span className="text-xs font-bold text-brand ml-1.5">x</span>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-400">Einstiegskurs ($)</label>
-            <div className="flex items-center bg-term-bg border border-term-border focus-within:border-brand focus-within:ring-1 focus-within:ring-brand rounded-xl px-3.5 py-2.5 transition">
-              <input
-                type="number"
-                value={entryPrice || ''}
-                onChange={(e) => setEntryPrice(e.target.value)}
-                placeholder="85000"
-                className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-600"
-              />
-              <span className="text-xs font-bold text-brand ml-1.5">$</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ADVANCED OPTIONS ACCORDION */}
-        <div className="border border-term-border rounded-2xl bg-term-bg/60 overflow-hidden text-xs">
-          <button
-            type="button"
-            onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-            className="w-full px-4 py-3 flex items-center justify-between text-slate-300 hover:text-white hover:bg-term-card/50 transition cursor-pointer"
-          >
-            <div className="flex items-center gap-2 font-semibold text-xs text-slate-300">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-brand" />
-              <span>Erweiterte Optionen: Börsengebühren & Order-Typen Override</span>
-            </div>
-            <ChevronDown
-              className={`w-4 h-4 transition-transform duration-200 ${
-                isAdvancedOpen ? 'rotate-180 text-brand' : 'text-slate-500'
-              }`}
-            />
-          </button>
-
-          {isAdvancedOpen && (
-            <div className="p-4 border-t border-term-border space-y-4 bg-term-card/80">
-              <div className="space-y-1.5">
-                <label className="text-xs text-slate-400 font-medium">
-                  Börse / Plattform Preset Override
-                </label>
-                <select
-                  value={selectedExchange}
-                  onChange={(e) =>
-                    setSelectedExchange(e.target.value as ExchangeId | 'custom')
-                  }
-                  className="w-full bg-term-bg border border-term-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand"
-                >
-                  {(Object.keys(EXCHANGES) as ExchangeId[]).map((exKey) => (
-                    <option key={exKey} value={exKey}>
-                      {EXCHANGES[exKey].name} ({EXCHANGES[exKey].makerFee}% Maker /{' '}
-                      {EXCHANGES[exKey].takerFee}% Taker)
-                    </option>
-                  ))}
-                  <option value="custom">Manuell (Custom Fees)</option>
-                </select>
-              </div>
-
-              {selectedExchange === 'custom' && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="text-xs text-slate-400">Maker Fee (%)</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={customMakerFee}
-                      onChange={(e) =>
-                        setCustomMakerFee(parseFloat(e.target.value) || 0)
-                      }
-                      className="w-full bg-term-bg border border-term-border rounded-xl px-3 py-1.5 text-xs text-white mt-1 focus:outline-none focus:border-brand"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-400">Taker Fee (%)</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={customTakerFee}
-                      onChange={(e) =>
-                        setCustomTakerFee(parseFloat(e.target.value) || 0)
-                      }
-                      className="w-full bg-term-bg border border-term-border rounded-xl px-3 py-1.5 text-xs text-white mt-1 focus:outline-none focus:border-brand"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <div>
-                  <span className="block text-xs text-slate-400 mb-1.5">
-                    Einstieg Order-Typ
-                  </span>
-                  <div className="flex bg-term-bg p-1 rounded-xl border border-term-border">
-                    <button
-                      type="button"
-                      onClick={() => setEntryOrderType('maker')}
-                      className={`flex-1 py-1.5 text-xs rounded-lg font-medium transition ${
-                        entryOrderType === 'maker'
-                          ? 'bg-brand text-black font-bold shadow-md'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Limit (Maker)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEntryOrderType('taker')}
-                      className={`flex-1 py-1.5 text-xs rounded-lg font-medium transition ${
-                        entryOrderType === 'taker'
-                          ? 'bg-brand text-black font-bold shadow-md'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Market (Taker)
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="block text-xs text-slate-400 mb-1.5">
-                    Ausstieg (TPs) Order-Typ
-                  </span>
-                  <div className="flex bg-term-bg p-1 rounded-xl border border-term-border">
-                    <button
-                      type="button"
-                      onClick={() => setExitOrderType('maker')}
-                      className={`flex-1 py-1.5 text-xs rounded-lg font-medium transition ${
-                        exitOrderType === 'maker'
-                          ? 'bg-brand text-black font-bold shadow-md'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Limit (Maker)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setExitOrderType('taker')}
-                      className={`flex-1 py-1.5 text-xs rounded-lg font-medium transition ${
-                        exitOrderType === 'taker'
-                          ? 'bg-brand text-black font-bold shadow-md'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Market (Taker)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="pt-3 border-t border-term-border flex justify-between items-center text-xs">
-          <span className="text-slate-400 font-medium">Gesamte Positionsgröße:</span>
-          <span className="font-semibold text-white text-base">
-            $
-            {positionSize.toLocaleString('en-US', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </span>
+        <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Dynamic Fee Subtraction</span>
+          <span className="text-slate-700">•</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Client-Side</span>
+          <span className="text-slate-700">•</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Direct Journal Sync</span>
         </div>
       </div>
 
-      {/* STRATEGIE PRESETS BAR */}
-      <details className="group border border-term-border rounded-2xl bg-term-card overflow-hidden">
-        <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-term-bg/50 transition duration-150">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
-            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
-              Schnell-Presets
-            </span>
-          </div>
-          <ChevronDown className="w-4 h-4 text-slate-400 transition-transform duration-200 group-open:rotate-180" />
-        </summary>
-
-        <div className="p-4 pt-0 border-t border-term-border/50 mt-1">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-3">
-            {PRESETS.map((p) => (
+      <div className="space-y-5 sm:space-y-6">
+        <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 shadow-xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative inline-block" ref={assetDropdownRef}>
               <button
-                key={p.id}
                 type="button"
-                onClick={() => handleApplyPreset(p)}
-                className="flex flex-col justify-between p-3 bg-term-bg hover:bg-term-card border border-term-border hover:border-brand/50 rounded-2xl transition duration-150 text-left cursor-pointer group/btn shadow-sm"
+                onClick={() => setIsAssetDropdownOpen(prev => !prev)}
+                className="flex items-center gap-2.5 bg-term-bg hover:bg-term-hover border border-term-border text-white px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer"
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <span className="text-xs font-bold text-white group-hover/btn:text-brand transition">
+                <div className={`w-2.5 h-2.5 rounded-full ${selectedAsset.iconColor}`} />
+                <span className="font-bold text-xs tracking-wider">{selectedAsset.symbol}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isAssetDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isAssetDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-term-bg border border-term-border rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div className="p-2.5 border-b border-term-border flex items-center gap-2 bg-term-card">
+                    <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Search asset..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-transparent text-xs text-white placeholder-slate-500 outline-none font-mono"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="max-h-56 overflow-y-auto p-1.5 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAsset({ symbol: 'CUSTOM / MANUAL', name: 'Manual Input', iconColor: 'bg-slate-400' })
+                        setIsAssetDropdownOpen(false)
+                        setSearchQuery('')
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
+                        selectedAsset.symbol === 'CUSTOM / MANUAL' ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Calculator className="w-3.5 h-3.5 text-brand" />
+                        <div className="text-left">
+                          <div className="font-bold">Manual Input</div>
+                          <div className="text-[10px] text-slate-500 font-mono">Without API</div>
+                        </div>
+                      </div>
+                      {selectedAsset.symbol === 'CUSTOM / MANUAL' && <Check className="w-3.5 h-3.5 text-brand" />}
+                    </button>
+
+                    {filteredAssets.map((asset) => {
+                      const isSelected = asset.symbol === selectedAsset.symbol
+                      return (
+                        <button
+                          key={asset.symbol}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAsset(asset)
+                            setIsAssetDropdownOpen(false)
+                            setSearchQuery('')
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
+                            isSelected ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover hover:text-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-2 h-2 rounded-full ${asset.iconColor}`} />
+                            <div className="text-left">
+                              <div className="font-bold">{asset.symbol}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{asset.name}</div>
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-brand" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5 bg-term-bg border border-term-border px-3.5 py-2.5 rounded-xl font-mono text-xs shadow-inner">
+              <span className="relative flex h-2 w-2 items-center justify-center">
+                {!isCustomAsset && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isCustomAsset ? 'bg-slate-500' : 'bg-emerald-500'}`}></span>
+              </span>
+              <span className="text-slate-500 font-medium">Index:</span>
+              <span className="font-bold text-white">
+                {currentPrice ? `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Manual'}
+              </span>
+              {priceChange24h !== null && !isCustomAsset && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priceChange24h >= 0 ? 'text-[#089981] bg-[#089981]/10' : 'text-[#F23645] bg-[#F23645]/10'}`}>
+                  {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="relative inline-block" ref={exchangeDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsExchangeDropdownOpen(prev => !prev)}
+                className="flex items-center gap-2 bg-term-bg hover:bg-term-hover border border-term-border text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-mono transition cursor-pointer shadow-sm"
+              >
+                {renderExchangeIcon(selectedExchangeId)}
+                <span className="font-bold text-white">{selectedExchangeId === 'custom' ? 'Custom Fees' : currentExchangeConfig.name}</span>
+                <span className="text-[11px] text-slate-500 font-mono">({takerRate}%)</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+              </button>
+
+              {isExchangeDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-60 bg-term-bg border border-term-border rounded-2xl shadow-2xl z-50 p-1.5 space-y-1">
+                  {EXCHANGES.map(ex => {
+                    const isSelected = selectedExchangeId === ex.id
+                    return (
+                      <button
+                        key={ex.id}
+                        type="button"
+                        onClick={() => {
+                          if (ex.id === 'custom') {
+                            setTempMakerFee(customFees.maker.toString())
+                            setTempTakerFee(customFees.taker.toString())
+                            setIsCustomFeeModalOpen(true)
+                          } else {
+                            setSelectedExchangeId(ex.id)
+                          }
+                          setIsExchangeDropdownOpen(false)
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-mono transition cursor-pointer ${
+                          isSelected ? 'bg-brand-muted text-brand font-bold' : 'text-slate-300 hover:bg-term-hover hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {renderExchangeIcon(ex.id)}
+                          <span className="font-semibold">{ex.name}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                          <span>{ex.id === 'custom' ? `${customFees.taker}%` : `${ex.takerFee}%`}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-brand" />}
+                        </div>
+                      </button>
+                    )
+                  })}
+
+                  <div className="pt-1 border-t border-term-border">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempMakerFee(customFees.maker.toString())
+                        setTempTakerFee(customFees.taker.toString())
+                        setIsCustomFeeModalOpen(true)
+                        setIsExchangeDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Settings className="w-3 h-3" /> Set custom fees...
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-1 p-1 bg-term-bg border border-term-border rounded-xl">
+              <button
+                type="button"
+                onClick={() => setPositionType('LONG')}
+                className={`min-h-[38px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  isLong ? 'bg-[#089981] text-white shadow-[0_0_12px_rgba(8,153,129,0.4)]' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <ArrowUpRight className="w-4 h-4" /> LONG
+              </button>
+              <button
+                type="button"
+                onClick={() => setPositionType('SHORT')}
+                className={`min-h-[38px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  !isLong ? 'bg-[#F23645] text-white shadow-[0_0_12px_rgba(242,54,69,0.4)]' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <ArrowDownRight className="w-4 h-4" /> SHORT
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide font-mono flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-brand" />
+              1. Position Parameters
+            </span>
+            {currentPrice && (
+              <button
+                type="button"
+                onClick={handleUseCurrentPrice}
+                className="text-[11px] font-mono text-brand hover:underline transition cursor-pointer"
+              >
+                Use live price (${currentPrice.toFixed(2)}) as entry
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-400 font-mono">Margin ($)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={margin}
+                  onChange={(e) => setMargin(e.target.value)}
+                  placeholder="Enter margin"
+                  className="w-full min-h-[44px] bg-[#0d131f] border border-slate-700/80 focus:border-brand rounded-xl py-2.5 px-3 pr-7 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition shadow-inner"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-400 font-mono">Leverage (Integer)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="1"
+                  value={leverage}
+                  onChange={(e) => setLeverage(e.target.value)}
+                  placeholder="Leverage e.g. 10"
+                  className="w-full min-h-[44px] bg-[#0d131f] border border-slate-700/80 focus:border-brand rounded-xl py-2.5 px-3 pr-7 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition shadow-inner"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">x</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-400 font-mono">Entry Price ($)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={entryPrice}
+                  onChange={(e) => setEntryPrice(e.target.value)}
+                  placeholder="Entry price"
+                  className="w-full min-h-[44px] bg-[#0d131f] border border-slate-700/80 focus:border-brand rounded-xl py-2.5 px-3 pr-7 text-sm font-mono font-bold text-white placeholder-slate-600 outline-none transition shadow-inner"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">$</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-term-border/70 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400 gap-2">
+            <div>
+              <span>Entry Order Type: </span>
+              <button
+                type="button"
+                onClick={() => setEntryOrderType(prev => prev === 'maker' ? 'taker' : 'maker')}
+                className="text-white font-bold underline decoration-dotted ml-1 cursor-pointer"
+              >
+                {entryOrderType === 'maker' ? `Limit (${makerRate}%)` : `Market (${takerRate}%)`}
+              </button>
+            </div>
+            <div>
+              <span>Total Position Size: </span>
+              <span className="text-white font-extrabold text-sm">${positionSize.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+        </div>
+
+        <details className="group bg-term-card border border-term-border rounded-2xl overflow-hidden shadow-md transition-all">
+          <summary className="flex items-center justify-between p-3.5 sm:p-4 cursor-pointer list-none select-none hover:bg-term-bg/60 transition">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-300 group-hover:text-amber-400 transition">
+              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span>Scale-Out Quick Presets (Optional)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">Click to expand</span>
+              <ChevronDown className="w-4 h-4 text-slate-500 transition-transform duration-200 group-open:rotate-180 group-open:text-amber-400" />
+            </div>
+          </summary>
+
+          <div className="p-3.5 sm:p-4 pt-1 border-t border-term-border/60 bg-[#070b13]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleApplyPreset(p)}
+                  className="flex flex-col justify-between p-3 bg-term-bg hover:bg-term-card border border-slate-800 hover:border-amber-400/50 rounded-xl transition text-left cursor-pointer group/btn shadow-sm"
+                >
+                  <span className="text-xs font-bold text-white group-hover/btn:text-amber-400 transition font-mono">
                     {p.label}
                   </span>
-                  {p.isPro && !isPro && (
-                    <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                  )}
-                </div>
-                <span className="text-[10px] text-slate-400 font-medium leading-relaxed">
-                  {p.description}
-                </span>
-              </button>
-            ))}
+                  <span className="text-[10px] text-slate-400 font-mono mt-1 leading-relaxed">
+                    {p.description}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </details>
+        </details>
 
-      {/* 2. TAKE-PROFIT STAGES SECTION */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
-            2. Take-Profit Stufen ({tpStages.length}
-            {!isPro ? `/${MAX_FREE_STAGES}` : ''})
-          </h3>
-          <span className="text-[11px] text-slate-400 hidden sm:block">
-            Prozentualer Verkauf bezieht sich dynamisch auf die verbleibende Restposition
-          </span>
-        </div>
+        <div className="bg-term-card border border-term-border p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide font-mono flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              2. Take-Profit Tiers ({tpStages.length} active tiers)
+            </span>
+            <span className="text-[11px] font-mono text-slate-500">
+              Closes scale dynamically off the remaining open position size
+            </span>
+          </div>
 
-        <div className="space-y-4">
-          {calculatedStages.map((stage, idx) => {
-            if (!stage) return null
-            const currentRoeVal =
-              stage.mode === 'ROE'
-                ? String(stage.roePercent)
-                : String(Math.round(stage.calculatedRoe))
-            const currentCloseVal = String(stage.closePercent)
+          <div className="space-y-4">
+            {calculatedStages.map((stage, idx) => {
+              if (!stage) return null
+              const currentRoeVal = stage.mode === 'ROE' ? String(stage.roePercent) : String(Math.round(stage.calculatedRoe))
+              const currentCloseVal = String(stage.closePercent)
 
-            return (
-              <div
-                key={stage.id}
-                className="p-5 bg-term-card border border-term-border rounded-2xl space-y-4 shadow-lg"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-term-border">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold px-2.5 py-1 bg-brand/15 border border-brand/40 text-brand rounded-lg shrink-0">
-                      TP #{idx + 1}
-                    </span>
+              return (
+                <div
+                  key={stage.id}
+                  className="p-4 sm:p-5 bg-[#090d16] border border-slate-800 rounded-2xl space-y-4 shadow-xl hover:border-slate-700 transition"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pb-3 border-b border-slate-800/80">
+                    <div className="md:col-span-4 flex items-center gap-2">
+                      <span className="text-xs font-mono font-black px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 rounded-lg shrink-0">
+                        TP #{idx + 1}
+                      </span>
 
-                    <div className="flex items-center bg-term-bg p-1 border border-term-border rounded-xl transition">
-                      <div className="flex bg-term-card p-0.5 rounded-lg border border-term-border mr-2">
+                      <div className="flex bg-[#05070c] p-1 border border-slate-800 rounded-xl text-xs font-mono flex-1">
                         <button
                           type="button"
                           onClick={() => handleTpStageChange(stage.id, 'mode', 'ROE')}
-                          className={`px-2.5 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
-                            stage.mode === 'ROE'
-                              ? 'bg-brand text-black font-bold shadow-md'
-                              : 'text-slate-400 hover:text-white'
+                          className={`flex-1 py-1 rounded-lg transition cursor-pointer font-bold ${
+                            stage.mode === 'ROE' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
                           }`}
                         >
                           % RoE
@@ -746,639 +915,454 @@ export default function TakeProfitPlanner({
                         <button
                           type="button"
                           onClick={() => handleTpStageChange(stage.id, 'mode', 'PRICE')}
-                          className={`px-2.5 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
-                            stage.mode === 'PRICE'
-                              ? 'bg-brand text-black font-bold shadow-md'
-                              : 'text-slate-400 hover:text-white'
+                          className={`flex-1 py-1 rounded-lg transition cursor-pointer font-bold ${
+                            stage.mode === 'PRICE' ? 'bg-brand text-black shadow-md' : 'text-slate-400 hover:text-white'
                           }`}
                         >
-                          $ Kurs
+                          $ Price
                         </button>
                       </div>
-
-                      <div className="flex items-center px-2 py-0.5 w-28 md:w-36">
-                        <input
-                          type="number"
-                          placeholder={stage.mode === 'ROE' ? 'z.B. 25' : 'Zielpreis'}
-                          value={
-                            (stage.mode === 'ROE'
-                              ? stage.roePercent
-                              : stage.targetPrice) || ''
-                          }
-                          onChange={(e) =>
-                            handleTpStageChange(
-                              stage.id,
-                              stage.mode === 'ROE' ? 'roePercent' : 'targetPrice',
-                              e.target.value
-                            )
-                          }
-                          className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-600"
-                        />
-                        <span className="text-xs font-bold text-brand ml-1 shrink-0">
-                          {stage.mode === 'ROE' ? '%' : '$'}
-                        </span>
-                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-term-bg p-1 border border-term-border rounded-xl transition">
-                      <span className="text-xs text-slate-400 font-medium px-2 shrink-0">
-                        Verkauf Restposition:
+                    <div className="md:col-span-4 relative">
+                      <input
+                        type="number"
+                        placeholder={stage.mode === 'ROE' ? 'Target RoE in %' : 'Target price in $'}
+                        value={(stage.mode === 'ROE' ? stage.roePercent : stage.targetPrice) || ''}
+                        onChange={(e) =>
+                          handleTpStageChange(
+                            stage.id,
+                            stage.mode === 'ROE' ? 'roePercent' : 'targetPrice',
+                            e.target.value
+                          )
+                        }
+                        className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-brand rounded-xl py-2 px-3 pr-7 text-xs font-mono font-extrabold text-white placeholder-slate-500 outline-none transition shadow-inner"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold text-slate-400">
+                        {stage.mode === 'ROE' ? '%' : '$'}
                       </span>
-                      <div className="flex items-center px-2 py-0.5 w-24 md:w-28">
+                    </div>
+
+                    <div className="md:col-span-4 flex items-center gap-2">
+                      <div className="relative flex-1">
                         <input
                           type="number"
-                          placeholder="50"
+                          placeholder="Close in %"
                           value={stage.closePercent || ''}
-                          onChange={(e) =>
-                            handleTpStageChange(
-                              stage.id,
-                              'closePercent',
-                              e.target.value
-                            )
-                          }
-                          className="w-full bg-transparent text-sm font-medium text-white outline-none text-right placeholder:text-slate-600"
+                          onChange={(e) => handleTpStageChange(stage.id, 'closePercent', e.target.value)}
+                          className="w-full min-h-[42px] bg-[#0d1424] border border-slate-700 focus:border-emerald-400 rounded-xl py-2 px-3 pr-7 text-xs font-mono font-extrabold text-white text-right placeholder-slate-500 outline-none transition shadow-inner"
                         />
-                        <span className="text-xs font-bold text-brand ml-1 shrink-0">
-                          %
-                        </span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold text-emerald-400">%</span>
                       </div>
+
+                      {tpStages.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTpStage(stage.id)}
+                          className="p-2 text-slate-500 hover:text-[#F23645] hover:bg-[#F23645]/10 rounded-xl transition cursor-pointer shrink-0"
+                          title="Remove tier"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
-
-                    {tpStages.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTpStage(stage.id)}
-                        className="p-2 text-slate-500 hover:text-[#F23645] hover:bg-[#F23645]/10 border border-transparent hover:border-[#F23645]/30 rounded-xl transition cursor-pointer"
-                        title="Stufe entfernen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="bg-term-bg border border-term-border p-3.5 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 font-medium">
-                        Ziel % ROE{' '}
-                        {stage.mode === 'PRICE' &&
-                          `(${stage.calculatedRoe.toFixed(1)}%)`}
-                      </span>
-                      <div className="flex gap-1">
-                        {['10', '25', '50', '100'].map((val) => {
-                          const isActive = currentRoeVal === val
-                          return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
+                      <div className="flex justify-between items-center text-[10px] font-mono">
+                        <span className="text-slate-400 font-medium">RoE Quick Select {stage.mode === 'PRICE' && stage.calculatedRoe !== 0 && `(${stage.calculatedRoe.toFixed(1)}%)`}</span>
+                        <div className="flex gap-1">
+                          {['10', '25', '50', '100'].map((val) => (
                             <button
                               key={val}
                               type="button"
                               onClick={() => handleRoeSliderChange(stage.id, val)}
-                              className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer ${
-                                isActive
-                                  ? 'border-brand bg-brand text-black font-extrabold shadow-sm'
-                                  : 'border-term-border bg-term-card text-slate-400 hover:text-white'
+                              className={`px-2 py-0.5 rounded text-[9px] font-bold transition cursor-pointer ${
+                                currentRoeVal === val ? 'bg-brand text-black font-extrabold shadow-sm' : 'bg-[#0d131f] border border-slate-800 text-slate-400 hover:text-white'
                               }`}
                             >
                               {val}%
                             </button>
-                          )
-                        })}
+                          ))}
+                        </div>
                       </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="200"
+                        value={stage.mode === 'ROE' ? parseFloat(stage.roePercent) || 0 : Math.max(0, stage.calculatedRoe)}
+                        onChange={(e) => handleRoeSliderChange(stage.id, e.target.value)}
+                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand"
+                      />
                     </div>
 
-                    <input
-                      type="range"
-                      min="1"
-                      max="200"
-                      value={
-                        stage.mode === 'ROE'
-                          ? parseFloat(stage.roePercent) || 0
-                          : Math.max(0, stage.calculatedRoe)
-                      }
-                      onChange={(e) => handleRoeSliderChange(stage.id, e.target.value)}
-                      className="w-full h-1.5 bg-term-border rounded-lg appearance-none cursor-pointer accent-brand"
-                    />
-                  </div>
-
-                  <div className="bg-term-bg border border-term-border p-3.5 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 font-medium">
-                        Verkauf % Restposition
-                      </span>
-                      <div className="flex gap-1">
-                        {['25', '50', '75', '100'].map((val) => {
-                          const isActive = currentCloseVal === val
-                          return (
+                    <div className="space-y-1.5 bg-[#060911] p-3 rounded-xl border border-slate-800">
+                      <div className="flex justify-between items-center text-[10px] font-mono">
+                        <span className="text-slate-400 font-medium">Close Position %</span>
+                        <div className="flex gap-1">
+                          {['25', '50', '75', '100'].map((val) => (
                             <button
                               key={val}
                               type="button"
-                              onClick={() =>
-                                handleTpStageChange(
-                                  stage.id,
-                                  'closePercent',
-                                  val
-                                )
-                              }
-                              className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer ${
-                                isActive
-                                  ? 'border-[#089981] bg-[#089981] text-white shadow-sm'
-                                  : 'border-term-border bg-term-card text-slate-400 hover:text-white'
+                              onClick={() => handleTpStageChange(stage.id, 'closePercent', val)}
+                              className={`px-2 py-0.5 rounded text-[9px] font-bold transition cursor-pointer ${
+                                currentCloseVal === val ? 'bg-emerald-400 text-black font-extrabold shadow-sm' : 'bg-[#0d131f] border border-slate-800 text-slate-400 hover:text-white'
                               }`}
                             >
                               {val}%
                             </button>
-                          )
-                        })}
+                          ))}
+                        </div>
                       </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="100"
+                        value={parseFloat(stage.closePercent) || 0}
+                        onChange={(e) => handleTpStageChange(stage.id, 'closePercent', e.target.value)}
+                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                      />
                     </div>
-
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      value={parseFloat(stage.closePercent) || 0}
-                      onChange={(e) =>
-                        handleTpStageChange(stage.id, 'closePercent', e.target.value)
-                      }
-                      className="w-full h-1.5 bg-term-border rounded-lg appearance-none cursor-pointer accent-[#089981]"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-term-border grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                  <div className="bg-term-bg/50 p-2.5 rounded-xl border border-term-border">
-                    <span className="text-slate-400 block text-[10px] mb-0.5">
-                      Zielpreis
-                    </span>
-                    <span className="font-semibold text-white">
-                      $
-                      {stage.calculatedTargetPrice.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
                   </div>
 
-                  <div className="bg-term-bg/50 p-2.5 rounded-xl border border-term-border">
-                    <span className="text-slate-400 block text-[10px] mb-0.5">
-                      RoE Ertrag
-                    </span>
-                    <span
-                      className={`font-semibold ${
-                        stage.calculatedRoe >= 0
-                          ? 'text-[#089981]'
-                          : 'text-[#F23645]'
-                      }`}
-                    >
-                      {stage.calculatedRoe >= 0 ? '+' : ''}
-                      {stage.calculatedRoe.toFixed(2)}%
-                    </span>
-                  </div>
-
-                  <div className="bg-term-bg/50 p-2.5 rounded-xl border border-term-border">
-                    <span className="text-slate-400 block text-[10px] mb-0.5">
-                      Netto-Tranche
-                    </span>
-                    <span
-                      className={`font-semibold ${
-                        stage.netTrancheProfit >= 0
-                          ? 'text-[#089981]'
-                          : 'text-[#F23645]'
-                      }`}
-                    >
-                      {stage.netTrancheProfit >= 0 ? '+' : ''}$
-                      {stage.netTrancheProfit.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="bg-term-bg/50 p-2.5 rounded-xl border border-term-border">
-                    <span className="text-slate-400 block text-[10px] mb-0.5">
-                      Marge freigesetzt
-                    </span>
-                    <span className="font-semibold text-brand">
-                      ${stage.trancheMargin.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="bg-term-bg/50 p-2.5 rounded-xl border border-term-border">
-                    <span className="text-slate-400 block text-[10px] mb-0.5">
-                      Rest-Marge danach
-                    </span>
-                    <span className="font-semibold text-slate-300">
-                      ${stage.remainingMargin.toFixed(2)} (
-                      {stage.remainingMarginPct.toFixed(1)}%)
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {!isMaxReached ? (
-          <button
-            type="button"
-            onClick={handleAddTpStage}
-            className="w-full py-3.5 border border-brand/40 bg-brand/10 hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-semibold transition duration-200 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 text-brand" />
-            Weiteren Take-Profit hinzufügen
-          </button>
-        ) : (
-          <div className="p-4 bg-term-card border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
-                <Crown className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  Free-Limit erreicht ({MAX_FREE_STAGES} Stufen)
-                  <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
-                  Schalte unbegrenzte TP-Stufen & erweiterte Analytics frei.
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onOpenPaywall}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-[0_0_15px_rgba(245,158,11,0.3)] shrink-0 flex items-center gap-1.5 cursor-pointer"
-            >
-              <Crown className="w-3.5 h-3.5 fill-slate-950" />
-              PRO Freischalten
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 3. TOTAL SUMMARY CARD */}
-      <div className="p-6 bg-term-card border border-term-border rounded-3xl shadow-xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#089981]/15 text-[#089981] rounded-xl border border-[#089981]/30">
-              <BarChart3 className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[11px] text-slate-400 block font-medium">
-                Kumulierter Netto-Gewinn
-              </span>
-              <span
-                className={`text-xl font-bold ${
-                  totalNetProfitUSD >= 0 ? 'text-[#089981]' : 'text-[#F23645]'
-                }`}
-              >
-                {totalNetProfitUSD >= 0 ? '+' : ''}${totalNetProfitUSD.toFixed(2)}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <span className="text-[11px] text-slate-400 block font-medium">
-              Effektiver Netto-ROE
-            </span>
-            <span
-              className={`text-xl font-bold ${
-                totalNetRoe >= 0 ? 'text-[#089981]' : 'text-[#F23645]'
-              }`}
-            >
-              {totalNetRoe >= 0 ? '+' : ''}
-              {totalNetRoe.toFixed(2)}%
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[11px] text-slate-400 block font-medium">
-              Gebühren gesamt
-            </span>
-            <span className="text-xl font-bold text-[#F23645]">
-              -${totalFeesUSD.toFixed(2)}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[11px] text-slate-400 block font-medium">
-              Verbleibende Position
-            </span>
-            <span className="text-xl font-bold text-[#089981]">
-              {calculatedStages.length > 0 &&
-              calculatedStages[calculatedStages.length - 1]
-                ? `${calculatedStages[calculatedStages.length - 1].remainingMarginPct.toFixed(
-                    1
-                  )}%`
-                : '100%'}
-            </span>
-          </div>
-        </div>
-
-        {/* VISUAL PIPELINE BAR WEIGHED BY REALIZED PROFIT */}
-        <div className="pt-4 border-t border-term-border space-y-2">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-400 font-medium flex items-center gap-1.5">
-              <PieChart className="w-3.5 h-3.5 text-[#089981]" />
-              Gewinn-Verteilung der Tranchen (Brutto)
-            </span>
-          </div>
-
-          <div className="h-5 w-full bg-term-bg rounded-full p-0.5 border border-term-border flex relative">
-            {calculatedStages.map((stage, idx) => {
-              if (!stage) return null
-              let barWidthPercent = 0
-              if (totalGrossProfit > 0) {
-                barWidthPercent = (stage.trancheProfit / totalGrossProfit) * 100
-              } else {
-                barWidthPercent = parsedMargin > 0 ? (stage.trancheMargin / parsedMargin) * 100 : 0
-              }
-
-              if (barWidthPercent <= 0) return null
-
-              const colorPalettes = [
-                {
-                  bar: 'from-[#089981] to-[#10b981]',
-                  text: 'text-[#089981]',
-                  bgLight: 'bg-[#089981]/20',
-                  border: 'border-[#089981]/40',
-                },
-                {
-                  bar: 'from-[#00B4D8] to-[#0077B6]',
-                  text: 'text-[#00B4D8]',
-                  bgLight: 'bg-[#00B4D8]/20',
-                  border: 'border-[#00B4D8]/40',
-                },
-                {
-                  bar: 'from-[#7209B7] to-[#560FA0]',
-                  text: 'text-[#B5179E]',
-                  bgLight: 'bg-[#7209B7]/20',
-                  border: 'border-[#7209B7]/40',
-                },
-                {
-                  bar: 'from-[#F72585] to-[#B5179E]',
-                  text: 'text-[#F72585]',
-                  bgLight: 'bg-[#F72585]/20',
-                  border: 'border-[#F72585]/40',
-                },
-              ]
-
-              const colors = colorPalettes[idx % colorPalettes.length]
-              const trancheClosePct = parseFloat(stage.closePercent) || 0
-
-              const isLastStage = idx === calculatedStages.length - 1
-              const remainingMarginPct =
-                calculatedStages[calculatedStages.length - 1]
-                  ?.remainingMarginPct || 0
-              const roundedFullClass =
-                isLastStage && remainingMarginPct <= 0.05
-                  ? 'rounded-r-full'
-                  : ''
-
-              return (
-                <div
-                  key={stage.id}
-                  style={{ width: `${barWidthPercent}%` }}
-                  className={`group relative h-full bg-gradient-to-r ${colors.bar} border-r border-term-bg first:rounded-l-full ${roundedFullClass} flex items-center justify-center text-[10px] font-bold text-white cursor-pointer transition-all hover:brightness-125`}
-                >
-                  {barWidthPercent > 6 && `TP${idx + 1}`}
-
-                  {/* HOVER TOOLTIP */}
-                  <div className="pointer-events-none absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 scale-95 group-hover:scale-100 z-50 w-56 p-3 bg-term-bg/95 backdrop-blur-md border border-term-border rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.8)] text-left">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-term-border mb-1.5">
-                      <span className={`text-xs font-bold ${colors.text}`}>
-                        TP #{idx + 1} Tranche
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold text-white ${colors.bgLight} px-1.5 py-0.5 rounded border ${colors.border}`}
-                      >
-                        {trancheClosePct}% Verkauf (Rest)
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                    <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">Target Price</span>
+                      <span className="font-bold text-white">
+                        {stage.calculatedTargetPrice > 0 ? `$${stage.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                       </span>
                     </div>
 
-                    <div className="relative">
-                      <div
-                        className={`space-y-1 text-[11px] transition-all ${
-                          !isPro ? 'blur-[3.5px] select-none opacity-60' : ''
-                        }`}
-                      >
-                        <div className="flex justify-between text-slate-400">
-                          <span>Zielkurs:</span>
-                          <span className="font-semibold text-white">
-                            $
-                            {stage.calculatedTargetPrice.toLocaleString(
-                              'en-US',
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-slate-400">
-                          <span>Netto-Gewinn:</span>
-                          <span className="font-semibold text-[#089981]">
-                            +${stage.netTrancheProfit.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-slate-400">
-                          <span>Exit Fee:</span>
-                          <span className="font-semibold text-[#F23645]">
-                            -${stage.trancheExitFee.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {!isPro && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-term-bg/40 rounded-lg">
-                          <span className="flex items-center gap-1 text-[10px] font-extrabold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full shadow-lg border border-amber-500/30 tracking-wider uppercase">
-                            <Crown className="w-3 h-3 fill-amber-400 text-amber-400" />{' '}
-                            PRO Feature
-                          </span>
-                        </div>
-                      )}
+                    <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">Net Profit</span>
+                      <span className={`font-bold ${stage.netTrancheProfit >= 0 ? 'text-emerald-400' : 'text-[#F23645]'}`}>
+                        {stage.netTrancheProfit > 0 ? `+$${stage.netTrancheProfit.toFixed(2)}` : '-'}
+                      </span>
                     </div>
 
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-term-border" />
+                    <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">Released Margin</span>
+                      <span className="font-bold text-brand">
+                        {stage.trancheMargin > 0 ? `$${stage.trancheMargin.toFixed(2)}` : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-[#060911] p-2.5 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">Remaining Position</span>
+                      <span className="font-bold text-slate-300">
+                        {parsedMargin > 0 ? `${stage.remainingMarginPct.toFixed(1)}%` : '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )
             })}
-
-            {(calculatedStages[calculatedStages.length - 1]?.remainingMarginPct ||
-              0) > 0.05 && (
-              <div className="group relative flex-1 bg-brand/25 hover:bg-brand/40 h-full rounded-r-full cursor-pointer transition-all">
-                <div className="pointer-events-none absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 scale-95 group-hover:scale-100 z-50 px-3 py-2 bg-term-bg border border-term-border rounded-xl shadow-xl text-left whitespace-nowrap">
-                  <span className="text-xs font-semibold text-brand block">
-                    Offene Restposition:{' '}
-                    {calculatedStages[
-                      calculatedStages.length - 1
-                    ]?.remainingMarginPct.toFixed(1)}
-                    %
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Verbleibt nach allen Take-Profits im Markt
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-term-border" />
-                </div>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* JOURNAL TRIGGER BUTTON */}
-        {parsedEntry > 0 && parsedMargin > 0 && onLogTrade && (
           <button
             type="button"
-            onClick={() =>
-              onLogTrade({
-                pair: 'BTC/USDT',
-                direction: positionType,
-                entryPrice: Number(parsedEntry.toFixed(2)),
-                leverage: Number(parsedLeverage.toFixed(2)) || 1,
-                margin: Number(parsedMargin.toFixed(2)),
-                takeProfit:
-                  firstTpPrice && firstTpPrice > 0
-                    ? Number(firstTpPrice.toFixed(2))
-                    : undefined,
-              })
-            }
-            className="w-full flex items-center justify-center gap-2 bg-brand text-black font-extrabold py-3 px-4 rounded-xl text-xs hover:brightness-110 transition-all shadow-lg mt-4 cursor-pointer"
+            onClick={handleAddTpStage}
+            className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer font-mono"
           >
-            <PlusCircle size={16} />
-            <span>Trade zum Journal hinzufügen</span>
+            <Plus className="w-4 h-4 text-brand" />
+            <span>Add another Take-Profit tier</span>
           </button>
-        )}
-      </div>
-
-      {/* 4. VISUAL CHART CARD */}
-      <div className="relative p-6 bg-term-card border border-term-border rounded-3xl space-y-4 shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-[#089981]/15 text-[#089981] rounded-xl">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-xs font-semibold text-white uppercase tracking-wide">
-                Gewinn- & Positionsverlauf
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Grün: Kumulierter Netto-Gewinn ($) | Marke: Rest-Position (%)
-              </p>
-            </div>
-          </div>
-
-          {!isPro && (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
-              <Crown className="w-3 h-3 fill-amber-400" /> PRO Feature
-            </span>
-          )}
         </div>
 
-        {/* CHART CONTENT CONTAINER */}
-        <div className="relative h-64 w-full pt-2">
-          <div
-            className={`h-full w-full transition-all duration-300 ${
-              !isPro ? 'blur-sm select-none opacity-40' : ''
-            }`}
-          >
+        <div className="bg-term-card border border-term-border rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between border-b border-term-border pb-3">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span>Profit & Remaining Position Progression</span>
+            </div>
+            <span className="text-[10px] font-mono text-slate-500">Green: Net Profit ($) • Blue: Open Margin (%)</span>
+          </div>
+
+          <div className="h-60 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="tpProfitGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#089981" stopOpacity={0.4} />
                     <stop offset="95%" stopColor="#089981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-term-border, #1C2434)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="name"
-                  stroke="#64748b"
-                  fontSize={11}
-                  tickLine={false}
-                />
-                <YAxis
-                  yAxisId="left"
-                  stroke="#089981"
-                  fontSize={11}
-                  tickLine={false}
-                  tickFormatter={(v) => `$${v}`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="var(--color-brand, #2962FF)"
-                  fontSize={11}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}%`}
-                  domain={[0, 100]}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f293d" vertical={false} />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} fontStretch="condensed" />
+                <YAxis yAxisId="left" stroke="#089981" fontSize={11} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'var(--color-term-bg, #07090E)',
-                    borderColor: 'var(--color-term-border, #232D42)',
+                    backgroundColor: '#0a0d14',
+                    borderColor: '#222f49',
                     borderRadius: '12px',
                     color: '#fff',
-                    fontSize: '12px',
+                    fontSize: '11px',
+                    fontFamily: 'monospace'
                   }}
                 />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="gewinn"
-                  stroke="#089981"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#profitGrad)"
-                  name="Netto-Gewinn ($)"
-                />
-                <Line
-                  yAxisId="right"
-                  type="stepAfter"
-                  dataKey="restPosition"
-                  stroke="var(--color-brand, #2962FF)"
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: 'var(--color-brand, #2962FF)' }}
-                  name="Rest-Position (%)"
-                />
+                <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#tpProfitGrad)" name="Net Profit ($)" />
+                <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Open Position (%)" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+        </div>
 
-          {!isPro && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 bg-term-bg/30 backdrop-blur-[2px]">
-              <div className="p-5 bg-term-card/90 border border-amber-500/30 rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.8)] text-center max-w-sm space-y-3">
-                <div className="w-10 h-10 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-xl flex items-center justify-center mx-auto shadow-[0_0_15px_rgba(245,158,11,0.15)]">
-                  <Crown className="w-5 h-5 fill-amber-400" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
-                    Visuelle Ertrags-Analyse
-                  </h4>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                    Schalte den Verlaufsgraphen frei, um den kumulierten
-                    Netto-Gewinn und Restpositionen über alle Stufen hinweg zu
-                    visualisieren.
-                  </p>
-                </div>
+        {/* ================= ACTION BAR: SHARE, DOWNLOAD & LOG BUTTONS ================= */}
+        <div className="space-y-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
+            <div className="space-y-0.5">
+              <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
+                <FileImage className="w-4 h-4 text-brand" />
+                <span>Share Setup & Log Trade</span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-mono">
+                Log into journal, share rendered PNG, or copy setup permalink.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              {onLogTrade && (
                 <button
                   type="button"
-                  onClick={onOpenPaywall}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-bold rounded-xl transition shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={handleTriggerLogTrade}
+                  disabled={!isValidSetup}
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
+                    isValidSetup
+                      ? 'bg-[#2962FF] hover:bg-[#1E50E6] text-white shadow-[#2962FF]/20 active:scale-95'
+                      : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
+                  }`}
                 >
-                  <Crown className="w-3.5 h-3.5 fill-slate-950" />
-                  Jetzt PRO freischalten
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Log to Journal</span>
                 </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-term-bg hover:bg-term-hover border border-term-border text-xs font-mono font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Copy className="w-3.5 h-3.5 text-brand" />
+                <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadTradeCard}
+                disabled={isExporting || !isValidSetup}
+                className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
+                  isValidSetup
+                    ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
+                    : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                <Share2 className="w-4 h-4" />
+                <span>
+                  {isExporting 
+                    ? 'Generating...' 
+                    : isValidSetup 
+                      ? 'Share / Export (.PNG)' 
+                      : 'Incomplete'}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div
+            ref={cardRef}
+            className="bg-term-card border border-brand-border/80 rounded-2xl p-4 sm:p-6 space-y-5 shadow-2xl relative overflow-hidden"
+          >
+            <div className="flex justify-between items-start border-b border-term-border/80 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-3 h-3 rounded-full ${selectedAsset.iconColor}`} />
+                  <span className="text-lg sm:text-xl font-extrabold font-mono text-white tracking-wider">
+                    {selectedAsset.symbol}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-black ${
+                      isLong ? 'bg-[#089981]/20 text-[#089981] border border-[#089981]/40' : 'bg-[#F23645]/20 text-[#F23645] border border-[#F23645]/40'
+                    }`}
+                  >
+                    {positionType} {parsedLeverage > 0 ? `${parsedLeverage}x` : ''}
+                  </span>
+                </div>
+                <p className="text-[11px] font-mono text-slate-500">
+                  Exchange: <strong className="text-slate-300 font-semibold">{currentExchangeConfig.name}</strong> • Fees: <span className="text-slate-400">{makerRate}% Maker</span>
+                </p>
+              </div>
+
+              <div className="text-right">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-700/60 font-mono text-[10px] text-emerald-400 font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>READ-ONLY SYNC READY</span>
+                </div>
               </div>
             </div>
-          )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+              <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Total Net Profit</span>
+                <p className={`text-base sm:text-lg font-mono font-bold truncate ${totalNetProfitUSD >= 0 ? 'text-emerald-400' : 'text-[#F23645]'}`}>
+                  {totalNetProfitUSD >= 0 ? '+' : ''}${totalNetProfitUSD.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="bg-term-bg border border-brand-border/60 p-3 rounded-xl space-y-1">
+                <span className="text-[10px] font-mono text-brand font-medium uppercase">Effective Net RoE</span>
+                <p className="text-base sm:text-lg font-mono font-extrabold text-brand truncate">
+                  {totalNetRoe >= 0 ? '+' : ''}{totalNetRoe.toFixed(1)}%
+                </p>
+              </div>
+
+              <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Estimated Fees</span>
+                <p className="text-base sm:text-lg font-mono font-bold text-[#F23645] truncate">
+                  -${totalFeesUSD.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="bg-term-bg border border-term-border p-3 rounded-xl space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 font-medium uppercase">Market Runner</span>
+                <p className="text-base sm:text-lg font-mono font-bold text-slate-300 truncate">
+                  {calculatedStages.length > 0 && calculatedStages[calculatedStages.length - 1]
+                    ? `${calculatedStages[calculatedStages.length - 1].remainingMarginPct.toFixed(1)}%`
+                    : '100%'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-term-bg border border-term-border rounded-xl p-3.5 space-y-2 font-mono text-xs">
+              <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between border-b border-term-border/60 pb-2">
+                <span>Planned Take-Profit Tiers</span>
+                <span className="text-slate-400 font-normal">
+                  Entry: <strong className="text-white">${parsedEntry > 0 ? parsedEntry.toLocaleString('en-US') : '-'}</strong>
+                </span>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                {calculatedStages.map((s, idx) => {
+                  if (!s) return null
+                  return (
+                    <div key={s.id} className="flex justify-between items-center text-[11px] text-slate-300 py-0.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        Target #{idx + 1} ({s.calculatedTargetPrice > 0 ? `$${s.calculatedTargetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'})
+                      </span>
+                      <span>
+                        +{s.calculatedRoe.toFixed(1)}% RoE • <strong className="text-emerald-400">+{s.netTrancheProfit > 0 ? `$${s.netTrancheProfit.toFixed(2)}` : '$0.00'}</strong> ({s.closePercent || 0}% closed)
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-term-border/50">
+              <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-400" /> Free Calculator → <strong>riskil.app/tools</strong></span>
+              <span className="text-slate-500 font-semibold">riskil.app</span>
+            </div>
+          </div>
         </div>
+
       </div>
+
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-term-border pb-3">
+              <span className="text-xs font-mono font-bold text-white">Trade Card Ready</span>
+              <button type="button" onClick={() => setPreviewImage(null)} className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-center">
+              <p className="text-[11px] font-mono text-emerald-400">Long-press the image to save it to your camera roll.</p>
+              <div className="rounded-xl overflow-hidden border border-term-border bg-black">
+                <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
+              </div>
+            </div>
+
+            <button type="button" onClick={() => setPreviewImage(null)} className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer">
+              Done / Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isCustomFeeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-term-border pb-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4 text-brand" />
+                <h3 className="text-sm font-bold text-white font-mono">Customize Exchange Fees</h3>
+              </div>
+              <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-term-bg transition cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomFees} className="space-y-4">
+              <p className="text-xs text-slate-400">Enter your exchange or VIP tier maker and taker fee percentages:</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-slate-400">Maker Fee (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={tempMakerFee}
+                      onChange={(e) => setTempMakerFee(e.target.value)}
+                      className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2 px-3 text-xs font-mono font-bold text-white outline-none"
+                      placeholder="0.02"
+                      required
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-slate-400">Taker Fee (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={tempTakerFee}
+                      onChange={(e) => setTempTakerFee(e.target.value)}
+                      className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2 px-3 text-xs font-mono font-bold text-white outline-none"
+                      placeholder="0.06"
+                      required
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer">
+                  Save & Apply
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+export default function TakeProfitPlanner(props: TakeProfitPlannerProps) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0d14] flex items-center justify-center text-slate-400 font-mono text-xs">Loading TP planner...</div>}>
+      <FreeTakeProfitPlannerInner {...props} />
+    </Suspense>
   )
 }

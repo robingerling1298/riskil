@@ -15,6 +15,7 @@ import {
   Check,
   Calculator,
   Layers,
+  Scale,
   Settings,
   ArrowRight,
   Sliders,
@@ -404,34 +405,27 @@ function FreeLeverageCalculatorInner() {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 text-slate-100 font-sans pb-20">
-      
-      {/* ================= HERO SECTION ================= */}
-      <div className="text-center space-y-4 pt-10 pb-2 max-w-2xl mx-auto">
+      {/* =================  SECTION (FULL SUITE) ================= */}
+      <div className="text-center space-y-4 pt-4 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
-          <Zap className="w-3.5 h-3.5" />
-          Crypto Perps Position & Leverage Tool
+          <Scale className="w-3.5 h-3.5" />
+          Pro Suite • Full Position Pipeline
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Calculate Leverage & Size <br className="hidden sm:inline" /> with Absolute Precision.
+          Full Position & Exit Planner. <br className="hidden sm:inline" /> From Entry to Scale-Out.
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
-          Compute your optimal leverage, blended entries across multiple tranches, and instantly export your execution setup as an image card.
+          Synchronize your DCA entries, stop loss risk tolerances, and multi-tier exits into a unified risk management setup ready to log.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Client-Side
-          </span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Engine</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> No Registration Required
-          </span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Dynamic Fee Subtraction</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Image Export Ready
-          </span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Direct Journal Sync</span>
         </div>
       </div>
 
