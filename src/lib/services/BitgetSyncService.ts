@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { sendScaleInPrompt } from '@/lib/telegram/telegramService'
 
 export interface LivePosition {
   symbol: string
@@ -131,6 +132,132 @@ export class BitgetSyncService {
       console.warn(`[BITGET SYNC] Konnte Historie für ${productType} nicht laden`, e)
     }
     return []
+  }
+
+  async fetchRecentFills(productType: 'USDT-FUTURES' | 'USDC-FUTURES' | 'COIN-FUTURES' = 'USDT-FUTURES', limit: number = 20): Promise<any[]> {
+    const endpoint = '/api/v2/mix/order/fills'
+    const queryString = `?productType=${productType}&limit=${limit}`
+    const url = `${this.baseURL}${endpoint}${queryString}`
+
+    const headers = this.generateAuthHeaders('GET', endpoint, queryString)
+
+    try {
+      const res = await fetch(url, { method: 'GET', headers })
+      const data = await res.json()
+
+      if (data && data.code === '00000') {
+        return data.data?.fillList || []
+      }
+    } catch (e) {
+      console.warn(`[BITGET SYNC] Konnte Fills für ${productType} nicht laden`, e)
+    }
+    return []
+  }
+
+  async syncFillsAndDetectScaleIns(supabaseClient: any, userId: string, activePositions: LivePosition[]): Promise<void> {
+    try {
+      // 1. Prüfen, ob der Nutzer Telegram überhaupt verknüpft hat
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('telegram_chat_id')
+        .eq('id', userId)
+        .maybeSingle()
+
+      const telegramChatId = profile?.telegram_chat_id
+
+      // 2. Fills von Bitget abrufen
+      const productTypes: Array<'USDT-FUTURES' | 'USDC-FUTURES' | 'COIN-FUTURES'> = ['USDT-FUTURES', 'USDC-FUTURES', 'COIN-FUTURES']
+      const fillsLists = await Promise.all(
+        productTypes.map(pType => this.fetchRecentFills(pType, 15))
+      )
+      const allFills: any[] = fillsLists.flat()
+
+      if (allFills.length === 0) return
+
+      // Nach Zeit sortieren (älteste zuerst, damit Sequenz stimmt)
+      allFills.sort((a, b) => Number(a.cTime || 0) - Number(b.cTime || 0))
+
+      for (const fill of allFills) {
+        const fillExternalId = String(fill.tradeId || fill.fillId || `${fill.orderId}-${fill.cTime}`)
+        const symbol = String(fill.symbol || '').toUpperCase()
+        const sideRaw = String(fill.side || '').toLowerCase()
+        const isLong = sideRaw.includes('buy') || sideRaw.includes('long')
+        const side: 'long' | 'short' = isLong ? 'long' : 'short'
+        const fillPrice = Number(fill.priceAvg || fill.price || 0)
+        const fillSize = Number(fill.baseVolume || fill.size || 0)
+        const orderType: 'limit' | 'market' = (fill.orderType || '').toLowerCase().includes('market') ? 'market' : 'limit'
+
+        // 3. Prüfen, ob dieser Fill bereits in raw_fills existiert
+        const { data: existingFill } = await supabaseClient
+          .from('raw_fills')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('external_id', fillExternalId)
+          .maybeSingle()
+
+        if (existingFill) {
+          continue // Bereits verarbeitet
+        }
+
+        // 4. Prüfen, ob zeitgleich eine Live-Position in dieselbe Richtung lief (Scale-In)
+        const matchingLivePos = (activePositions || []).find((pos) => {
+          const posSymbol = pos.symbol.toUpperCase().replace(/_.*$/, '').replace(/[^A-Z0-9]/g, '')
+          const cleanFillSymbol = symbol.replace(/_.*$/, '').replace(/[^A-Z0-9]/g, '')
+          const posSide = pos.holdSide.toLowerCase()
+          return (posSymbol === cleanFillSymbol || posSymbol.includes(cleanFillSymbol)) && posSide === side
+        })
+
+        // 5. In raw_fills einfügen
+        const fillPayload: any = {
+          user_id: userId,
+          external_id: fillExternalId,
+          symbol: symbol,
+          side: side,
+          price: fillPrice,
+          size: fillSize,
+          order_type: orderType,
+          created_at: new Date(Number(fill.cTime || Date.now())).toISOString(),
+          scale_in_reason: null
+        }
+
+        const { data: insertedFill, error: insertError } = await supabaseClient
+          .from('raw_fills')
+          .insert(fillPayload)
+          .select()
+          .single()
+
+        if (insertError) {
+          console.error('[BITGET SYNC] Fehler beim Speichern des Fills:', insertError.message)
+          continue
+        }
+
+        // 6. Wenn Live-Position vorhanden und Bot verbunden: Telegram Prompt triggern!
+        if (matchingLivePos && telegramChatId && insertedFill) {
+          // Offenen Trade aus DB holen (falls vorhanden) oder Symbol als Referenz
+          const { data: openTrade } = await supabaseClient
+            .from('trades')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('status', 'OPEN')
+            .ilike('pair', `%${symbol.replace(/USDT$/, '')}%`)
+            .maybeSingle()
+
+          await sendScaleInPrompt({
+            chatId: telegramChatId,
+            tradeId: openTrade?.id || 'live',
+            fillId: insertedFill.id,
+            symbol: symbol,
+            side: side,
+            size: fillSize,
+            price: fillPrice,
+            orderType: orderType,
+            newAvgPrice: matchingLivePos.entryPrice || fillPrice
+          })
+        }
+      }
+    } catch (err) {
+      console.warn('[BITGET SYNC] Fehler in syncFillsAndDetectScaleIns:', err)
+    }
   }
 
   async syncHistory(supabaseClient: any, userId: string, activeTags: any, activePreTrades: any, activePositions: any[]): Promise<boolean> {
