@@ -30,8 +30,6 @@ import {
   Send,
   X,
   Sparkles,
-  Mail,
-  Loader2,
   FileImage,
   Scale,
   ShieldCheck,
@@ -40,6 +38,7 @@ import {
 } from 'lucide-react'
 
 const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/fZuaEYe090Lo1Ei0OrdMI00'
+
 // ---------------------------------------------------------------------------
 // Reality Check Datensätze für reaktive Warnungen (Trading Desk Terminology)
 // ---------------------------------------------------------------------------
@@ -136,12 +135,8 @@ const androidSteps: GuideStep[] = [
 ]
 
 export default function LandingPage() {
-  // Modal State für Instant Founder Access / Checkout
-  const [showBetaModal, setShowBetaModal] = useState(false)
-  const [betaEmail, setBetaEmail] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [betaSubmitted, setBetaSubmitted] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  // Modal State für das neue Pro-Teaser-Checkout-Popup
+  const [showFounderModal, setShowFounderModal] = useState(false)
 
   // 1. Live Ticker & Fluktuation
   const [liveMarkPrice, setLiveMarkPrice] = useState(65340.50)
@@ -238,55 +233,6 @@ export default function LandingPage() {
 
   const activeWarning = MENTAL_WARNINGS[selectedMental] || MENTAL_WARNINGS['FOMO']
 
-  // Whitelist Handler via Resend & Supabase Backend-Route
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!betaEmail || isSubmitting) return
-
-    setIsSubmitting(true)
-    setSubmitError(null)
-
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email: betaEmail.trim().toLowerCase() }),
-      })
-
-      let data: any = {}
-      try {
-        data = await res.json()
-      } catch (jsonErr) {
-        // Falls der Server kein JSON zurückgibt
-      }
-
-      if (!res.ok) {
-        if (res.status === 409) {
-          setSubmitError('This email is already in our system!')
-        } else {
-          setSubmitError(data?.error || `Submission failed (${res.status})`)
-        }
-        setIsSubmitting(false)
-        return
-      }
-
-      setBetaSubmitted(true)
-      setTimeout(() => {
-        setBetaSubmitted(false)
-        setShowBetaModal(false)
-        setBetaEmail('')
-        setIsSubmitting(false)
-      }, 2200)
-    } catch (err: any) {
-      console.error('Waitlist submission error:', err)
-      setSubmitError(err?.message || 'Network error. Please try again.')
-      setIsSubmitting(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-200 font-sans selection:bg-[#089981]/30 relative overflow-x-hidden">
       
@@ -305,53 +251,55 @@ export default function LandingPage() {
       />
 
       {/* TOP EMERGENCY URGENCY BANNER */}
-      <div className="bg-gradient-to-r from-[#121622] via-[#161D2B] to-[#121622] border-b border-[#1E2536] py-2 px-4 text-center text-xs font-mono">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#089981] animate-pulse" />
-          <span className="text-slate-300">
-            <strong className="text-white">Early Founder Pass ($69 Lifetime):</strong> Only 8 of 25 spots left before regular price jumps to $129.
-          </span>
+      <div className="bg-gradient-to-r from-[#121622] via-[#161D2B] to-[#121622] border-b border-[#1E2536] py-2 px-3 sm:px-4 text-center text-[11px] sm:text-xs font-mono">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#089981] animate-pulse shrink-0" />
+            <span className="text-slate-300">
+              <strong className="text-white">Early Founder Pass ($69 Lifetime):</strong> Only 8 spots left.
+            </span>
+          </div>
           <button 
-            onClick={() => setShowBetaModal(true)}
-            className="text-[#089981] hover:text-emerald-300 font-bold underline ml-1 cursor-pointer"
+            onClick={() => setShowFounderModal(true)}
+            className="text-[#089981] hover:text-emerald-300 font-bold underline cursor-pointer"
           >
             Claim Access →
           </button>
         </div>
       </div>
 
-      {/* NAVIGATION */}
-      <nav className="border-b border-[#161A23] bg-[#07090E]/90 backdrop-blur-2xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#089981]/15 border border-[#089981]/30 flex items-center justify-center text-[#089981] shadow-[0_0_15px_rgba(8,153,129,0.2)]">
-              <Zap size={18} />
+      {/* NAVIGATION - MOBIL OPTIMIERT */}
+      <nav className="border-b border-[#161A23] bg-[#07090E]/95 backdrop-blur-2xl sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#089981]/15 border border-[#089981]/30 flex items-center justify-center text-[#089981] shadow-[0_0_15px_rgba(8,153,129,0.2)]">
+              <Zap size={16} />
             </div>
-            <span className="text-base font-black tracking-wider text-white">
+            <span className="text-sm sm:text-base font-black tracking-wider text-white">
               RISK<span className="text-[#089981]">IL</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/auth"
-              className="text-xs font-bold text-slate-400 hover:text-white transition px-3 py-1.5 cursor-pointer"
+              className="text-[11px] sm:text-xs font-bold text-slate-400 hover:text-white transition px-2 sm:px-3 py-1.5 cursor-pointer"
             >
               Sign In
             </Link>
             <button
-              onClick={() => setShowBetaModal(true)}
-              className="group inline-flex items-center gap-1.5 rounded-xl bg-[#089981] px-4 py-2 text-xs font-black text-white hover:bg-[#0AAE93] transition shadow-[0_0_15px_rgba(8,153,129,0.25)] cursor-pointer"
+              onClick={() => setShowFounderModal(true)}
+              className="group inline-flex items-center gap-1 rounded-xl bg-[#089981] px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-black text-white hover:bg-[#0AAE93] transition shadow-[0_0_15px_rgba(8,153,129,0.25)] cursor-pointer"
             >
-              <span>Get Founder Pass ($69)</span>
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              <span>Get Pass ($69)</span>
+              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         </div>
       </nav>
 
       {/* HERO SECTION */}
-      <section className="relative pt-20 pb-16 sm:pt-28 sm:pb-20 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
+      <section className="relative pt-16 pb-12 sm:pt-28 sm:pb-20 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#121622] border border-[#1E2536] text-[11px] font-mono text-[#089981]">
           <Flame size={13} className="text-[#089981]" />
           <span>Stop Donating Money to the Exchanges</span>
@@ -370,15 +318,15 @@ export default function LandingPage() {
 
         {/* BITGET EXCLUSIVE SYNC BADGE */}
         <div className="pt-1 flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
-          <span className="bg-[#0D111A] border border-[#1E2536] px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-[#089981] animate-pulse" />
+          <span className="bg-[#0D111A] border border-[#1E2536] px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2 shadow-sm text-center">
+            <span className="w-2 h-2 rounded-full bg-[#089981] animate-pulse shrink-0" />
             <span>Automated Live Journal: <strong>Bitget Supported</strong> (Bybit, Binance, OKX coming soon)</span>
           </span>
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
           <button
-            onClick={() => setShowBetaModal(true)}
+            onClick={() => setShowFounderModal(true)}
             className="w-full sm:w-auto px-8 py-4 bg-[#089981] hover:bg-[#067a67] text-white text-xs font-black rounded-xl transition shadow-[0_0_28px_rgba(8,153,129,0.35)] flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Claim Lifetime Founder Pass — $69</span>
@@ -1231,7 +1179,7 @@ export default function LandingPage() {
 
           <div className="space-y-3 pt-2">
             <button
-              onClick={() => setShowBetaModal(true)}
+              onClick={() => setShowFounderModal(true)}
               className="w-full py-4 bg-[#089981] hover:bg-[#0AAE93] text-white font-black text-sm rounded-xl transition shadow-[0_0_30px_rgba(8,153,129,0.35)] flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Get Instant Founder Access for $69</span>
@@ -1457,150 +1405,69 @@ export default function LandingPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* FOUNDER CHECKOUT / ACCESS MODAL */}
+      {/* FOUNDER PASS TEASER / BRIDGE MODAL (POPUP) - REDESIGNED */}
       {/* ========================================================================= */}
-      {showBetaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
-          <div className="bg-[#0B0E14] border border-[#1E2536] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+      {showFounderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-gradient-to-b from-[#121622] via-[#0B0E14] to-[#07090E] border border-[#089981]/50 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-[0_0_60px_rgba(8,153,129,0.25)] relative overflow-hidden">
             
-            <div 
-              className="absolute -top-24 -right-24 w-60 h-60 pointer-events-none -z-10"
-              style={{ background: 'radial-gradient(circle, rgba(8, 153, 129, 0.25) 0%, transparent 70%)' }}
-            />
+            {/* Ambient Background Glow inside Modal */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#089981]/20 rounded-full blur-3xl pointer-events-none" />
 
-            <button
-              onClick={() => setShowBetaModal(false)}
-              className="absolute top-5 right-5 p-2 rounded-xl bg-[#141824] hover:bg-[#1E2536] text-slate-400 hover:text-white transition cursor-pointer border border-[#1E2536]"
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowFounderModal(false)}
+              className="absolute top-4 right-4 p-2 bg-[#161A23] hover:bg-[#222938] text-slate-400 hover:text-white rounded-full transition cursor-pointer z-10"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
 
-            <div className="space-y-2 pr-6">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#089981]/10 border border-[#089981]/30 text-[10px] font-mono text-[#089981] font-bold uppercase tracking-wider">
-                <Sparkles size={12} />
-                <span>Founder Tier • Instant Terminal Access</span>
+            {/* Modal Header */}
+            <div className="space-y-2.5 text-center relative z-10">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#089981]/15 border border-[#089981]/30 text-[#089981] font-mono text-[10px] font-extrabold uppercase tracking-wider">
+                <Sparkles size={13} />
+                <span>Founder Pass • Lifetime Edition</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Unlock Lifetime Access ($69)
+              <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Secure Your Edge Forever.
               </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Connect your trading account, stop emotional leaks, and keep your hard-earned profits. Reach out directly or enter your email to get whitelisted immediately:
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xs mx-auto">
+                Stop emotional overleveraging. Unlock full terminal access with live exchange sync and all future updates.
               </p>
             </div>
 
-            {/* STRIPE DIRECT INSTANT CHECKOUT BUTTON */}
-            <div className="pt-1">
+            {/* Price Box */}
+            <div className="relative z-10 bg-[#07090E] border border-[#1E2536] rounded-2xl p-4 flex items-center justify-between shadow-inner">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block">Founder Deal</span>
+                <span className="text-xs font-bold text-[#089981] flex items-center gap-1">
+                  <Flame size={13} /> Only 8 spots left
+                </span>
+              </div>
+              <div className="text-right font-mono">
+                <span className="text-sm line-through text-slate-500 mr-2">$129</span>
+                <span className="text-2xl sm:text-3xl font-black text-white">$69</span>
+                <span className="block text-[9px] text-[#089981]">One-time • Zero Monthly Fees</span>
+              </div>
+            </div>
+
+            {/* Checkout CTA Button */}
+            <div className="space-y-3 pt-1 relative z-10">
               <a
                 href={STRIPE_CHECKOUT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 bg-[#089981] hover:bg-[#0AAE93] text-black font-mono font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(8,153,129,0.35)] cursor-pointer"
+                onClick={() => setShowFounderModal(false)}
+                className="w-full py-4.5 bg-gradient-to-r from-[#089981] to-emerald-400 hover:from-[#067a67] hover:to-emerald-300 text-slate-950 font-black text-sm rounded-xl transition-all shadow-[0_0_30px_rgba(8,153,129,0.45)] flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
-                <span>Instant Checkout via Card ($69 Once)</span>
-                <ArrowRight size={14} />
-              </a>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <a
-                href="https://x.com/robingerling"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group p-4 rounded-2xl bg-[#07090E] border border-[#1E2536] hover:border-[#089981]/60 transition-all flex flex-col justify-between gap-3 shadow-lg hover:shadow-[#089981]/10"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-[#141824] flex items-center justify-center text-white border border-[#222938]">
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                  </div>
-                  <span className="text-[10px] font-mono text-[#089981] font-bold">Fast DM ⚡</span>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#089981] transition flex items-center gap-1">
-                    <span>Founder Desk on X</span>
-                    <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">@robingerling (Fastest response)</div>
-                </div>
+                <span>Claim Founder Pass Now ($69)</span>
+                <ArrowRight size={18} className="stroke-[3]" />
               </a>
 
-              <a
-                href="https://t.me/robingerling"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group p-4 rounded-2xl bg-[#07090E] border border-[#1E2536] hover:border-[#38BDF8]/60 transition-all flex flex-col justify-between gap-3 shadow-lg hover:shadow-[#38BDF8]/10"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-[#0284c7]/15 text-[#38BDF8] flex items-center justify-center border border-[#0284c7]/30">
-                    <Send size={16} className="-ml-0.5 mt-0.5" />
-                  </div>
-                  <span className="text-[10px] font-mono text-[#38BDF8] font-bold">Direct Desk 💬</span>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#38BDF8] transition flex items-center gap-1">
-                    <span>Message on Telegram</span>
-                    <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Pay via USDT or PayPal</div>
-                </div>
-              </a>
-            </div>
-
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-[#161A23] w-full" />
-              <span className="bg-[#0B0E14] px-3 text-[10px] font-mono text-slate-500 uppercase tracking-widest">or unlock via email</span>
-            </div>
-
-            <form onSubmit={handleEmailSubmit} className="space-y-3">
-              <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="email"
-                  required
-                  disabled={isSubmitting || betaSubmitted}
-                  value={betaEmail}
-                  onChange={(e) => setBetaEmail(e.target.value)}
-                  placeholder="Enter your active trading email..."
-                  className="w-full bg-[#07090E] border border-[#1E2536] rounded-xl py-3 pl-10 pr-4 text-xs font-mono text-white outline-none focus:border-[#089981] transition shadow-inner placeholder:text-slate-600 disabled:opacity-50"
-                />
+              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 font-mono">
+                <ShieldCheck size={13} className="text-[#089981]" />
+                <span>30-Day Money-Back Guarantee • 100% Secure via Stripe</span>
               </div>
-
-              {submitError && (
-                <div className="p-2.5 rounded-xl bg-[#F23645]/10 border border-[#F23645]/30 text-[11px] font-mono text-[#F23645] flex items-center gap-2">
-                  <AlertTriangle size={14} className="shrink-0" />
-                  <span>{submitError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSubmitting || betaSubmitted}
-                className="w-full py-3.5 bg-[#121622] hover:bg-[#1E2536] border border-[#1E2536] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    <span>Activating Access...</span>
-                  </>
-                ) : betaSubmitted ? (
-                  <>
-                    <CheckCircle2 size={15} />
-                    <span>Access Requested! We will whitelist you immediately.</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Submit Email for Whitelist</span>
-                    <ArrowRight size={14} />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="text-center">
-              <span className="text-[10px] font-mono text-slate-500">
-                🔒 100% Read-Only API Keys. Your funds can never be withdrawn or touched.
-              </span>
             </div>
 
           </div>
@@ -1617,15 +1484,13 @@ export default function LandingPage() {
             Stop giving your edge away to taker fees and tilt. Lock in the Founder Pass for $69 once, or test the free mathematical tools right now.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <a
-              href={STRIPE_CHECKOUT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => setShowFounderModal(true)}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#089981] hover:bg-[#067a67] text-white text-xs font-black rounded-xl transition shadow-[0_0_28px_rgba(8,153,129,0.35)] cursor-pointer"
             >
               <span>Claim Founder Pass ($69)</span>
               <ArrowRight size={14} />
-            </a>
+            </button>
             <a
               href="https://go.riskil.app/tools"
               target="_blank"
@@ -1646,9 +1511,9 @@ export default function LandingPage() {
             <span>© {new Date().getFullYear()} RISKIL. Engineering Discipline.</span>
           </div>
           <div className="flex gap-6">
-            <Link href="/terms" className="hover:text-slate-300 transition">Terms of Service</Link>
-            <Link href="/privacy" className="hover:text-slate-300 transition">Privacy Policy</Link>
-            <Link href="/imprint" className="hover:text-slate-300 transition">Legal Notice</Link>
+            <Link href="/terms" className="transition hover:text-slate-300">Terms of Service</Link>
+            <Link href="/privacy" className="transition hover:text-slate-300">Privacy Policy</Link>
+            <Link href="/imprint" className="transition hover:text-slate-300">Legal Notice / Imprint</Link>
           </div>
         </div>
       </footer>
