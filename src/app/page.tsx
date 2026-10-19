@@ -39,7 +39,7 @@ import {
   Check
 } from 'lucide-react'
 
-const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/test_eVq9AUd1m6OA0265Zv3Ru00'
+const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/fZuaEYe090Lo1Ei0OrdMI00'
 // ---------------------------------------------------------------------------
 // Reality Check Datensätze für reaktive Warnungen (Trading Desk Terminology)
 // ---------------------------------------------------------------------------
@@ -365,21 +365,15 @@ export default function LandingPage() {
         </h1>
 
         <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          The terminal gate that forces strict position sizing, calculates exchange taker fees upfront, and freezes your thesis at entry. <strong className="text-white">Zero recurring subscription.</strong> If it stops your worst trade this week, it paid for itself tenfold.
+          The ultimate risk management terminal for crypto futures. Calculate exact multi-tranche sizing, account for real exchange taker fees, and lock your trading thesis before emotion takes over. <strong className="text-white">One-time payment. Zero monthly fees.</strong>
         </p>
 
-        {/* MULTI-EXCHANGE SUPPORT BADGES */}
+        {/* BITGET EXCLUSIVE SYNC BADGE */}
         <div className="pt-1 flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
-          <span className="text-slate-500 uppercase tracking-wider font-semibold text-[10px] mr-1">Currently Optimized For:</span>
-          {['Bitget', 'OKX', 'Bybit', 'Binance'].map((exchange) => (
-            <span 
-              key={exchange} 
-              className="bg-[#0D111A] border border-[#1E2536] px-2.5 py-1 rounded-lg text-slate-300 flex items-center gap-1.5 shadow-sm"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#089981]" />
-              {exchange}
-            </span>
-          ))}
+          <span className="bg-[#0D111A] border border-[#1E2536] px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-[#089981] animate-pulse" />
+            <span>Automated Live Journal: <strong>Bitget Supported</strong> (Bybit, Binance, OKX coming soon)</span>
+          </span>
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
@@ -451,7 +445,7 @@ export default function LandingPage() {
                   Math under adrenaline fails. Calculate exact risk in 2 seconds.
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                  Never guess decimal places while prices are flashing. Use our lightning-fast browser terminal tools before entering orders on Bitget, Bybit or Binance.
+                  Never guess decimal places while prices are flashing. Use our lightning-fast browser terminal tools before entering orders on Bitget and other supported perps.
                 </p>
               </div>
 
@@ -643,7 +637,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-2.5 font-mono text-xs">
               <span className="w-2.5 h-2.5 rounded-full bg-[#089981] animate-pulse" />
               <span className="font-bold text-white">Live Orderbook Sync: Connected</span>
-              <span className="text-slate-500 hidden sm:inline">| Bitget, OKX, Bybit, Binance</span>
+              <span className="text-slate-500 hidden sm:inline">| Bitget Live Support</span>
             </div>
             <span className="text-[11px] font-mono text-[#089981] bg-[#089981]/10 px-3 py-0.5 rounded-md border border-[#089981]/20">
               Interactive Simulation: Test the triggers
@@ -1002,7 +996,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#161A23] gap-2">
             <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#089981]" />
-              Multi-Tranche DCA Engine (Bitget, OKX, Bybit, Binance Tiered Taker/Maker Built-In)
+              Multi-Tranche DCA Engine (Bitget Tiered Taker/Maker Built-In)
             </div>
             <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
               Demo: 2 Tranches • Production: Unlimited DCA Steps
@@ -1217,7 +1211,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-8 text-xs">
             {[
-              'Direct Read-Only Bitget & Exchange Sync',
+              'Direct Read-Only Bitget Live Sync',
               'Real-Time Taker & Maker Fee Deductions',
               'Pre-Trade Mental State & Setup Locking',
               'Mandatory Post-Trade Audit Protocol',
@@ -1490,7 +1484,7 @@ export default function LandingPage() {
                 Unlock Lifetime Access ($69)
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Connect your trading account, stop emotional leaks, and keep your hard-earned profits.
+                Connect your trading account, stop emotional leaks, and keep your hard-earned profits. Reach out directly or enter your email to get whitelisted immediately:
               </p>
             </div>
 
@@ -1527,7 +1521,7 @@ export default function LandingPage() {
                     <span>Founder Desk on X</span>
                     <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">@robingerling (DM us)</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">@robingerling (Fastest response)</div>
                 </div>
               </a>
 
@@ -1582,17 +1576,17 @@ export default function LandingPage() {
               <button
                 type="submit"
                 disabled={isSubmitting || betaSubmitted}
-                className="w-full py-3 bg-[#121622] hover:bg-[#1E2536] border border-[#1E2536] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 bg-[#121622] hover:bg-[#1E2536] border border-[#1E2536] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
-                    <span>Submitting Request...</span>
+                    <span>Activating Access...</span>
                   </>
                 ) : betaSubmitted ? (
                   <>
                     <CheckCircle2 size={15} />
-                    <span>Email Received! We will whitelist you.</span>
+                    <span>Access Requested! We will whitelist you immediately.</span>
                   </>
                 ) : (
                   <>
@@ -1605,7 +1599,7 @@ export default function LandingPage() {
 
             <div className="text-center">
               <span className="text-[10px] font-mono text-slate-500">
-                🔒 30-Day Money-Back Guarantee • Lifetime Access
+                🔒 100% Read-Only API Keys. Your funds can never be withdrawn or touched.
               </span>
             </div>
 
