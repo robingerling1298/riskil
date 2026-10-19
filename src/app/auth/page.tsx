@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
@@ -18,7 +18,7 @@ import {
   X
 } from 'lucide-react'
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -76,7 +76,6 @@ export default function AuthPage() {
       console.error('OTP Send Error:', err)
       const rawMsg = err.message || ''
 
-      // Supabase maskiert den Trigger-Abbruch als "Database error saving new user"
       if (
         rawMsg.includes('Database error saving new user') ||
         rawMsg.includes('Beta-Zugang') ||
@@ -322,5 +321,17 @@ export default function AuthPage() {
 
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#07090E] flex items-center justify-center text-slate-500 font-mono text-xs">
+        <Loader2 className="w-5 h-5 animate-spin text-[#089981]" />
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   )
 }
