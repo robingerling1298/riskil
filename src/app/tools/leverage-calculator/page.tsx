@@ -25,8 +25,17 @@ import {
   Download,
   FileImage,
   Share2,
-  Copy
+  Copy,
+  Lock,
+  Sparkles,
+  Send,
+  Mail,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react'
+
+const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/fZuaEYe090Lo1Ei0OrdMI00'
 
 interface EntryTranche {
   id: string
@@ -54,7 +63,7 @@ const EXCHANGES: ExchangePreset[] = [
   { id: 'bybit', name: 'Bybit (VIP0)', makerFee: 0.02, takerFee: 0.055 },
   { id: 'binance', name: 'Binance (VIP0)', makerFee: 0.02, takerFee: 0.05 },
   { id: 'okx', name: 'OKX (VIP0)', makerFee: 0.02, takerFee: 0.05 },
-  { id: 'custom', name: 'Custom Fees', makerFee: 0.02, takerFee: 0.06 }
+  { id: 'custom', name: 'Custom Fees (Founder Pass)', makerFee: 0.02, takerFee: 0.06 }
 ]
 
 const POPULAR_ASSETS: AssetOption[] = [
@@ -86,9 +95,7 @@ function FreeLeverageCalculatorInner() {
   const [isExchangeDropdownOpen, setIsExchangeDropdownOpen] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
 
-  const [isExporting, setIsExporting] = useState<boolean>(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const [copySuccess, setCopySuccess] = useState<boolean>(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   const assetDropdownRef = useRef<HTMLDivElement>(null)
@@ -205,11 +212,9 @@ function FreeLeverageCalculatorInner() {
 
   const totalMargin = tranches.reduce((sum, t) => sum + (parseFloat(t.margin) || 0), 0)
 
+  // DIREKTE WEITERLEITUNG ZU STRIPE CHECKOUT
   const handleAddTranche = () => {
-    setTranches(prev => [
-      ...prev,
-      { id: Date.now().toString(), price: '', margin: '', orderType: 'LIMIT' }
-    ])
+    window.open(STRIPE_CHECKOUT_URL, '_blank')
   }
 
   const handleRemoveTranche = (id: string) => {
@@ -353,54 +358,13 @@ function FreeLeverageCalculatorInner() {
     setIsCustomFeeModalOpen(false)
   }
 
-  const handleDownloadTradeCard = async () => {
-    if (!cardRef.current) return
-    setIsExporting(true)
-    try {
-      const dataUrl = await toPng(cardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2.5,
-        backgroundColor: '#0a0d14'
-      })
-
-      if (navigator.canShare && navigator.share) {
-        try {
-          const blob = await (await fetch(dataUrl)).blob()
-          const file = new File([blob], `RISKIL_${selectedAsset.symbol}_${direction}.png`, { type: 'image/png' })
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: `${selectedAsset.symbol} ${direction} Setup`,
-              text: `Planned via RISKIL Free Leverage Sizer (${calculatedLeverage}x)`
-            })
-            setIsExporting(false)
-            return
-          }
-        } catch (shareErr) {
-          // Fallback
-        }
-      }
-
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-      if (isMobile) {
-        setPreviewImage(dataUrl)
-      } else {
-        const link = document.createElement('a')
-        link.download = `RISKIL_${selectedAsset.symbol}_${direction}_Setup.png`
-        link.href = dataUrl
-        link.click()
-      }
-    } catch (err) {
-      console.error('Error exporting trade card:', err)
-    } finally {
-      setIsExporting(false)
-    }
+  // DIREKTE CHECKOUTS BEI EXPORT-AKTIONEN
+  const handleDownloadTradeCard = () => {
+    window.open(STRIPE_CHECKOUT_URL, '_blank')
   }
 
   const handleCopyShareLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopySuccess(true)
-    setTimeout(() => setCopySuccess(false), 2000)
+    window.open(STRIPE_CHECKOUT_URL, '_blank')
   }
 
   return (
@@ -409,23 +373,23 @@ function FreeLeverageCalculatorInner() {
       <div className="text-center space-y-4 pt-4 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
           <Scale className="w-3.5 h-3.5" />
-          Pro Suite • Full Position Pipeline
+          Free Terminal • Entry Sizer
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Full Position & Exit Planner. <br className="hidden sm:inline" /> From Entry to Scale-Out.
+          Exact Sizing & Leverage. <br className="hidden sm:inline" /> Zero Emotional Guesswork.
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
-          Synchronize your DCA entries, stop loss risk tolerances, and multi-tier exits into a unified risk management setup ready to log.
+          Calculate your optimal leverage factoring in exchange taker fees and exact dollar risk tolerance.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
-          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Engine</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Free Single Tranche</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Dynamic Fee Subtraction</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Taker Fee Deduction</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Direct Journal Sync</span>
+          <span className="flex items-center gap-1.5 text-amber-400 font-bold"><Lock className="w-3.5 h-3.5 text-amber-400" /> Pro Export & Multi-Tranche</span>
         </div>
       </div>
 
@@ -562,9 +526,7 @@ function FreeLeverageCalculatorInner() {
                         type="button"
                         onClick={() => {
                           if (ex.id === 'custom') {
-                            setTempMakerFee(customFees.maker.toString())
-                            setTempTakerFee(customFees.taker.toString())
-                            setIsCustomFeeModalOpen(true)
+                            window.open(STRIPE_CHECKOUT_URL, '_blank')
                           } else {
                             setSelectedExchangeId(ex.id)
                           }
@@ -579,7 +541,7 @@ function FreeLeverageCalculatorInner() {
                           <span className="font-semibold">{ex.name}</span>
                         </div>
                         <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                          <span>{ex.id === 'custom' ? `${customFees.taker}%` : `${ex.takerFee}%`}</span>
+                          <span>{ex.id === 'custom' ? 'PRO' : `${ex.takerFee}%`}</span>
                           {isSelected && <Check className="w-3.5 h-3.5 text-brand" />}
                         </div>
                       </button>
@@ -590,14 +552,13 @@ function FreeLeverageCalculatorInner() {
                     <button
                       type="button"
                       onClick={() => {
-                        setTempMakerFee(customFees.maker.toString())
-                        setTempTakerFee(customFees.taker.toString())
-                        setIsCustomFeeModalOpen(true)
+                        window.open(STRIPE_CHECKOUT_URL, '_blank')
                         setIsExchangeDropdownOpen(false)
                       }}
-                      className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center gap-1.5 cursor-pointer"
+                      className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center justify-between cursor-pointer"
                     >
-                      <Settings className="w-3 h-3" /> Set custom fees...
+                      <span className="flex items-center gap-1.5"><Settings className="w-3 h-3" /> Set custom fees...</span>
+                      <span className="px-1.5 py-0.2 rounded bg-brand/20 text-brand text-[9px] font-bold">PRO</span>
                     </button>
                   </div>
                 </div>
@@ -725,13 +686,14 @@ function FreeLeverageCalculatorInner() {
             ))}
           </div>
 
+          {/* DIESER BUTTON ÖFFNET DIREKT STRIPE CHECKOUT */}
           <button
             type="button"
             onClick={handleAddTranche}
-            className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer"
+            className="w-full min-h-[44px] py-3 border border-dashed border-brand/50 hover:border-brand bg-brand-muted/40 hover:bg-brand-muted text-slate-200 hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer group"
           >
-            <Plus className="w-4 h-4 text-brand" />
-            <span>Add another tranche (Free & unlimited)</span>
+            <Lock className="w-4 h-4 text-brand group-hover:scale-110 transition-transform" />
+            <span>Unlock Multi-Tranche DCA Scaling <strong className="text-brand font-mono ml-1">($69 Lifetime Founder Pass)</strong></span>
           </button>
         </div>
 
@@ -836,15 +798,16 @@ function FreeLeverageCalculatorInner() {
         {/* ================= TRADE PLAN CARD (EXPORTABLE) ================= */}
         <div className="space-y-4 pt-2">
           
-          {/* ACTION BAR: SHARE & DOWNLOAD BUTTONS */}
+          {/* ACTION BAR: SHARE & DOWNLOAD BUTTONS (DIREKT ZU STRIPE) */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
             <div className="space-y-0.5">
               <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
                 <FileImage className="w-4 h-4 text-brand" />
                 <span>Share Setup & Save Trade Card</span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-mono text-[9px] font-bold">PRO</span>
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Directly share the rendered PNG via Web Share API or copy the permalink.
+                Persistent link generation and high-resolution PNG trade card exports.
               </p>
             </div>
 
@@ -854,28 +817,17 @@ function FreeLeverageCalculatorInner() {
                 onClick={handleCopyShareLink}
                 className="min-h-[40px] px-3.5 py-2 rounded-xl bg-term-bg hover:bg-term-hover border border-term-border text-xs font-mono font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
-                <Copy className="w-3.5 h-3.5 text-brand" />
-                <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Copy Link</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleDownloadTradeCard}
-                disabled={isExporting || !isValidSetup}
-                className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
-                  isValidSetup
-                    ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
-                    : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
-                }`}
+                className="min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95"
               >
-                <Share2 className="w-4 h-4" />
-                <span>
-                  {isExporting 
-                    ? 'Generating...' 
-                    : isValidSetup 
-                      ? 'Share / Export (.PNG)' 
-                      : 'Incomplete'}
-                </span>
+                <Lock className="w-4 h-4 text-black" />
+                <span>Share / Export (.PNG)</span>
               </button>
             </div>
           </div>
@@ -1007,30 +959,29 @@ function FreeLeverageCalculatorInner() {
           </div>
         </div>
 
-        {/* ================= RISKIL CLOSED BETA CTA BANNER ================= */}
-        <div className="mt-8 p-5 sm:p-6 bg-gradient-to-r from-term-card via-term-bg to-brand-muted/15 border border-brand-border rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-2xl">
+        {/* ================= RISKIL FOUNDER PASS CTA BANNER ================= */}
+        <div className="mt-8 p-5 sm:p-6 bg-gradient-to-r from-term-card via-term-bg to-brand-muted/20 border border-brand/50 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-2xl">
           <div className="space-y-1.5 max-w-xl">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded bg-brand/20 border border-brand/40 text-brand text-[10px] font-mono font-bold uppercase">
-                Closed Beta
+                Founder Tier • $69 Lifetime
               </span>
               <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                Setup Planned. Do You Stick to Your Rules Live?
+                Need Unlimited DCA Scaling & Live Bitget Protection?
               </h4>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Most trading accounts blow up due to shifting stops and emotional overleveraging. 
-              <strong> RISKIL</strong> tracks your live positions via a <strong>100% secure Read-Only API (zero execution rights)</strong>, matches them against your plan, and uncovers rule violations in your journal.
+              Don&apos;t blow your trading account on tilted revenge trades. <strong>RISKIL Founder Pass</strong> grants you lifetime access to unlimited DCA ladders, high-res exports, the Pre-Trade Integrity Gate, and automated trade auditing.
             </p>
           </div>
 
           <a
-            href="https://riskil.app"
+            href={STRIPE_CHECKOUT_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
           >
-            <span>Secure Early Access</span>
+            <span>Claim Lifetime Access ($69)</span>
             <ArrowRight className="w-4 h-4" />
           </a>
         </div>

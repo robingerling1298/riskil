@@ -26,7 +26,8 @@ import {
   TrendingUp,
   Scale,
   Share2,
-  Copy
+  Copy,
+  Lock
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -38,6 +39,8 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts'
+
+const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/fZuaEYe090Lo1Ei0OrdMI00'
 
 interface EntryTranche {
   id: string
@@ -73,7 +76,7 @@ const EXCHANGES: ExchangePreset[] = [
   { id: 'bybit', name: 'Bybit (VIP0)', makerFee: 0.02, takerFee: 0.055 },
   { id: 'binance', name: 'Binance (VIP0)', makerFee: 0.02, takerFee: 0.05 },
   { id: 'okx', name: 'OKX (VIP0)', makerFee: 0.02, takerFee: 0.05 },
-  { id: 'custom', name: 'Custom Fees', makerFee: 0.02, takerFee: 0.06 }
+  { id: 'custom', name: 'Custom Fees (Founder Pass)', makerFee: 0.02, takerFee: 0.06 }
 ]
 
 const POPULAR_ASSETS: AssetOption[] = [
@@ -233,9 +236,27 @@ function FreeFullPositionPlannerInner() {
     return () => clearInterval(interval)
   }, [selectedAsset])
 
+  // ================= GATING LOGIK =================
   const handleAddTranche = () => {
-    setTranches(prev => [...prev, { id: Date.now().toString(), price: '', margin: '', orderType: 'LIMIT' }])
+    window.open(STRIPE_CHECKOUT_URL, '_blank')
   }
+
+  const handleAddTpStage = () => {
+    if (tpStages.length >= 2) {
+      window.open(STRIPE_CHECKOUT_URL, '_blank')
+      return
+    }
+    setTpStages(prev => [...prev, { id: Date.now().toString(), mode: 'ROE', roePercent: '', targetPrice: '', closePercent: '' }])
+  }
+
+  const handleDownloadTradeCard = () => {
+    window.open(STRIPE_CHECKOUT_URL, '_blank')
+  }
+
+  const handleCopyShareLink = () => {
+    window.open(STRIPE_CHECKOUT_URL, '_blank')
+  }
+  // ================================================
 
   const handleRemoveTranche = (id: string) => {
     if (tranches.length <= 1) return
@@ -250,10 +271,6 @@ function FreeFullPositionPlannerInner() {
     if (currentPrice) {
       setTranches(prev => prev.map((t, idx) => idx === 0 ? { ...t, price: currentPrice.toString() } : t))
     }
-  }
-
-  const handleAddTpStage = () => {
-    setTpStages(prev => [...prev, { id: Date.now().toString(), mode: 'ROE', roePercent: '', targetPrice: '', closePercent: '' }])
   }
 
   const handleRemoveTpStage = (id: string) => {
@@ -466,62 +483,12 @@ function FreeFullPositionPlannerInner() {
     setIsCustomFeeModalOpen(false)
   }
 
-  const handleDownloadTradeCard = async () => {
-    if (!cardRef.current) return
-    setIsExporting(true)
-    try {
-      const dataUrl = await toPng(cardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2.5,
-        backgroundColor: '#0a0d14'
-      })
-
-      if (navigator.canShare && navigator.share) {
-        try {
-          const blob = await (await fetch(dataUrl)).blob()
-          const file = new File([blob], `RISKIL_${selectedAsset.symbol}_${direction}_FullPlan.png`, { type: 'image/png' })
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: `${selectedAsset.symbol} ${direction} Full Trade Plan`,
-              text: `Planned via RISKIL Free Full Position Matrix`
-            })
-            setIsExporting(false)
-            return
-          }
-        } catch (shareErr) {
-          // Fallback
-        }
-      }
-
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-      if (isMobile) {
-        setPreviewImage(dataUrl)
-      } else {
-        const link = document.createElement('a')
-        link.download = `RISKIL_${selectedAsset.symbol}_${direction}_FullPlan.png`
-        link.href = dataUrl
-        link.click()
-      }
-    } catch (err) {
-      console.error('Error exporting full plan card:', err)
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  const handleCopyShareLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopySuccess(true)
-    setTimeout(() => setCopySuccess(false), 2000)
-  }
-
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 text-slate-100 font-sans pb-20">
       <div className="text-center space-y-4 pt-10 pb-2 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-muted border border-brand-border text-brand text-xs font-mono font-semibold tracking-wide">
           <Scale className="w-3.5 h-3.5" />
-          All-in-One Crypto Perps Terminal Planner
+          Free Terminal • Full Position Planner
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
@@ -529,15 +496,15 @@ function FreeFullPositionPlannerInner() {
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
-          The ultimate all-in-one suite: Calculate blended averages across multiple DCA entries, protect your account with precise leverage sizing, and plan your take-profit ladder in a synchronized workflow.
+          The ultimate all-in-one suite: Calculate blended averages, protect your account with precise leverage sizing, and plan your take-profit ladder.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400 font-mono pt-2">
-          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Client-Side</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Free Single Entry</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Auto-CRV Engine</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> 2x Take Profits</span>
           <span className="text-slate-700">•</span>
-          <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Full Setup Export</span>
+          <span className="flex items-center gap-1.5 text-amber-400 font-bold"><Lock className="w-3.5 h-3.5 text-amber-400" /> Pro Export & Visuals</span>
         </div>
       </div>
 
@@ -661,9 +628,7 @@ function FreeFullPositionPlannerInner() {
                       type="button"
                       onClick={() => {
                         if (ex.id === 'custom') {
-                          setTempMakerFee(customFees.maker.toString())
-                          setTempTakerFee(customFees.taker.toString())
-                          setIsCustomFeeModalOpen(true)
+                          window.open(STRIPE_CHECKOUT_URL, '_blank')
                         } else {
                           setSelectedExchangeId(ex.id)
                         }
@@ -678,7 +643,7 @@ function FreeFullPositionPlannerInner() {
                         <span className="font-semibold">{ex.name}</span>
                       </div>
                       <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                        <span>{ex.id === 'custom' ? `${customFees.taker}%` : `${ex.takerFee}%`}</span>
+                        <span>{ex.id === 'custom' ? 'PRO' : `${ex.takerFee}%`}</span>
                         {isSelected && <Check className="w-3.5 h-3.5 text-brand" />}
                       </div>
                     </button>
@@ -689,14 +654,13 @@ function FreeFullPositionPlannerInner() {
                   <button
                     type="button"
                     onClick={() => {
-                      setTempMakerFee(customFees.maker.toString())
-                      setTempTakerFee(customFees.taker.toString())
-                      setIsCustomFeeModalOpen(true)
+                      window.open(STRIPE_CHECKOUT_URL, '_blank')
                       setIsExchangeDropdownOpen(false)
                     }}
-                    className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center gap-1.5 cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-[11px] text-brand hover:underline font-mono flex items-center justify-between cursor-pointer"
                   >
-                    <Settings className="w-3 h-3" /> Set custom fees...
+                    <span className="flex items-center gap-1.5"><Settings className="w-3 h-3" /> Set custom fees...</span>
+                    <span className="px-1.5 py-0.2 rounded bg-brand/20 text-brand text-[9px] font-bold">PRO</span>
                   </button>
                 </div>
               </div>
@@ -823,16 +787,17 @@ function FreeFullPositionPlannerInner() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          {/* DCA GATING BUTTON */}
           <button
             type="button"
             onClick={handleAddTranche}
-            className="py-2.5 px-4 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-sm cursor-pointer font-mono"
+            className="py-2.5 px-4 border border-dashed border-brand/50 hover:border-brand bg-brand-muted/40 hover:bg-brand-muted text-slate-200 hover:text-white rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-sm cursor-pointer font-mono group"
           >
-            <Plus className="w-4 h-4 text-brand" />
-            <span>Add Tranche</span>
+            <Lock className="w-4 h-4 text-brand group-hover:scale-110 transition-transform" />
+            <span>Unlock Multi-Tranche DCA Scaling <strong className="text-brand ml-1">($69)</strong></span>
           </button>
 
-          <div className="flex items-center gap-4 text-xs font-mono bg-term-bg p-2.5 rounded-xl border border-term-border">
+          <div className="flex items-center justify-center gap-4 text-xs font-mono bg-term-bg p-2.5 rounded-xl border border-term-border">
             <span className="text-slate-400">Avg Entry: <strong className="text-white">${avgEntryPrice > 0 ? avgEntryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</strong></span>
             <span className="text-slate-500">•</span>
             <span className="text-slate-400">Total Margin: <strong className="text-brand">${totalMargin > 0 ? totalMargin.toFixed(2) : '-'}</strong></span>
@@ -1110,65 +1075,94 @@ function FreeFullPositionPlannerInner() {
           })}
         </div>
 
+        {/* TP GATING BUTTON (AB 2 STÜCK) */}
         <button
           type="button"
           onClick={handleAddTpStage}
-          className="w-full min-h-[44px] py-3 border border-brand-border bg-brand-muted hover:bg-brand/20 text-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer font-mono"
+          className={`w-full min-h-[44px] py-3 border ${tpStages.length >= 2 ? 'border-dashed border-brand/50 bg-brand-muted/40 text-slate-200' : 'border-brand-border bg-brand-muted text-brand'} hover:bg-brand/20 hover:border-brand hover:text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition duration-200 shadow-md cursor-pointer font-mono group`}
         >
-          <Plus className="w-4 h-4 text-brand" />
-          <span>Add Take-Profit Tier</span>
+          {tpStages.length >= 2 ? (
+             <>
+               <Lock className="w-4 h-4 text-brand group-hover:scale-110 transition-transform" />
+               <span>Unlock Unlimited TP Tiers <strong className="text-brand ml-1">($69 Lifetime)</strong></span>
+             </>
+          ) : (
+             <>
+               <Plus className="w-4 h-4 text-brand" />
+               <span>Add Take-Profit Tier ({2 - tpStages.length} free left)</span>
+             </>
+          )}
         </button>
       </div>
 
+      {/* ================= CHART SECTION GATING ================= */}
       <div className="bg-term-card border border-term-border rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
         <div className="flex items-center justify-between border-b border-term-border pb-3">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
             <span>Yield & Risk Progression</span>
+            <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-mono text-[9px] font-bold">PRO</span>
           </div>
           <span className="text-[10px] font-mono text-slate-500">Green: Cumulative Net Profit • Blue: Open Margin</span>
         </div>
 
-        <div className="h-60 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="fullPlannerProfitGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#089981" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#089981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f293d" vertical={false} />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} fontStretch="condensed" />
-              <YAxis yAxisId="left" stroke="#089981" fontSize={11} tickLine={false} tickFormatter={(v) => `$${v}`} />
-              <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0a0d14',
-                  borderColor: '#222f49',
-                  borderRadius: '12px',
-                  color: '#fff',
-                  fontSize: '11px',
-                  fontFamily: 'monospace'
-                }}
-              />
-              <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#fullPlannerProfitGrad)" name="Net Profit ($)" />
-              <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Open Position (%)" />
-            </ComposedChart>
-          </ResponsiveContainer>
+        <div className="h-60 w-full pt-2 relative">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0a0d14]/60 backdrop-blur-sm rounded-xl">
+            <Lock className="w-6 h-6 text-brand mb-2" />
+            <span className="text-white font-bold text-sm mb-1">Visualizer Locked</span>
+            <span className="text-slate-300 text-xs font-mono mb-4 text-center max-w-sm px-4">
+              Get the Founder Pass to unlock risk/yield progression charts and high-res matrix exports.
+            </span>
+            <button 
+              onClick={() => window.open(STRIPE_CHECKOUT_URL, '_blank')} 
+              className="px-6 py-2.5 bg-brand text-black font-extrabold font-mono text-xs rounded-xl transition hover:bg-brand-hover shadow-lg cursor-pointer"
+            >
+              Unlock for $69
+            </button>
+          </div>
+          
+          <div className="w-full h-full opacity-30 select-none pointer-events-none">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="fullPlannerProfitGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#089981" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#089981" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f293d" vertical={false} />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} fontStretch="condensed" />
+                <YAxis yAxisId="left" stroke="#089981" fontSize={11} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0a0d14',
+                    borderColor: '#222f49',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontFamily: 'monospace'
+                  }}
+                />
+                <Area yAxisId="left" type="monotone" dataKey="gewinn" stroke="#089981" strokeWidth={2.5} fillOpacity={1} fill="url(#fullPlannerProfitGrad)" name="Net Profit ($)" />
+                <Line yAxisId="right" type="stepAfter" dataKey="restPosition" stroke="#38bdf8" strokeWidth={2} dot={{ r: 4, fill: '#38bdf8' }} name="Open Position (%)" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
-      {/* ================= ACTION BAR: COPY LINK & SHARE ================= */}
+      {/* ================= ACTION BAR: COPY LINK & SHARE (GATED) ================= */}
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-term-card border border-term-border p-3.5 sm:p-4 rounded-2xl shadow-lg">
           <div className="space-y-0.5">
             <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
               <FileImage className="w-4 h-4 text-brand" />
               <span>Share Setup & Save Trade Card</span>
+              <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-mono text-[9px] font-bold">PRO</span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono">
-              Directly share the rendered PNG via Web Share API or copy the permalink.
+              Persistent link generation and high-resolution PNG trade card exports.
             </p>
           </div>
 
@@ -1178,28 +1172,17 @@ function FreeFullPositionPlannerInner() {
               onClick={handleCopyShareLink}
               className="min-h-[40px] px-3.5 py-2 rounded-xl bg-term-bg hover:bg-term-hover border border-term-border text-xs font-mono font-bold text-slate-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
-              <Copy className="w-3.5 h-3.5 text-brand" />
-              <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Copy Link</span>
             </button>
 
             <button
               type="button"
               onClick={handleDownloadTradeCard}
-              disabled={isExporting || !isValidSetup}
-              className={`min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
-                isValidSetup
-                  ? 'bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95'
-                  : 'bg-term-bg border border-term-border text-slate-500 cursor-not-allowed'
-              }`}
+              className="min-h-[40px] px-5 py-2 rounded-xl text-xs font-mono font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer bg-brand hover:bg-brand-hover text-black shadow-brand/20 active:scale-95"
             >
-              <Share2 className="w-4 h-4" />
-              <span>
-                {isExporting 
-                  ? 'Generating...' 
-                  : isValidSetup 
-                    ? 'Share / Export (.PNG)' 
-                    : 'Incomplete'}
-              </span>
+              <Lock className="w-4 h-4 text-black" />
+              <span>Share / Export (.PNG)</span>
             </button>
           </div>
         </div>
@@ -1312,114 +1295,28 @@ function FreeFullPositionPlannerInner() {
         </div>
       </div>
 
-      <div className="mt-8 p-5 sm:p-6 bg-gradient-to-r from-term-card via-term-bg to-brand-muted/15 border border-brand-border rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-2xl">
+      <div className="mt-8 p-5 sm:p-6 bg-gradient-to-r from-term-card via-term-bg to-brand-muted/15 border border-brand/50 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-2xl">
         <div className="space-y-1.5 max-w-xl">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-brand/20 border border-brand/40 text-brand text-[10px] font-mono font-bold uppercase">Closed Beta</span>
+            <span className="px-2 py-0.5 rounded bg-brand/20 border border-brand/40 text-brand text-[10px] font-mono font-bold uppercase">Founder Tier • $69</span>
             <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">Setup Planned. Do You Stick to Your Plan Live?</h4>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
-            No more manual journaling: <strong>RISKIL</strong> automatically reads your trades from your exchange via a <strong>100% secure Read-Only API (zero trading rights)</strong> and detects immediately if you shifted your stop or ignored your TPs.
+            No more manual journaling: <strong>RISKIL Founder Pass</strong> unlocks unlimited DCA ladders, high-res exports, and tracks your live positions via a <strong>100% secure Read-Only API</strong> to ensure you stick to the plan.
           </p>
         </div>
 
         <a
-          href="https://riskil.app"
+          href={STRIPE_CHECKOUT_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand hover:bg-brand-hover text-black font-mono font-black text-xs transition-all shadow-xl shadow-brand/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
         >
-          <span>Secure Early Access</span>
+          <span>Claim Lifetime Access ($69)</span>
           <ArrowRight className="w-4 h-4" />
         </a>
       </div>
 
-      {previewImage && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-lg p-4 space-y-4 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-term-border pb-3">
-              <span className="text-xs font-mono font-bold text-white">Trade Card Ready</span>
-              <button type="button" onClick={() => setPreviewImage(null)} className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-center">
-              <p className="text-[11px] font-mono text-emerald-400">Long-press the image to save it to your camera roll.</p>
-              <div className="rounded-xl overflow-hidden border border-term-border bg-black">
-                <img src={previewImage} alt="Trade Setup" className="w-full h-auto object-contain" />
-              </div>
-            </div>
-
-            <button type="button" onClick={() => setPreviewImage(null)} className="w-full py-3 bg-brand text-black font-extrabold text-xs font-mono rounded-xl cursor-pointer">
-              Done / Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isCustomFeeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-term-card border border-term-border rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-term-border pb-3">
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-brand" />
-                <h3 className="text-sm font-bold text-white font-mono">Customize Exchange Fees</h3>
-              </div>
-              <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-term-bg transition cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveCustomFees} className="space-y-4">
-              <p className="text-xs text-slate-400">Enter your exchange or VIP tier maker and taker fee percentages:</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono text-slate-400">Maker Fee (%)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={tempMakerFee}
-                      onChange={(e) => setTempMakerFee(e.target.value)}
-                      className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2 px-3 text-xs font-mono font-bold text-white outline-none"
-                      placeholder="0.02"
-                      required
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono text-slate-400">Taker Fee (%)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={tempTakerFee}
-                      onChange={(e) => setTempTakerFee(e.target.value)}
-                      className="w-full bg-term-bg border border-term-border focus:border-brand rounded-xl py-2 px-3 text-xs font-mono font-bold text-white outline-none"
-                      placeholder="0.06"
-                      required
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button type="button" onClick={() => setIsCustomFeeModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer">
-                  Cancel
-                </button>
-                <button type="submit" className="px-4 py-2 bg-brand hover:bg-brand-hover text-black font-extrabold text-xs rounded-xl transition shadow-md shadow-brand/20 cursor-pointer">
-                  Save & Apply
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

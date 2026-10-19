@@ -8,7 +8,6 @@ import {
   Target, 
   ChevronDown, 
   ChevronUp, 
-  Filter, 
   CheckCircle2, 
   BookOpen, 
   Check, 
@@ -182,7 +181,6 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
     const hasRating = !!targetTrade.trade_rating
     const hasMood = !!targetTrade.mood
 
-    // In der Inbox (Dashboard) ist die Einstiegsanalyse bereits vorab abgeschlossen
     const isEntryComplete = Boolean(
       targetTrade.is_locked || 
       (entryTags && entryTags.length > 0) || 
@@ -251,33 +249,32 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
 
   if (!tradeList || tradeList.length === 0) {
     return (
-      <div className="mt-8 p-6 sm:p-8 bg-[#0B0E14] border border-[#161A23] rounded-2xl flex flex-col items-center justify-center text-slate-500">
-        <Clock className="w-10 h-10 opacity-20 mb-3" />
-        <p className="text-sm font-medium">Noch keine Trades in der Historie.</p>
+      <div className="mt-8 p-12 bg-[#05070A] border border-[#161C26] rounded-2xl flex flex-col items-center justify-center text-slate-500 shadow-2xl">
+        <Clock className="w-10 h-10 opacity-20 mb-3 text-slate-500" />
+        <p className="text-xs font-mono font-medium tracking-wide">Noch keine Trades in der Historie.</p>
       </div>
     )
   }
 
   return (
-    <div className="mt-6 sm:mt-8 space-y-4">
+    <div className="mt-6 sm:mt-8 space-y-6 font-sans">
       {viewMode === 'journal' && (
         <JournalAnalytics trades={tradeList.filter(t => t.is_transferred)} />
       )}
 
       {/* FILTER & HEADER BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-[#0B0E14] border border-[#161A23] p-3.5 sm:p-4 rounded-2xl shadow-sm">
-        <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-          {viewMode === 'dashboard' ? (
-            <><Clock className="w-3.5 h-3.5 text-amber-400" /> Post-Trade Inbox (Offen)</>
-          ) : (
-            <><Target className="w-3.5 h-3.5 text-[#089981]" /> Handelsjournal & Archiv</>
-          )}
-        </h2>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-[#05070A] border border-[#161C26] p-4 rounded-2xl shadow-xl backdrop-blur-xl">
+        <div className="flex items-center gap-2.5">
+          <div className="w-2 h-2 rounded-full bg-[#089981] animate-pulse" />
+          <h2 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+            {viewMode === 'dashboard' ? 'Post-Trade Inbox (Aktiv ausstehend)' : 'Execution Ledger & Archive'}
+          </h2>
+        </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 text-xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 text-xs font-mono">
             <select 
-              className="bg-[#141824] border border-[#1E2536] rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-[#089981] font-medium"
+              className="bg-[#0A0E17] border border-[#161C26] rounded-xl px-3.5 py-2 text-slate-300 focus:outline-none focus:border-[#089981] font-medium transition"
               value={filterSide}
               onChange={(e) => setFilterSide(e.target.value)}
             >
@@ -287,7 +284,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
             </select>
             
             <select 
-              className="bg-[#141824] border border-[#1E2536] rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-[#089981] font-medium truncate"
+              className="bg-[#0A0E17] border border-[#161C26] rounded-xl px-3.5 py-2 text-slate-300 focus:outline-none focus:border-[#089981] font-medium truncate transition"
               value={filterTag}
               onChange={(e) => setFilterTag(e.target.value)}
             >
@@ -297,33 +294,33 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
               ))}
             </select>
           </div>
-          <span className="text-[11px] text-slate-500 font-mono font-medium sm:border-l sm:border-[#1E2536] sm:pl-3 text-right sm:text-left">
-            {filteredTrades.length} Trades
+          <span className="text-[11px] text-slate-400 font-mono font-bold sm:border-l sm:border-[#161C26] sm:pl-3.5 text-right sm:text-left flex items-center justify-end sm:justify-start">
+            {filteredTrades.length} Einträge
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
         {viewMode === 'dashboard' && filteredTrades.length === 0 && tradeList.length > 0 && (
-          <div className="p-6 sm:p-8 bg-[#089981]/5 border border-[#089981]/20 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
-            <div className="w-12 h-12 bg-[#089981]/10 rounded-full flex items-center justify-center text-[#089981]">
+          <div className="p-8 bg-[#089981]/10 border border-[#089981]/30 rounded-2xl flex flex-col items-center justify-center text-center space-y-3 shadow-xl">
+            <div className="w-12 h-12 bg-[#089981]/20 rounded-full flex items-center justify-center text-[#089981] shadow-lg shadow-[#089981]/20">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#089981]">Inbox leer! Alles ins Journal übertragen.</p>
-              <p className="text-xs text-slate-400 mt-1">Hervorragende Disziplin. Keine offenen Post-Trade Analysen mehr ausstehend.</p>
+              <p className="text-sm font-bold text-white">Inbox leer! Alles ins Journal übertragen.</p>
+              <p className="text-xs text-slate-400 mt-1 font-mono">Hervorragende Disziplin. Keine offenen Post-Trade Analysen mehr ausstehend.</p>
             </div>
           </div>
         )}
 
         {viewMode === 'journal' && filteredTrades.length === 0 && tradeList.length > 0 && (
-          <div className="p-6 sm:p-8 bg-[#0B0E14] border border-[#161A23] rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
-            <div className="w-12 h-12 bg-[#161A23] rounded-full flex items-center justify-center text-slate-500">
+          <div className="p-8 bg-[#05070A] border border-[#161C26] rounded-2xl flex flex-col items-center justify-center text-center space-y-3 shadow-xl">
+            <div className="w-12 h-12 bg-[#0A0E17] rounded-full flex items-center justify-center text-slate-400 border border-[#161C26]">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-300">Journal-Archiv ist noch leer</p>
-              <p className="text-xs text-slate-500 mt-1">Fülle die Post-Trade Daten im Dashboard aus und klicke auf "Trade ins Journal übertragen".</p>
+              <p className="text-sm font-bold text-white">Journal-Archiv ist noch leer</p>
+              <p className="text-xs text-slate-400 mt-1 font-mono">Fülle die Post-Trade Daten im Dashboard aus und klicke auf "Trade ins Journal übertragen".</p>
             </div>
           </div>
         )}
@@ -358,7 +355,6 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
           const entryPrice = Number(trade.entry_price || 0)
           const exitPrice = Number(trade.exit_price || 0)
           const sizeCoins = Number(trade.size || 0)
-          const notionalUsd = entryPrice * sizeCoins
           const totalFees = Number(trade.total_fees || 0)
 
           let priceChangePct = 0
@@ -386,22 +382,31 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
           return (
             <div 
               key={trade.id || idx} 
-              className="bg-[#0B0E14] border border-[#161A23] hover:border-[#222938] rounded-2xl transition-all duration-200 overflow-hidden shadow-sm"
+              className={`bg-[#05070A] border rounded-xl transition-all duration-200 overflow-hidden shadow-lg ${
+                isExpanded ? 'border-[#089981] shadow-[0_0_20px_rgba(8,153,129,0.12)]' : 'border-[#161C26] hover:border-slate-700'
+              }`}
             >
               <div 
                 onClick={() => setExpandedId(isExpanded ? null : trade.id)}
-                className="p-3.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer select-none"
+                className="px-4 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer select-none"
               >
-                <div className="flex items-center justify-between w-full sm:w-auto gap-3 sm:min-w-[200px]">
+                <div className="flex items-center justify-between w-full sm:w-auto gap-3 sm:min-w-[220px]">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border shrink-0 ${isLong ? 'bg-[#089981]/10 border-[#089981]/25 text-[#089981]' : 'bg-[#F23645]/10 border-[#F23645]/25 text-[#F23645]'}`}>
-                      {isLong ? <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" /> : <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5" />}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${
+                      isLong ? 'bg-[#089981]/15 border-[#089981]/40 text-[#089981]' : 'bg-[#F23645]/15 border-[#F23645]/40 text-[#F23645]'
+                    }`}>
+                      {isLong ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                     </div>
                     <div>
-                      <h3 className="font-bold text-white text-sm tracking-wide font-mono">
-                        {trade.pair || trade.symbol || 'Unknown Pair'}
-                      </h3>
-                      <p className="text-[10px] sm:text-[11px] text-slate-500 font-mono mt-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-xs sm:text-sm font-mono tracking-wide">
+                          {trade.pair || trade.symbol || 'Unknown Pair'}
+                        </span>
+                        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded uppercase ${isLong ? 'text-[#089981] bg-[#089981]/10' : 'text-[#F23645] bg-[#F23645]/10'}`}>
+                          {isLong ? 'LONG' : 'SHORT'} {leverage}x
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                         {tradeDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
@@ -409,51 +414,51 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
 
                   {/* Mobil sichtbarer PnL Header */}
                   <div className="sm:hidden text-right">
-                    <span className={`text-sm font-black font-mono tracking-tight block ${isWin ? 'text-[#089981]' : 'text-[#F23645]'}`}>
+                    <span className={`text-xs font-black font-mono tracking-tight block ${isWin ? 'text-[#089981]' : 'text-[#F23645]'}`}>
                       {isWin ? '+' : ''}{pnl.toFixed(2)} USDT
                     </span>
                   </div>
                 </div>
 
-                <div className="flex-grow flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 sm:px-6 sm:border-l border-[#161A23] w-full sm:w-auto">
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="flex-grow flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2.5 sm:px-4 sm:border-l border-[#161C26] w-full sm:w-auto">
+                  <div className="flex flex-wrap gap-1">
                     {setupClassTags.map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 rounded-md bg-brand/10 border border-brand/20 text-[10px] text-brand font-mono">
+                      <span key={tag} className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-400 font-mono font-semibold">
                         {tag}
                       </span>
                     ))}
                     {exitTags.filter(t => EXIT_REASONS.includes(t)).map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[10px] text-blue-400 font-mono">
+                      <span key={tag} className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/25 text-[10px] text-blue-400 font-mono font-semibold">
                         Exit: {tag}
                       </span>
                     ))}
                     {!isReadyToTransfer && viewMode === 'dashboard' && (
-                      <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md font-semibold font-mono">
+                      <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded font-bold font-mono">
                         Post-Analyse offen
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="hidden sm:flex items-center justify-end gap-5 min-w-[140px] pt-3 sm:pt-0">
+                <div className="hidden sm:flex items-center justify-end gap-4 min-w-[140px] pt-1 sm:pt-0">
                   <div className="flex flex-col items-end">
-                    <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">Realized PnL</span>
-                    <span className={`text-base font-black font-mono tracking-tight ${isWin ? 'text-[#089981]' : 'text-[#F23645]'}`}>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-0.5 font-mono">Realized PnL</span>
+                    <span className={`text-sm font-black font-mono tracking-tight ${isWin ? 'text-[#089981]' : 'text-[#F23645]'}`}>
                       {isWin ? '+' : ''}{pnl.toFixed(2)} USDT
                     </span>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-[#141824] text-slate-400 border border-[#1E2536]">
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  <div className="p-1.5 rounded-lg bg-[#0A0E17] text-slate-400 border border-[#161C26] shadow-sm">
+                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </div>
                 </div>
               </div>
 
               {isExpanded && (
-                <div className="bg-[#080B10] border-t border-[#161A23] p-4 sm:p-6 space-y-6 animate-in fade-in duration-200 relative">
+                <div className="bg-[#030406] border-t border-[#161C26] p-4 sm:p-6 space-y-5 animate-in fade-in duration-200 relative">
                   
                   {viewMode === 'journal' && (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#141824] gap-2.5">
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#161C26] gap-3">
+                      <div className="flex items-center gap-2 text-xs text-slate-300 font-mono">
                         <ShieldCheck className="w-4 h-4 text-[#089981]" />
                         <span>Verifizierte Journal-Dokumentation</span>
                       </div>
@@ -461,7 +466,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                         <button 
                           type="button"
                           onClick={() => setEditableTradeIds(prev => ({ ...prev, [trade.id]: false }))}
-                          className="w-full sm:w-auto px-3.5 py-2 bg-[#089981] hover:bg-[#067a67] text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#089981]/20"
+                          className="w-full sm:w-auto px-3.5 py-2 bg-[#089981] hover:bg-[#067a67] text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#089981]/20 font-mono"
                         >
                           <Lock className="w-3.5 h-3.5" />
                           <span>Änderungen speichern & verriegeln</span>
@@ -470,7 +475,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                         <button 
                           type="button"
                           onClick={() => setShowWarningModalForId(trade.id)}
-                          className="w-full sm:w-auto px-3.5 py-2 bg-[#141824] hover:bg-[#1C2333] border border-[#1E2536] hover:border-slate-600 rounded-xl text-xs font-semibold text-slate-300 flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+                          className="w-full sm:w-auto px-3.5 py-2 bg-[#0A0E17] hover:bg-[#161C26] border border-[#161C26] hover:border-slate-600 rounded-xl text-xs font-semibold text-slate-300 flex items-center justify-center gap-2 transition cursor-pointer shadow-md font-mono"
                         >
                           <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
                           <span>Parameter anpassen</span>
@@ -480,37 +485,37 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                   )}
 
                   {/* PARAMETER TILES */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                    <div className="p-3 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Entry & Exit</span>
-                      <div className="text-xs font-mono font-bold text-slate-200 truncate">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="p-3 bg-[#05070A] border border-[#161C26] rounded-xl space-y-0.5 shadow-sm">
+                      <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Entry & Exit</span>
+                      <div className="text-xs font-mono font-bold text-white truncate">
                         ${entryPrice ? entryPrice.toLocaleString('de-DE') : '-'} 
-                        <span className="text-slate-500 mx-1">→</span>
+                        <span className="text-slate-600 mx-1">→</span>
                         ${exitPrice ? exitPrice.toLocaleString('de-DE') : '-'}
                       </div>
                     </div>
 
-                    <div className="p-3 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Delta (ROE)</span>
+                    <div className="p-3 bg-[#05070A] border border-[#161C26] rounded-xl space-y-0.5 shadow-sm">
+                      <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Delta (ROE)</span>
                       <div className="flex items-baseline gap-1.5 truncate">
                         <span className={`text-xs font-mono font-black ${priceChangePct >= 0 ? 'text-[#089981]' : 'text-[#F23645]'}`}>
                           {priceChangePct >= 0 ? '+' : ''}{priceChangePct.toFixed(2)}%
                         </span>
-                        <span className={`text-[10px] font-mono font-bold ${roePct >= 0 ? 'text-[#089981]/80' : 'text-[#F23645]/80'}`}>
+                        <span className={`text-[10px] font-mono font-bold ${roePct >= 0 ? 'text-[#089981]' : 'text-[#F23645]'}`}>
                           ({roePct >= 0 ? '+' : ''}{roePct.toFixed(1)}%)
                         </span>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Volumen</span>
-                      <div className="text-xs font-mono font-bold text-slate-200 truncate">
+                    <div className="p-3 bg-[#05070A] border border-[#161C26] rounded-xl space-y-0.5 shadow-sm">
+                      <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Volumen</span>
+                      <div className="text-xs font-mono font-bold text-white truncate">
                         {sizeCoins > 0 ? `${sizeCoins} ${baseAsset}` : '-'}
                       </div>
                     </div>
 
-                    <div className="p-3 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Gebühren</span>
+                    <div className="p-3 bg-[#05070A] border border-[#161C26] rounded-xl space-y-0.5 shadow-sm">
+                      <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Gebühren</span>
                       <div className="text-xs font-mono font-bold text-[#F23645] truncate">
                         -${totalFees.toFixed(3)} USDT
                       </div>
@@ -519,79 +524,79 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
 
                   {/* ERÖFFNUNGSANALYSE - NUR IM HANDELSJOURNAL SICHTBAR */}
                   {viewMode === 'journal' && (
-                    <div className="space-y-3">
-                      <span className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 text-[#089981]">
-                        <Lock className="w-3 h-3" /> Eröffnungsanalyse {!isUnlockedInJournal ? '(Verriegelt)' : ''}
+                    <div className="space-y-3 bg-[#05070A] border border-[#161C26] p-4 rounded-xl shadow-lg">
+                      <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-[#089981] font-mono">
+                        <Lock className="w-3.5 h-3.5" /> Eröffnungsanalyse {!isUnlockedInJournal ? '(Verriegelt)' : ''}
                       </span>
 
                       {!isUnlockedInJournal ? (
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1 font-mono">
                               <Target className="w-3 h-3 text-brand" /> 1. Setup-Klasse
                             </span>
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            <div className="flex flex-wrap gap-1">
                               {setupClassTags.length > 0 ? setupClassTags.map(tag => (
-                                <span key={tag} className="px-2.5 py-1 bg-brand/10 text-brand border border-brand/20 rounded-lg text-[10px] font-semibold font-mono">
+                                <span key={tag} className="px-2.5 py-0.5 bg-brand/15 text-brand border border-brand/30 rounded text-[11px] font-bold font-mono">
                                   {tag}
                                 </span>
-                              )) : <span className="text-[10px] text-slate-600 font-mono">- Keine Angabe -</span>}
+                              )) : <span className="text-[11px] text-slate-600 font-mono">- Keine Angabe -</span>}
                             </div>
                           </div>
 
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1 font-mono">
                               <BrainCircuit className="w-3 h-3 text-purple-400" /> 2. Mentale Verfassung
                             </span>
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            <div className="flex flex-wrap gap-1">
                               {mentalStateTags.length > 0 ? mentalStateTags.map(tag => (
-                                <span key={tag} className="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-[10px] font-semibold font-mono">
+                                <span key={tag} className="px-2.5 py-0.5 bg-purple-500/15 text-purple-400 border border-purple-500/30 rounded text-[11px] font-bold font-mono">
                                   {tag}
                                 </span>
-                              )) : <span className="text-[10px] text-slate-600 font-mono">- Keine Angabe -</span>}
+                              )) : <span className="text-[11px] text-slate-600 font-mono">- Keine Angabe -</span>}
                             </div>
                           </div>
 
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5 md:col-span-2">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm md:col-span-2">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1 font-mono">
                               <Layers className="w-3 h-3 text-amber-400" /> 3. Konfluenz-Faktoren
                             </span>
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            <div className="flex flex-wrap gap-1">
                               {confluenceTags.length > 0 ? confluenceTags.map(tag => (
-                                <span key={tag} className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md text-[10px] font-mono">
+                                <span key={tag} className="px-2 py-0.5 bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded text-[10px] font-mono font-semibold">
                                   #{tag}
                                 </span>
-                              )) : <span className="text-[10px] text-slate-600 font-mono">- Keine Angabe -</span>}
+                              )) : <span className="text-[11px] text-slate-600 font-mono">- Keine Angabe -</span>}
                               {otherEntryTags.map(tag => (
-                                <span key={tag} className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-md text-[10px] font-mono">
+                                <span key={tag} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-mono font-semibold border border-slate-700">
                                   #{tag}
                                 </span>
                               ))}
                             </div>
                           </div>
 
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Conviction Score</span>
-                            <div className="flex items-baseline gap-2 pt-1">
-                              <span className={`text-2xl font-black font-mono ${trade.conviction >= 8 ? 'text-[#089981]' : trade.conviction >= 5 ? 'text-amber-400' : 'text-[#F23645]'}`}>
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Conviction Score</span>
+                            <div className="flex items-baseline gap-2 pt-0.5 font-mono">
+                              <span className={`text-lg font-black ${trade.conviction >= 8 ? 'text-[#089981]' : trade.conviction >= 5 ? 'text-amber-400' : 'text-[#F23645]'}`}>
                                 {trade.conviction || 5}/10
                               </span>
                             </div>
                           </div>
 
                           {trade.entry_notes && (
-                            <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5 md:col-span-3">
-                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Eröffnungsnotiz</span>
-                              <p className="text-xs text-slate-300 leading-relaxed bg-[#161A23] p-2.5 rounded-lg border border-[#222938]">
+                            <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1 md:col-span-3 shadow-sm">
+                              <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Eröffnungsnotiz</span>
+                              <p className="text-xs text-slate-300 leading-relaxed bg-[#05070A] p-2.5 rounded-lg border border-[#161C26] font-mono">
                                 {trade.entry_notes}
                               </p>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="p-4 sm:p-5 bg-[#0D111A] border border-[#1E2536] rounded-2xl space-y-5">
+                        <div className="p-4 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-4 shadow-inner">
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">1. Setup-Klasse</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">1. Setup-Klasse</span>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               {SETUP_CLASSES.map(cls => {
                                 const isActive = entryTags.includes(cls)
@@ -601,12 +606,12 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                     key={cls}
                                     type="button"
                                     onClick={() => handleUpdateEntryTag(trade.id, cls, SETUP_CLASSES)}
-                                    className={`min-h-[42px] px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${
+                                    className={`min-h-[40px] px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${
                                       isActive
                                         ? isC 
-                                          ? 'bg-[#F23645]/20 text-[#F23645] border-[#F23645]/50'
-                                          : 'bg-brand/20 text-brand border-brand/50'
-                                        : 'bg-[#141824] border-[#1E2536] text-slate-400 hover:text-white'
+                                          ? 'bg-[#F23645]/20 text-[#F23645] border-[#F23645]/60 shadow-md'
+                                          : 'bg-brand/20 text-brand border-brand/60 shadow-md'
+                                        : 'bg-[#05070A] border-[#161C26] text-slate-400 hover:text-white'
                                     }`}
                                   >
                                     {cls}
@@ -617,7 +622,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">2. Mentale Verfassung</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">2. Mentale Verfassung</span>
                             <div className="flex flex-wrap gap-2">
                               {MENTAL_STATES.map(state => {
                                 const isActive = entryTags.includes(state)
@@ -627,12 +632,12 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                     key={state}
                                     type="button"
                                     onClick={() => handleUpdateEntryTag(trade.id, state, MENTAL_STATES)}
-                                    className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                    className={`min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                                       isActive
                                         ? isToxic 
-                                          ? 'bg-[#F23645]/20 text-[#F23645] border-[#F23645]/50'
-                                          : 'bg-blue-500/20 text-blue-400 border-blue-500/50'
-                                        : 'bg-[#141824] border-[#1E2536] text-slate-400 hover:text-white'
+                                          ? 'bg-[#F23645]/20 text-[#F23645] border-[#F23645]/60 shadow-md'
+                                          : 'bg-blue-500/20 text-blue-400 border-blue-500/60 shadow-md'
+                                        : 'bg-[#05070A] border-[#161C26] text-slate-400 hover:text-white'
                                     }`}
                                   >
                                     {state}
@@ -643,8 +648,8 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">3. Konfluenz-Faktoren</span>
-                            <div className="flex flex-wrap gap-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">3. Konfluenz-Faktoren</span>
+                            <div className="flex flex-wrap gap-1.5">
                               {CONFLUENCES.map(tag => {
                                 const isActive = entryTags.includes(tag)
                                 return (
@@ -652,10 +657,10 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                     key={tag}
                                     type="button"
                                     onClick={() => handleUpdateEntryTag(trade.id, tag)}
-                                    className={`min-h-[34px] px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                                    className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer font-mono ${
                                       isActive
-                                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/50'
-                                        : 'bg-[#141824] border-[#1E2536] text-slate-400 hover:text-white'
+                                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/60 shadow-sm'
+                                        : 'bg-[#05070A] border-[#161C26] text-slate-400 hover:text-white'
                                     }`}
                                   >
                                     #{tag}
@@ -665,9 +670,9 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#161B26]">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-[#161C26]">
                             <div>
-                              <label className="text-[10px] text-slate-500 mb-1.5 font-medium flex items-center justify-between uppercase tracking-wider">
+                              <label className="text-[10px] text-slate-400 mb-1.5 font-bold flex items-center justify-between uppercase tracking-wider font-mono">
                                 Eröffnungsnotiz (Optional)
                               </label>
                               <textarea
@@ -675,12 +680,12 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                 onChange={(e) => setLocalEntryNotes(prev => ({ ...prev, [trade.id]: e.target.value }))}
                                 onBlur={() => saveTextareaToDb(trade.id, 'entry_notes', currentEntryNote)}
                                 placeholder="Erwartungshaltung, Setup-Besonderheiten..."
-                                className="w-full bg-[#141824] border border-[#1E2536] focus:border-[#089981] rounded-xl p-3 text-xs text-white outline-none min-h-[70px]"
+                                className="w-full bg-[#05070A] border border-[#161C26] focus:border-[#089981] rounded-xl p-3 text-xs text-white outline-none min-h-[70px] font-mono shadow-inner"
                               />
                             </div>
 
                             <div className="flex flex-col justify-center space-y-2">
-                              <label className="text-[10px] text-slate-400 font-semibold flex items-center justify-between">
+                              <label className="text-[10px] text-slate-400 font-bold flex items-center justify-between font-mono">
                                 <span className="uppercase tracking-wider">Conviction Score</span>
                                 <span className={`font-mono font-bold text-sm ${trade.conviction >= 8 ? 'text-[#089981]' : trade.conviction >= 5 ? 'text-amber-400' : 'text-[#F23645]'}`}>
                                   {trade.conviction || 5}/10
@@ -690,9 +695,9 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                 type="range" min="1" max="10" 
                                 value={trade.conviction || 5} 
                                 onChange={(e) => handleUpdateTrade(trade.id, 'conviction', Number(e.target.value))}
-                                className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#161A23] accent-brand"
+                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-[#05070A] border border-[#161C26] accent-brand"
                               />
-                              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                              <div className="flex justify-between text-[10px] text-slate-500 font-mono font-semibold">
                                 <span>Zweifel</span><span>Absolut sicher</span>
                               </div>
                             </div>
@@ -703,93 +708,93 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                   )}
 
                   {/* POST-TRADE ANALYSE */}
-                  <div className="space-y-3">
-                    <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="space-y-3 bg-[#05070A] border border-[#161C26] p-4 rounded-xl shadow-lg">
+                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
                       <Target className="w-3.5 h-3.5" /> Post-Trade Analyse {viewMode === 'journal' && !isUnlockedInJournal ? '(Verriegelt)' : ''}
                     </span>
 
                     {viewMode === 'journal' && !isUnlockedInJournal ? (
                       <div className="grid grid-cols-1 gap-3">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Austrittsgrund</span>
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Austrittsgrund</span>
+                            <div className="flex flex-wrap gap-1 pt-0.5">
                               {exitTags.filter(t => EXIT_REASONS.includes(t)).map(tag => (
-                                <span key={tag} className="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-[10px] font-semibold font-mono">
+                                <span key={tag} className="px-2.5 py-0.5 bg-blue-500/15 text-blue-400 border border-blue-500/30 rounded text-[11px] font-bold font-mono">
                                   {tag}
                                 </span>
                               ))}
                             </div>
                           </div>
 
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Emotion nach Exit</span>
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Emotion nach Exit</span>
+                            <div className="flex flex-wrap gap-1 pt-0.5">
                               {trade.mood ? (() => {
                                 const moodObj = MOODS.find(m => m.label === trade.mood)
                                 return (
-                                  <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-[10px] font-semibold font-mono flex items-center gap-1.5">
-                                    <span className="text-sm">{moodObj?.emoji}</span> {trade.mood}
+                                  <span className="px-2.5 py-0.5 bg-purple-500/15 text-purple-400 border border-purple-500/30 rounded text-[11px] font-bold font-mono flex items-center gap-1.5">
+                                    <span>{moodObj?.emoji}</span> {trade.mood}
                                   </span>
                                 )
-                              })() : <span className="text-[10px] text-slate-600 font-mono">-</span>}
+                              })() : <span className="text-[11px] text-slate-500 font-mono">-</span>}
                             </div>
                           </div>
 
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Management Rating</span>
-                            <div className="flex items-center gap-1 pt-1.5">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Management Rating</span>
+                            <div className="flex items-center gap-1 pt-1">
                               {[1, 2, 3, 4, 5].map(star => (
-                                <Star key={star} className={`w-4 h-4 ${star <= ratingNum ? 'fill-amber-400 text-amber-400' : 'fill-transparent text-[#222938]'}`} />
+                                <Star key={star} className={`w-3.5 h-3.5 ${star <= ratingNum ? 'fill-amber-400 text-amber-400' : 'fill-transparent text-[#222938]'}`} />
                               ))}
                             </div>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Fehler & Regelbrüche</span>
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Fehler & Regelbrüche</span>
+                            <div className="flex flex-wrap gap-1 pt-0.5">
                               {selectedErrors.map(tag => (
-                                <span key={tag} className="px-2.5 py-1 bg-[#F23645]/10 text-[#F23645] border border-[#F23645]/20 rounded-lg text-[10px] font-semibold font-mono">
+                                <span key={tag} className="px-2.5 py-0.5 bg-[#F23645]/15 text-[#F23645] border border-[#F23645]/30 rounded text-[11px] font-bold font-mono">
                                   {tag}
                                 </span>
                               ))}
                               {hasNoErrors && (
-                                <span className="text-[10px] text-[#089981] font-mono bg-[#089981]/10 px-2.5 py-1 rounded-lg border border-[#089981]/20 font-bold">
+                                <span className="text-[11px] text-[#089981] font-mono bg-[#089981]/15 px-2.5 py-0.5 rounded border border-[#089981]/30 font-bold">
                                   ✓ Kein Fehler
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5 flex flex-col justify-center">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Ausführungs-Disziplin</span>
-                            <div className="flex items-center gap-2 pt-1">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm flex flex-col justify-center">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Ausführungs-Disziplin</span>
+                            <div className="flex items-center gap-2 pt-0.5">
                               {exitTags.includes(RULE_TAG) ? (
-                                <span className="px-2.5 py-1 bg-[#089981]/10 text-[#089981] border border-[#089981]/20 rounded-lg text-[10px] font-semibold font-mono flex items-center gap-1">
+                                <span className="px-2.5 py-0.5 bg-[#089981]/15 text-[#089981] border border-[#089981]/30 rounded text-[11px] font-bold font-mono flex items-center gap-1">
                                   <CheckSquare className="w-3.5 h-3.5" /> 100% Plan-Konform
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-slate-600 font-mono">- Keine Angabe -</span>
+                                <span className="text-[11px] text-slate-500 font-mono">- Keine Angabe -</span>
                               )}
                             </div>
                           </div>
                         </div>
 
                         {trade.notes && (
-                          <div className="p-3.5 bg-[#0D111A] border border-[#161B26] rounded-xl space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Learnings & Notizen</span>
-                            <p className="text-xs text-slate-300 leading-relaxed bg-[#161A23] p-3 rounded-lg border border-[#222938]">
+                          <div className="p-3 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-1.5 shadow-sm">
+                            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider font-mono">Learnings & Notizen</span>
+                            <p className="text-xs text-slate-300 leading-relaxed bg-[#05070A] p-3 rounded-lg border border-[#161C26] font-mono">
                               {trade.notes}
                             </p>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="p-4 sm:p-5 bg-[#0D111A] border border-[#1E2536] rounded-2xl space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                      <div className="p-4 bg-[#0A0E17] border border-[#161C26] rounded-xl space-y-4 shadow-inner">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">1. Austrittsgrund (Exit Trigger)</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">1. Austrittsgrund (Exit Trigger)</span>
                             <div className="flex flex-wrap gap-2">
                               {EXIT_REASONS.map(tag => {
                                 const active = exitTags.includes(tag)
@@ -798,8 +803,8 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                     key={tag}
                                     type="button"
                                     onClick={() => handleUpdateExitReason(trade.id, tag)}
-                                    className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left flex items-center ${
-                                      active ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#141824] border-[#1E2536] text-slate-400 hover:text-white'
+                                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left flex items-center ${
+                                      active ? 'bg-blue-600/25 text-blue-400 border-blue-500/60 shadow-md' : 'bg-[#05070A] border-[#161C26] text-slate-400 hover:text-white'
                                     }`}
                                   >
                                     {active && <Check className="w-3.5 h-3.5 inline mr-1" />} {tag}
@@ -810,7 +815,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">2. Emotion nach Exit</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">2. Emotion nach Exit</span>
                             <div className="grid grid-cols-2 gap-2">
                               {MOODS.map(m => {
                                 const active = currentMood === m.label
@@ -819,11 +824,11 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                     key={m.label}
                                     type="button"
                                     onClick={() => handleUpdateTrade(trade.id, 'mood', m.label)}
-                                    className={`min-h-[42px] px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
-                                      active ? 'bg-purple-500/20 text-purple-400 border-purple-500/50' : 'bg-[#141824] border-[#1E2536] text-slate-400 hover:text-white'
+                                    className={`min-h-[40px] px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
+                                      active ? 'bg-purple-500/25 text-purple-400 border-purple-500/60 shadow-md' : 'bg-[#05070A] border-[#161C26] text-slate-400 hover:text-white'
                                     }`}
                                   >
-                                    <span className="text-base">{m.emoji}</span>
+                                    <span className="text-sm">{m.emoji}</span>
                                     <span>{m.label}</span>
                                   </button>
                                 )
@@ -832,18 +837,18 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#161B26]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-3 border-t border-[#161C26]">
                           <div>
-                            <span className="text-[10px] font-semibold text-[#F23645] uppercase tracking-wider block mb-2">Fehler-Kategorisierung (Multi-Select)</span>
+                            <span className="text-[10px] font-bold text-[#F23645] uppercase tracking-wider block mb-2 font-mono">Fehler-Kategorisierung (Multi-Select)</span>
                             <div className="flex flex-wrap gap-2">
                               <button
                                 key="no-error"
                                 type="button"
                                 onClick={() => handleSelectNoErrors(trade.id)}
-                                className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                                className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                                   hasNoErrors 
-                                    ? 'bg-[#089981]/20 text-[#089981] border-[#089981]/50' 
-                                    : 'bg-[#141824] border-[#1E2536] text-slate-400 hover:text-slate-200'
+                                    ? 'bg-[#089981]/25 text-[#089981] border-[#089981]/60 shadow-md' 
+                                    : 'bg-[#05070A] border-[#161C26] text-slate-400 hover:text-slate-200'
                                 }`}
                               >
                                 {hasNoErrors && <Check className="w-3.5 h-3.5 inline" />} Kein Fehler
@@ -856,8 +861,8 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                                     key={tag}
                                     type="button"
                                     onClick={() => handleUpdateTrade(trade.id, 'exit_tags', tag)}
-                                    className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center ${
-                                      active ? 'bg-[#F23645]/20 text-[#F23645] border-[#F23645]/50' : 'bg-[#141824] border-[#1E2536] text-slate-400 hover:border-[#F23645]/50 hover:text-slate-200'
+                                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center ${
+                                      active ? 'bg-[#F23645]/25 text-[#F23645] border-[#F23645]/60 shadow-md' : 'bg-[#05070A] border-[#161C26] text-slate-400 hover:border-[#F23645]/50 hover:text-slate-200'
                                     }`}
                                   >
                                     {tag}
@@ -868,46 +873,46 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">Ausführungs-Disziplin</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">Ausführungs-Disziplin</span>
                             <div 
                               onClick={() => handleUpdateTrade(trade.id, 'exit_tags', RULE_TAG)}
-                              className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                              className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
                                 exitTags.includes(RULE_TAG)
-                                  ? 'bg-[#089981]/10 border-[#089981]/30' 
-                                  : 'bg-[#141824] border-[#1E2536] hover:border-slate-600'
+                                  ? 'bg-[#089981]/15 border-[#089981]/40 shadow-md' 
+                                  : 'bg-[#05070A] border-[#161C26] hover:border-slate-600'
                               }`}
                             >
-                              {exitTags.includes(RULE_TAG) ? <CheckSquare className="w-5 h-5 text-[#089981]" /> : <Square className="w-5 h-5 text-slate-500" />}
+                              {exitTags.includes(RULE_TAG) ? <CheckSquare className="w-4 h-4 text-[#089981]" /> : <Square className="w-4 h-4 text-slate-500" />}
                               <div>
-                                <p className={`text-xs font-bold ${exitTags.includes(RULE_TAG) ? 'text-[#089981]' : 'text-slate-300'}`}>100% Plan-Konform</p>
-                                <p className="text-[10px] text-slate-500">Regeln vollständig eingehalten</p>
+                                <p className={`text-xs font-bold font-mono ${exitTags.includes(RULE_TAG) ? 'text-[#089981]' : 'text-slate-200'}`}>100% Plan-Konform</p>
+                                <p className="text-[10px] text-slate-400 font-mono">Regeln vollständig eingehalten</p>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#161B26]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-3 border-t border-[#161C26]">
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">
                               Management-Bewertung
                             </span>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                               {[1, 2, 3, 4, 5].map(star => (
                                 <button
                                   key={star}
                                   type="button"
                                   onClick={() => handleRatingChange(trade.id, star)}
-                                  className="p-1.5 transition-transform hover:scale-125 cursor-pointer"
+                                  className="p-1 transition-transform hover:scale-125 cursor-pointer"
                                 >
-                                  <Star className={`w-6 h-6 sm:w-7 sm:h-7 ${star <= ratingNum ? 'fill-amber-400 text-amber-400' : 'fill-transparent text-[#222938]'}`} />
+                                  <Star className={`w-5 h-5 ${star <= ratingNum ? 'fill-amber-400 text-amber-400' : 'fill-transparent text-[#222938]'}`} />
                                 </button>
                               ))}
                             </div>
-                            <p className="text-[10px] text-slate-500 mt-1.5">Wie sauber hast du diesen Trade gemanagt?</p>
+                            <p className="text-[10px] text-slate-400 mt-1.5 font-mono">Wie sauber hast du diesen Trade gemanagt?</p>
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">
                               Learnings (Optional)
                             </span>
                             <textarea
@@ -915,24 +920,24 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                               onChange={(e) => setLocalNotes(prev => ({ ...prev, [trade.id]: e.target.value }))}
                               onBlur={() => saveTextareaToDb(trade.id, 'notes', currentNotes)}
                               placeholder="Was machst du beim nächsten Mal anders?"
-                              className="w-full bg-[#141824] border border-[#1E2536] focus:border-[#089981] rounded-xl p-3 text-xs text-white outline-none min-h-[70px]"
+                              className="w-full bg-[#05070A] border border-[#161C26] focus:border-[#089981] rounded-xl p-3 text-xs text-white outline-none min-h-[70px] font-mono shadow-inner"
                             />
                           </div>
                         </div>
 
                         {viewMode === 'dashboard' && !trade.is_transferred && (
-                          <div className="pt-4 border-t border-[#161B26]">
+                          <div className="pt-3 border-t border-[#161C26]">
                             <button
                               type="button"
                               onClick={() => handleTransferToJournal(trade.id)}
                               disabled={!isReadyToTransfer}
-                              className="w-full min-h-[46px] py-3.5 bg-[#089981] hover:bg-[#067a67] disabled:bg-[#141824] disabled:text-slate-600 text-white font-extrabold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-[#089981]/20 cursor-pointer disabled:cursor-not-allowed"
+                              className="w-full min-h-[44px] py-3 bg-[#089981] hover:bg-[#067a67] disabled:bg-[#05070A] disabled:text-slate-600 text-white font-mono font-extrabold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-[#089981]/20 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Send className="w-4 h-4" />
                               <span>Trade ins Journal übertragen</span>
                             </button>
                             {!isReadyToTransfer && (
-                              <p className="text-[11px] text-amber-400/80 text-center mt-2 font-medium">
+                              <p className="text-[11px] text-amber-400/90 text-center mt-2 font-mono font-medium">
                                 Bitte Austrittsgrund, Emotion nach Exit und Management-Bewertung ausfüllen.
                               </p>
                             )}
@@ -950,22 +955,22 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
       </div>
 
       {showWarningModalForId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-[#0D111A] border border-[#1A202C] rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl relative">
-            <div className="flex items-center gap-3 text-amber-400 pb-2 border-b border-[#161B26]">
-              <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="bg-[#05070A] border border-[#161C26] rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl relative font-sans">
+            <div className="flex items-center gap-3 text-amber-400 pb-3 border-b border-[#161C26]">
+              <div className="p-2 bg-amber-500/15 rounded-xl border border-amber-500/30">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="text-sm font-bold text-white">Archivierten Trade anpassen?</h4>
-                <p className="text-[11px] text-slate-400">Verfälschung vergangener Verhaltensmuster</p>
+                <p className="text-[11px] text-slate-400 font-mono">Verfälschung vergangener Verhaltensmuster</p>
               </div>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
               Das nachträgliche Anpassen von vergangenem Verhalten verfälscht deine Statistiken und führt zu <strong>Hindsight Bias (Rückschaufehler)</strong>. Sei ehrlich zu dir selbst.
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 font-mono">
               Möchtest du diesen archivierten Trade wirklich zur Bearbeitung freischalten?
             </p>
 
@@ -973,7 +978,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
               <button 
                 type="button"
                 onClick={() => setShowWarningModalForId(null)}
-                className="w-full sm:w-auto px-4 py-2.5 bg-[#161A23] hover:bg-[#222938] text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 bg-[#0A0E17] hover:bg-[#161C26] text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer font-mono"
               >
                 Abbrechen
               </button>
@@ -983,7 +988,7 @@ export function JournalDashboard({ trades = [], viewMode = 'journal' }: { trades
                   setEditableTradeIds(prev => ({ ...prev, [showWarningModalForId]: true }))
                   setShowWarningModalForId(null)
                 }}
-                className="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-amber-500/20"
+                className="w-full sm:w-auto px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-amber-500/20 font-mono"
               >
                 Ich bin mir sicher
               </button>

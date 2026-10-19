@@ -140,6 +140,7 @@ export default function ProfilePage() {
   // Telegram / Notifications
   const [telegramChatId, setTelegramChatId] = useState('')
   const [notifyOnFill, setNotifyOnFill] = useState(true)
+  const [connectingTelegram, setConnectingTelegram] = useState(false)
 
   // Security Form
   const [newEmail, setNewEmail] = useState('')
@@ -169,6 +170,7 @@ export default function ProfilePage() {
             setAvatarUrl(LEGENDARY_AVATARS[0])
           }
 
+          // Einstellungen aus user_settings laden
           const { data: settings } = await supabase
             .from('user_settings')
             .select('*')
@@ -180,12 +182,23 @@ export default function ProfilePage() {
             setApiKey(settings.api_key || '')
             setApiSecret(settings.api_secret || '')
             setPassphrase(settings.passphrase || '')
-            setTelegramChatId(settings.telegram_chat_id || '')
+            setTelegramChatId(settings.telegram_chat_id ? String(settings.telegram_chat_id) : '')
             setNotifyOnFill(settings.notify_on_fill ?? true)
 
             if (settings.api_key && settings.api_secret) {
               setApiStatus({ connected: true, message: 'API-Schlüssel konfiguriert.' })
             }
+          }
+
+          // Telegram Chat ID zusätzlich aus profiles laden (falls durch Bot-Webhook aktualisiert)
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('telegram_chat_id')
+            .eq('id', user.id)
+            .maybeSingle()
+
+          if (prof?.telegram_chat_id) {
+            setTelegramChatId(String(prof.telegram_chat_id))
           }
         }
       } catch (err: any) {
@@ -199,6 +212,54 @@ export default function ProfilePage() {
   }, [])
 
   const markDirty = () => setHasUnsavedChanges(true)
+
+  // 1-Klick Telegram Deep-Link Handler
+  const handleConnectTelegram = async () => {
+    if (!user) return
+    setConnectingTelegram(true)
+    setError(null)
+
+    try {
+      const linkToken = crypto.randomUUID().replace(/-/g, '')
+
+      const { error: tokenError } = await supabase
+        .from('profiles')
+        .update({ telegram_link_token: linkToken })
+        .eq('id', user.id)
+
+      if (tokenError) throw tokenError
+
+      const botUrl = `https://t.me/riskil_terminal_bot?start=${linkToken}`
+      window.open(botUrl, '_blank')
+    } catch (err: any) {
+      setError('Fehler beim Erstellen des Telegram-Links: ' + err.message)
+    } finally {
+      setConnectingTelegram(false)
+    }
+  }
+
+  const handleDisconnectTelegram = async () => {
+    if (!confirm('Möchtest du die Telegram-Verbindung wirklich trennen?')) return
+    if (!user) return
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ telegram_chat_id: null, telegram_link_token: null })
+        .eq('id', user.id)
+
+      await supabase
+        .from('user_settings')
+        .update({ telegram_chat_id: null })
+        .eq('user_id', user.id)
+
+      setTelegramChatId('')
+      setSuccessMsg('Telegram-Verbindung erfolgreich getrennt.')
+      setTimeout(() => setSuccessMsg(null), 3000)
+    } catch (err: any) {
+      setError('Fehler beim Trennen von Telegram: ' + err.message)
+    }
+  }
 
   // API Health Check
   const handleTestApi = async () => {
@@ -289,7 +350,7 @@ export default function ProfilePage() {
         api_key: apiKey.trim(),
         api_secret: apiSecret.trim(),
         passphrase: requiresPassphrase ? passphrase.trim() : null,
-        telegram_chat_id: telegramChatId.trim(),
+        telegram_chat_id: telegramChatId ? telegramChatId.trim() : null,
         notify_on_fill: notifyOnFill,
         updated_at: new Date().toISOString()
       }
@@ -525,34 +586,83 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* TELEGRAM BOT VERKNÜPFUNG */}
             <div className="bg-[#0D111A] border border-[#1A202C] rounded-2xl p-6 space-y-5">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Send size={16} className="text-[#00E676]" /> Telegram Notifications & Alarme
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Erhalte sofortige Signale, Preisalarme und Order-Fills direkt auf dein Smartphone.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Telegram Chat ID</label>
-                  <input
-                    type="text"
-                    placeholder="z.B. 123456789"
-                    value={telegramChatId}
-                    onChange={(e) => { setTelegramChatId(e.target.value); markDirty(); }}
-                    className="w-full bg-[#07090E] border border-[#1A202C] focus:border-[#00E676] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono placeholder:text-slate-600 transition"
-                  />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Send size={16} className="text-[#00E676]" /> Telegram Notifications & Bot-Audit
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Erhalte sofortige Signale, Bitget-Fills und erfasse Scale-In-Gründe direkt vom Sperrbildschirm.
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 bg-[#07090E] border border-[#1A202C] rounded-xl self-end">
-                  <span className="text-xs font-semibold text-slate-300">Order-Fill Benachrichtigungen</span>
+                {/* Status Badge */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {telegramChatId ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00E676]/10 border border-[#00E676]/30 text-[#00E676] text-xs font-mono font-bold">
+                      <span className="w-2 h-2 rounded-full bg-[#00E676] animate-pulse" />
+                      Verbunden ({telegramChatId})
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs font-mono">
+                      <span className="w-2 h-2 rounded-full bg-slate-500" />
+                      Nicht verknüpft
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                {/* Link / Unlink Action */}
+                <div className="p-4 bg-[#07090E] border border-[#1A202C] rounded-xl flex flex-col justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block">Bot-Verknüpfung</label>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {telegramChatId 
+                        ? 'Dein Account empfängt Fills & Risk-Checks über @riskil_terminal_bot.'
+                        : 'Starte den Bot mit einem Klick zur automatischen Kopplung ohne manuelle ID-Eingabe.'}
+                    </p>
+                  </div>
+
+                  <div>
+                    {telegramChatId ? (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectTelegram}
+                        className="px-3.5 py-2 bg-[#F23645]/10 hover:bg-[#F23645]/20 border border-[#F23645]/30 text-[#F23645] rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Unlink size={14} />
+                        <span>Verbindung trennen</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleConnectTelegram}
+                        disabled={connectingTelegram}
+                        className="px-4 py-2 bg-[#00E676] hover:bg-[#00C853] text-black font-extrabold rounded-xl text-xs transition shadow-lg shadow-[#00E676]/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {connectingTelegram ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                        <span>Mit Telegram verknüpfen</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Toggle: Notifications */}
+                <div className="p-4 bg-[#07090E] border border-[#1A202C] rounded-xl flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-slate-300 block">Order-Fill Benachrichtigungen</span>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Sendet Live-Alerts bei Limit- und Market-Ausführungen.
+                    </p>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => { setNotifyOnFill(!notifyOnFill); markDirty(); }}
-                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ml-4 ${
                       notifyOnFill ? 'bg-[#00E676]' : 'bg-[#1A202C]'
                     }`}
                   >
@@ -999,7 +1109,7 @@ export default function ProfilePage() {
 
       </div>
 
-      {/* AVATAR PICKER MODAL (IM GLEICHEN STIL WIE DIE ROBOTER, ABER ALS DEGEN PIXEL-ART) */}
+      {/* AVATAR PICKER MODAL */}
       {isAvatarModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#0D111A] border border-[#1A202C] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">

@@ -33,9 +33,13 @@ import {
   Mail,
   Loader2,
   FileImage,
-  Scale
+  Scale,
+  ShieldCheck,
+  Flame,
+  Check
 } from 'lucide-react'
 
+const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/test_eVq9AUd1m6OA0265Zv3Ru00'
 // ---------------------------------------------------------------------------
 // Reality Check Datensätze für reaktive Warnungen (Trading Desk Terminology)
 // ---------------------------------------------------------------------------
@@ -132,7 +136,7 @@ const androidSteps: GuideStep[] = [
 ]
 
 export default function LandingPage() {
-  // Modal State für Closed Beta Bewerbung
+  // Modal State für Instant Founder Access / Checkout
   const [showBetaModal, setShowBetaModal] = useState(false)
   const [betaEmail, setBetaEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -261,7 +265,7 @@ export default function LandingPage() {
 
       if (!res.ok) {
         if (res.status === 409) {
-          setSubmitError('You are already registered on the whitelist!')
+          setSubmitError('This email is already in our system!')
         } else {
           setSubmitError(data?.error || `Submission failed (${res.status})`)
         }
@@ -290,15 +294,31 @@ export default function LandingPage() {
       <div 
         className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[550px] pointer-events-none -z-10"
         style={{
-          background: 'radial-gradient(circle 450px at 50% 10%, rgba(8, 153, 129, 0.12), transparent 70%)'
+          background: 'radial-gradient(circle 450px at 50% 10%, rgba(8, 153, 129, 0.16), transparent 70%)'
         }}
       />
       <div 
         className="hidden lg:block absolute top-[1500px] left-0 w-[500px] h-[500px] pointer-events-none -z-10"
         style={{
-          background: 'radial-gradient(circle 300px at 20% 50%, rgba(8, 153, 129, 0.06), transparent 70%)'
+          background: 'radial-gradient(circle 300px at 20% 50%, rgba(8, 153, 129, 0.08), transparent 70%)'
         }}
       />
+
+      {/* TOP EMERGENCY URGENCY BANNER */}
+      <div className="bg-gradient-to-r from-[#121622] via-[#161D2B] to-[#121622] border-b border-[#1E2536] py-2 px-4 text-center text-xs font-mono">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#089981] animate-pulse" />
+          <span className="text-slate-300">
+            <strong className="text-white">Early Founder Pass ($69 Lifetime):</strong> Only 8 of 25 spots left before regular price jumps to $129.
+          </span>
+          <button 
+            onClick={() => setShowBetaModal(true)}
+            className="text-[#089981] hover:text-emerald-300 font-bold underline ml-1 cursor-pointer"
+          >
+            Claim Access →
+          </button>
+        </div>
+      </div>
 
       {/* NAVIGATION */}
       <nav className="border-b border-[#161A23] bg-[#07090E]/90 backdrop-blur-2xl sticky top-0 z-40">
@@ -313,17 +333,17 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowBetaModal(true)}
+            <Link
+              href="/auth"
               className="text-xs font-bold text-slate-400 hover:text-white transition px-3 py-1.5 cursor-pointer"
             >
               Sign In
-            </button>
+            </Link>
             <button
               onClick={() => setShowBetaModal(true)}
               className="group inline-flex items-center gap-1.5 rounded-xl bg-[#089981] px-4 py-2 text-xs font-black text-white hover:bg-[#0AAE93] transition shadow-[0_0_15px_rgba(8,153,129,0.25)] cursor-pointer"
             >
-              <span>Request Beta Access</span>
+              <span>Get Founder Pass ($69)</span>
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
@@ -331,26 +351,26 @@ export default function LandingPage() {
       </nav>
 
       {/* HERO SECTION */}
-      <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
+      <section className="relative pt-20 pb-16 sm:pt-28 sm:pb-20 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#121622] border border-[#1E2536] text-[11px] font-mono text-[#089981]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#089981] animate-pulse" />
-          <span>Zero Spreadsheets. Zero Excuses. Pure Risk Architecture.</span>
+          <Flame size={13} className="text-[#089981]" />
+          <span>Stop Donating Money to the Exchanges</span>
         </div>
 
         <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
-          Stop closing trades based on emotion.{' '}
+          Eliminate revenge-trading.{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#089981] via-emerald-400 to-[#0AAE93]">
-            Systematize your edge.
+            Lock in your discipline before you click buy.
           </span>
         </h1>
 
-        <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed">
-          Sync your exchange via 100% read-only API. Lock your trade setup and thesis <strong className="text-slate-200">at entry</strong> to eliminate hindsight bias, and calculate exact leverage factoring in real roundtrip fees.
+        <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          The terminal gate that forces strict position sizing, calculates exchange taker fees upfront, and freezes your thesis at entry. <strong className="text-white">Zero recurring subscription.</strong> If it stops your worst trade this week, it paid for itself tenfold.
         </p>
 
         {/* MULTI-EXCHANGE SUPPORT BADGES */}
         <div className="pt-1 flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
-          <span className="text-slate-500 uppercase tracking-wider font-semibold text-[10px] mr-1">Supported:</span>
+          <span className="text-slate-500 uppercase tracking-wider font-semibold text-[10px] mr-1">Currently Optimized For:</span>
           {['Bitget', 'OKX', 'Bybit', 'Binance'].map((exchange) => (
             <span 
               key={exchange} 
@@ -367,38 +387,44 @@ export default function LandingPage() {
             onClick={() => setShowBetaModal(true)}
             className="w-full sm:w-auto px-8 py-4 bg-[#089981] hover:bg-[#067a67] text-white text-xs font-black rounded-xl transition shadow-[0_0_28px_rgba(8,153,129,0.35)] flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>Apply for Closed Beta</span>
+            <span>Claim Lifetime Founder Pass — $69</span>
             <ArrowRight size={14} />
           </button>
           <a
-            href="#live-station-1"
+            href="https://go.riskil.app/tools"
+            target="_blank"
+            rel="noopener noreferrer"
             className="w-full sm:w-auto px-6 py-4 bg-[#0D111A] hover:bg-[#141824] border border-[#1A202C] hover:border-[#222938] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center justify-center"
           >
-            Explore Terminal Modules ↓
+            Test Free Web Calculators Instantly ↓
           </a>
         </div>
 
+        <div className="text-[11px] font-mono text-slate-500">
+          Regular price: <span className="line-through text-slate-600">$129</span> • 30-Day Money-Back Guarantee
+        </div>
+
         {/* SECURITY PROMISE BAR */}
-        <div className="pt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto text-left">
+        <div className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto text-left">
           <div className="bg-[#0B0E14] border border-[#161A23] p-3.5 rounded-xl flex items-center gap-3">
             <KeyRound size={18} className="text-[#089981] shrink-0" />
             <div className="text-xs">
-              <div className="font-bold text-white">100% Read-Only</div>
-              <div className="text-[10px] text-slate-500">Zero trade routing or withdrawal access</div>
+              <div className="font-bold text-white">100% Read-Only Safety</div>
+              <div className="text-[10px] text-slate-500">Zero withdrawal access. Your capital is untouchable.</div>
             </div>
           </div>
           <div className="bg-[#0B0E14] border border-[#161A23] p-3.5 rounded-xl flex items-center gap-3">
             <Lock size={18} className="text-[#089981] shrink-0" />
             <div className="text-xs">
-              <div className="font-bold text-white">AES-256-GCM</div>
-              <div className="text-[10px] text-slate-500">Hardware-grade credential encryption</div>
+              <div className="font-bold text-white">AES-256 Client Security</div>
+              <div className="text-[10px] text-slate-500">Zero-knowledge local storage architecture.</div>
             </div>
           </div>
           <div className="bg-[#0B0E14] border border-[#161A23] p-3.5 rounded-xl flex items-center gap-3">
-            <Activity size={18} className="text-[#089981] shrink-0" />
+            <ShieldCheck size={18} className="text-[#089981] shrink-0" />
             <div className="text-xs">
-              <div className="font-bold text-white">Real-Time Sync</div>
-              <div className="text-[10px] text-slate-500">No manual CSV uploads or logs</div>
+              <div className="font-bold text-white">No Monthly Subscription</div>
+              <div className="text-[10px] text-slate-500">Pay once, own your discipline edge forever.</div>
             </div>
           </div>
         </div>
@@ -419,13 +445,13 @@ export default function LandingPage() {
               <div className="space-y-2 max-w-2xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#089981]/15 border border-[#089981]/30 text-[#089981] font-mono text-[10px] font-bold uppercase">
                   <Calculator size={13} />
-                  <span>Instant Access • No Login Required • PWA Ready</span>
+                  <span>Instant Calculations • Zero Signup Barrier</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Free Perps Calculator Suite. Built for Speed.
+                  Math under adrenaline fails. Calculate exact risk in 2 seconds.
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                  Need instant pre-trade numbers without setting up an API? Use our standalone client-side terminal tools right in your browser or install them on your home screen.
+                  Never guess decimal places while prices are flashing. Use our lightning-fast browser terminal tools before entering orders on Bitget, Bybit or Binance.
                 </p>
               </div>
 
@@ -598,15 +624,15 @@ export default function LandingPage() {
       <section id="live-station-1" className="max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-[#161A23] space-y-8">
         
         <div className="max-w-3xl space-y-2">
-          <div className="inline-flex items-center gap-2 text-xs font-mono text-[#089981] font-bold uppercase tracking-wider">
-            <Activity size={14} />
-            <span>Module 01 • Open Positions & Pre-Trade Lock</span>
+          <div className="inline-flex items-center gap-2 text-xs font-mono text-[#F23645] font-bold uppercase tracking-wider">
+            <AlertTriangle size={14} />
+            <span>The Kill-Switch • Pre-Trade Integrity Gate</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Live positions meet psychological integrity filters.
+            Stop blowing accounts when you tilt. Freeze your thesis at entry.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Trades rarely fail because of chart mechanics — they fail due to the trader&apos;s mental state at entry. RISKIL forces you to record setup quality and emotional state <strong className="text-slate-200">while the trade is live</strong> and freezes it. Zero rationalizing after the fact.
+            Trades rarely die because of poor technicals — they die because you double down under panic. RISKIL forces you to document setup quality and your psychological state <strong className="text-slate-200">the second you enter</strong>, then locks it down. No rewriting history after you get wicked out.
           </p>
         </div>
 
@@ -823,7 +849,7 @@ export default function LandingPage() {
             </div>
             <div className="text-xs space-y-1">
               <div className="font-bold text-white uppercase tracking-wide flex items-center gap-2">
-                <span>Historical Reality Check: Tag #{selectedMental}</span>
+                <span>Execution Alert: Mindset #{selectedMental}</span>
                 <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-black/40 border border-white/10">
                   {activeWarning.count} trades logged
                 </span>
@@ -845,13 +871,13 @@ export default function LandingPage() {
         <div className="max-w-3xl space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-[#089981] font-bold uppercase tracking-wider">
             <Clock size={14} />
-            <span>Module 02 • Post-Trade Inbox & Audit Integrity</span>
+            <span>Honest Post-Trade Audit</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            No closed trade enters the archive without an audit.
+            Never lie to yourself again. Zero closed trades without an audit.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Closed trades route automatically into your <strong className="text-slate-200">Post-Trade Inbox</strong>. They are withheld from your verified analytics until exit rationale, execution discipline, and post-trade mindset are documented with complete honesty.
+            Closed trades route automatically into your Post-Trade Inbox. No hiding bad entries or pretending a lucky FOMO trade was planned. If you broke your rules, RISKIL flags it directly in your analytics.
           </p>
         </div>
 
@@ -960,13 +986,13 @@ export default function LandingPage() {
         <div className="max-w-3xl space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-[#089981] font-bold uppercase tracking-wider">
             <Calculator size={14} />
-            <span>Module 03 • Mathematical Risk Engine</span>
+            <span>Mathematical Risk Engine</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Stop distance & roundtrip fees dictate leverage — never greed.
+            Stop distance & real exchange fees dictate leverage — never greed.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Generic leverage calculators ignore taker and liquidation slippage. RISKIL determines your maximum allowable leverage based on your strict dollar loss tolerance and automatically accounts for maker/taker fee erosion.
+            Generic leverage calculators ignore taker fees, liquidation buffers, and slippage. RISKIL calculates your mathematically optimal leverage based on your exact dollar risk limit, not emotional gut feeling.
           </p>
         </div>
 
@@ -1155,7 +1181,77 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* PWA INSTALLATION GUIDE (iOS & Android) */}
+      {/* FOUNDER PASS PRICING & GUARANTEE TABLE */}
+      {/* ========================================================================= */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20 border-t border-[#161A23]">
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+          <span className="text-[11px] font-mono tracking-widest text-[#089981] uppercase bg-[#089981]/10 px-3.5 py-1 rounded-full border border-[#089981]/25 font-bold">
+            One-Time Investment • No SaaS Recurring Bill
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+            Cheaper than your next emotional stop-loss.
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400">
+            A single uncalculated position or late-night revenge trade costs you hundreds of dollars. RISKIL costs $69 once.
+          </p>
+        </div>
+
+        <div className="rounded-3xl border-2 border-[#089981] bg-gradient-to-b from-[#0D121D] to-[#07090E] p-6 sm:p-10 shadow-[0_0_50px_rgba(8,153,129,0.15)] relative overflow-hidden">
+          <div className="absolute top-0 right-0 bg-[#089981] text-black font-mono font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-bl-2xl">
+            Founder Tier • 8 Spots Left
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 pb-8 border-b border-[#1E2536]">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">Lifetime Founder License</h3>
+              <p className="text-xs text-slate-400 mt-1">Full terminal access, real-time sync, and all future updates.</p>
+            </div>
+            <div className="text-left sm:text-right">
+              <div className="flex items-baseline gap-2">
+                <span className="text-slate-500 line-through text-lg font-mono">$129</span>
+                <span className="text-4xl sm:text-5xl font-black text-white font-mono">$69</span>
+              </div>
+              <span className="text-[11px] font-mono text-[#089981]">One-time payment • Own forever</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-8 text-xs">
+            {[
+              'Direct Read-Only Bitget & Exchange Sync',
+              'Real-Time Taker & Maker Fee Deductions',
+              'Pre-Trade Mental State & Setup Locking',
+              'Mandatory Post-Trade Audit Protocol',
+              'Installable Standalone Mobile & Desktop PWA',
+              'Zero-Knowledge Client Storage Architecture',
+              '30-Day No-Questions Money Back Guarantee',
+              'All Upcoming v2 Modules Included for Free'
+            ].map((feat) => (
+              <div key={feat} className="flex items-center gap-2.5 text-slate-300">
+                <div className="w-4 h-4 rounded-full bg-[#089981]/20 text-[#089981] flex items-center justify-center shrink-0">
+                  <Check size={11} strokeWidth={3} />
+                </div>
+                <span>{feat}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={() => setShowBetaModal(true)}
+              className="w-full py-4 bg-[#089981] hover:bg-[#0AAE93] text-white font-black text-sm rounded-xl transition shadow-[0_0_30px_rgba(8,153,129,0.35)] flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Get Instant Founder Access for $69</span>
+              <ArrowRight size={16} />
+            </button>
+            <p className="text-center text-[11px] text-slate-500 font-mono">
+              🛡️ 30-Day Guarantee: If RISKIL doesn’t save you from your worst trade this month, get an immediate 100% refund.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* PWA INSTALLATION GUIDE */}
       {/* ========================================================================= */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-[#161A23]">
         <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
@@ -1201,7 +1297,6 @@ export default function LandingPage() {
 
         {/* INTERACTIVE GUIDE CONTAINER */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-[#0B0E14] border border-[#161A23] rounded-3xl p-6 md:p-10 shadow-2xl">
-          {/* STEP CARDS (LINKS) */}
           <div className="md:col-span-6 space-y-3.5">
             {activeSteps.map((step, idx) => {
               const Icon = step.icon
@@ -1238,30 +1333,23 @@ export default function LandingPage() {
             })}
           </div>
 
-          {/* PHONE VISUALIZER (RECHTS) */}
+          {/* PHONE VISUALIZER */}
           <div className="md:col-span-6 flex justify-center py-4">
             <div className="relative w-[280px] h-[480px] bg-[#07090E] border-[6px] border-[#1A1F2C] rounded-[40px] shadow-2xl overflow-hidden flex flex-col justify-between">
-              {/* NOTCH / DYNAMIC ISLAND */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#161A23] rounded-full z-20" />
-
-              {/* SIMULATED APP HEADER */}
               <div className="pt-8 px-4 flex items-center justify-between border-b border-[#161A23]/60 pb-3 bg-[#0B0E14]/60">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-[#089981] flex items-center justify-center text-[10px] font-black text-white">
-                    R
-                  </div>
+                  <div className="w-5 h-5 rounded-md bg-[#089981] flex items-center justify-center text-[10px] font-black text-white">R</div>
                   <span className="text-[11px] font-bold text-white tracking-wide">RISKIL</span>
                 </div>
                 <div className="w-2 h-2 rounded-full bg-[#089981] animate-pulse" />
               </div>
 
-              {/* SIMULATED APP CONTENT */}
               <div className="p-4 space-y-3 flex-1 flex flex-col justify-center">
                 <div className="bg-[#121622] p-3 rounded-xl border border-[#161A23] space-y-1">
                   <div className="h-2 w-12 bg-slate-700 rounded" />
                   <div className="h-4 w-24 bg-[#089981]/80 rounded" />
                 </div>
-
                 <div className="bg-[#121622] p-3 rounded-xl border border-[#161A23] space-y-2">
                   <div className="h-2 w-20 bg-slate-700 rounded" />
                   <div className="h-16 w-full bg-[#0B0E14] rounded-lg border border-[#161A23] flex items-center justify-center text-[10px] text-slate-500 font-mono">
@@ -1362,53 +1450,30 @@ export default function LandingPage() {
                 <p className="text-[11px] text-slate-400">Breach of journal integrity protocol</p>
               </div>
             </div>
-
             <p className="text-xs text-slate-300 leading-relaxed">
               Modifying your setup parameters after order fill induces <strong>hindsight bias</strong> and compromises your statistical edge. Do not rationalize what the market is doing.
             </p>
-            <p className="text-xs text-slate-400">
-              Are you sure you want to unlock this pre-trade entry analysis?
-            </p>
-
+            <p className="text-xs text-slate-400">Are you sure you want to unlock this pre-trade entry analysis?</p>
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button 
-                type="button"
-                onClick={() => setShowWarningModal(false)}
-                className="px-4 py-2 bg-[#161A23] hover:bg-[#222938] text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button"
-                onClick={() => {
-                  setIsLocked(false)
-                  setShowWarningModal(false)
-                }}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-amber-500/20"
-              >
-                Override & Unlock
-              </button>
+              <button onClick={() => setShowWarningModal(false)} className="px-4 py-2 bg-[#161A23] hover:bg-[#222938] text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer">Cancel</button>
+              <button onClick={() => { setIsLocked(false); setShowWarningModal(false); }} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-amber-500/20">Override & Unlock</button>
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* CLOSED BETA ACCESS APPLICATION MODAL */}
+      {/* FOUNDER CHECKOUT / ACCESS MODAL */}
       {/* ========================================================================= */}
       {showBetaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
           <div className="bg-[#0B0E14] border border-[#1E2536] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
             
-            {/* Ambient Background Glow */}
             <div 
               className="absolute -top-24 -right-24 w-60 h-60 pointer-events-none -z-10"
-              style={{
-                background: 'radial-gradient(circle, rgba(8, 153, 129, 0.25) 0%, transparent 70%)'
-              }}
+              style={{ background: 'radial-gradient(circle, rgba(8, 153, 129, 0.25) 0%, transparent 70%)' }}
             />
 
-            {/* Close Button */}
             <button
               onClick={() => setShowBetaModal(false)}
               className="absolute top-5 right-5 p-2 rounded-xl bg-[#141824] hover:bg-[#1E2536] text-slate-400 hover:text-white transition cursor-pointer border border-[#1E2536]"
@@ -1416,24 +1481,33 @@ export default function LandingPage() {
               <X size={16} />
             </button>
 
-            {/* Modal Header */}
             <div className="space-y-2 pr-6">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#089981]/10 border border-[#089981]/30 text-[10px] font-mono text-[#089981] font-bold uppercase tracking-wider">
                 <Sparkles size={12} />
-                <span>Private Closed Beta Rolling Out</span>
+                <span>Founder Tier • Instant Terminal Access</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Apply for Terminal Access
+                Unlock Lifetime Access ($69)
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                We manually onboard derivatives traders to ensure zero execution friction and custom API security verification. Choose your preferred fast-track channel below:
+                Connect your trading account, stop emotional leaks, and keep your hard-earned profits.
               </p>
             </div>
 
-            {/* FAST TRACK DIRECT BUTTONS */}
+            {/* STRIPE DIRECT INSTANT CHECKOUT BUTTON */}
+            <div className="pt-1">
+              <a
+                href={STRIPE_CHECKOUT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-4 bg-[#089981] hover:bg-[#0AAE93] text-black font-mono font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(8,153,129,0.35)] cursor-pointer"
+              >
+                <span>Instant Checkout via Card ($69 Once)</span>
+                <ArrowRight size={14} />
+              </a>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              
-              {/* X / Twitter Direct Application */}
               <a
                 href="https://x.com/robingerling"
                 target="_blank"
@@ -1441,24 +1515,22 @@ export default function LandingPage() {
                 className="group p-4 rounded-2xl bg-[#07090E] border border-[#1E2536] hover:border-[#089981]/60 transition-all flex flex-col justify-between gap-3 shadow-lg hover:shadow-[#089981]/10"
               >
                 <div className="flex items-center justify-between">
-                  {/* Minimal X Logo */}
                   <div className="w-9 h-9 rounded-xl bg-[#141824] flex items-center justify-center text-white border border-[#222938]">
                     <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                     </svg>
                   </div>
-                  <span className="text-[10px] font-mono text-[#089981] font-bold">Fast-Track ⚡</span>
+                  <span className="text-[10px] font-mono text-[#089981] font-bold">Fast DM ⚡</span>
                 </div>
                 <div>
                   <div className="text-xs font-bold text-white group-hover:text-[#089981] transition flex items-center gap-1">
-                    <span>DM on X (Twitter)</span>
+                    <span>Founder Desk on X</span>
                     <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">@robingerling (Instant invite)</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">@robingerling (DM us)</div>
                 </div>
               </a>
 
-              {/* Telegram Direct Application */}
               <a
                 href="https://t.me/robingerling"
                 target="_blank"
@@ -1466,7 +1538,6 @@ export default function LandingPage() {
                 className="group p-4 rounded-2xl bg-[#07090E] border border-[#1E2536] hover:border-[#38BDF8]/60 transition-all flex flex-col justify-between gap-3 shadow-lg hover:shadow-[#38BDF8]/10"
               >
                 <div className="flex items-center justify-between">
-                  {/* Telegram Icon */}
                   <div className="w-9 h-9 rounded-xl bg-[#0284c7]/15 text-[#38BDF8] flex items-center justify-center border border-[#0284c7]/30">
                     <Send size={16} className="-ml-0.5 mt-0.5" />
                   </div>
@@ -1477,21 +1548,16 @@ export default function LandingPage() {
                     <span>Message on Telegram</span>
                     <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Direct chat with the founder</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Pay via USDT or PayPal</div>
                 </div>
               </a>
-
             </div>
 
-            {/* SEPARATOR */}
             <div className="relative flex items-center justify-center">
               <div className="border-t border-[#161A23] w-full" />
-              <span className="bg-[#0B0E14] px-3 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-                or request via email
-              </span>
+              <span className="bg-[#0B0E14] px-3 text-[10px] font-mono text-slate-500 uppercase tracking-widest">or unlock via email</span>
             </div>
 
-            {/* EMAIL WAITLIST INPUT */}
             <form onSubmit={handleEmailSubmit} className="space-y-3">
               <div className="relative">
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -1516,21 +1582,21 @@ export default function LandingPage() {
               <button
                 type="submit"
                 disabled={isSubmitting || betaSubmitted}
-                className="w-full py-3 bg-[#089981] hover:bg-[#067a67] disabled:bg-[#089981]/50 text-white text-xs font-black rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#089981]/25"
+                className="w-full py-3 bg-[#121622] hover:bg-[#1E2536] border border-[#1E2536] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
-                    <span>Adding to Whitelist...</span>
+                    <span>Submitting Request...</span>
                   </>
                 ) : betaSubmitted ? (
                   <>
                     <CheckCircle2 size={15} />
-                    <span>Application Submitted! We&apos;ll whitelist you soon.</span>
+                    <span>Email Received! We will whitelist you.</span>
                   </>
                 ) : (
                   <>
-                    <span>Submit Whitelist Request</span>
+                    <span>Submit Email for Whitelist</span>
                     <ArrowRight size={14} />
                   </>
                 )}
@@ -1539,7 +1605,7 @@ export default function LandingPage() {
 
             <div className="text-center">
               <span className="text-[10px] font-mono text-slate-500">
-                🔒 Zero Spam. Read-Only derivatives API access only.
+                🔒 30-Day Money-Back Guarantee • Lifetime Access
               </span>
             </div>
 
@@ -1547,22 +1613,34 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* FINAL CTA SECTION */}
+      {/* FINAL BOTTOM CTA SECTION */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center space-y-6">
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-[#0D111A] to-[#07090E] border border-[#1E2536] space-y-5 shadow-2xl relative overflow-hidden">
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Eliminate random execution variance.
+            Protect your capital before the next liquidation.
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Test the live terminal risk engine. No credit card, no password — verify your email and experience mathematical execution.
+            Stop giving your edge away to taker fees and tilt. Lock in the Founder Pass for $69 once, or test the free mathematical tools right now.
           </p>
-          <button
-            onClick={() => setShowBetaModal(true)}
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#089981] hover:bg-[#067a67] text-white text-xs font-black rounded-xl transition shadow-[0_0_28px_rgba(8,153,129,0.35)] cursor-pointer"
-          >
-            <span>Launch Free Access</span>
-            <ArrowRight size={14} />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <a
+              href={STRIPE_CHECKOUT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#089981] hover:bg-[#067a67] text-white text-xs font-black rounded-xl transition shadow-[0_0_28px_rgba(8,153,129,0.35)] cursor-pointer"
+            >
+              <span>Claim Founder Pass ($69)</span>
+              <ArrowRight size={14} />
+            </a>
+            <a
+              href="https://go.riskil.app/tools"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#121622] hover:bg-[#1A202C] border border-[#1E2536] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition"
+            >
+              <span>Open Free Tools</span>
+            </a>
+          </div>
         </div>
       </section>
 
@@ -1570,7 +1648,7 @@ export default function LandingPage() {
       <footer className="border-t border-[#161A23] py-8 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-slate-400">
-            <Zap size= {14} className="text-[#089981]" />
+            <Zap size={14} className="text-[#089981]" />
             <span>© {new Date().getFullYear()} RISKIL. Engineering Discipline.</span>
           </div>
           <div className="flex gap-6">

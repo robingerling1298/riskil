@@ -1,5 +1,9 @@
-import React from 'react'
+'use client'
+
+import React, { useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 import ToolsNavigation from './navigation'
 import { MessageSquare, Send } from 'lucide-react'
 
@@ -8,6 +12,19 @@ export default function ToolsLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        // User ist eingeloggt -> sofort ins echte Dashboard umleiten
+        router.replace('/dashboard/leverage')
+      }
+    }
+    checkUser()
+  }, [router])
+
   return (
     <div className="min-h-screen bg-[#05070B] text-slate-100 flex flex-col justify-between px-3 sm:px-6">
       <div>
